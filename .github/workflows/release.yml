@@ -1,0 +1,60 @@
+# Push a tag like v0.4.2 (matching module/module.json "version") to publish a release:
+#   module.json + module.zip  -> Foundry installs/updates from the manifest URL
+#   Windows launcher installer + zip, built on Windows
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  module:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag must match module version
+        run: |
+          VERSION=$(jq -r .version module/module.json)
+          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME but module.json says $VERSION"; exit 1
+          fi
+
+      - name: Build module.zip and the release manifest
+        run: |
+          mkdir -p out
+          (cd module && zip -qr ../out/module.zip . -x 'test/*')
+          jq --arg dl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/module.zip" \
+            '.download = $dl' module/module.json > out/module.json
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES=".github/release-notes/${GITHUB_REF_NAME}.md"
+          if [ -f "$NOTES" ]; then ARGS=(--notes-file "$NOTES"); else ARGS=(--generate-notes); fi
+          gh release create "$GITHUB_REF_NAME" out/module.json out/module.zip \
+            --title "Blockworld Bridge ${GITHUB_REF_NAME#v}" "${ARGS[@]}"
+
+  launcher:
+    needs: module
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist
+      - name: Attach installer and zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/*.exe dist/*.zip --clobber
