@@ -239,7 +239,7 @@ test('foundry: data folder detection, install, upgrade', () => {
   assert.match(foundry.defaultDataPath('win32', { LOCALAPPDATA: 'C:\\U\\AppData\\Local' }), /FoundryVTT[\\/]Data$/)
 })
 
-test('runner: server then relay start, console command, stop saves and ends both', { timeout: 60000 }, async () => {
+test('runner: server then relay start, console command, stop saves and ends both', { timeout: 60000 }, async (t) => {
   const home = tmpHome()
   const state = loadState(home)
   // free ports for this run
@@ -247,6 +247,7 @@ test('runner: server then relay start, console command, stop saves and ends both
   state.mcPort = await freePort(); state.relayPort = await freePort(); state.rconPort = await freePort()
   settings.applySettings(home, state)
   const runner = new Runner()
+  t.after(() => runner.stop()) // never leave the fake server running if an assertion fails
   const logs = []
   runner.on('log', (l) => logs.push(l))
   await runner.start({

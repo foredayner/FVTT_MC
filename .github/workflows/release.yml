@@ -120,6 +120,7 @@ jobs:
         with:
           node-version: 22
       - run: npm ci --ignore-scripts
+      - run: npm --prefix ../relay ci # the runner test starts the real relay
       - name: Tests with per-test timeout
         run: |
           set +e
