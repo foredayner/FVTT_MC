@@ -1,0 +1,160 @@
+{
+  "BWB": {
+    "ChatAlias": "마인크래프트",
+    "BlockUnit": "블록",
+    "Status": {
+      "disconnected": "연결 안 됨",
+      "connecting": "연결 중…",
+      "connected": "연결됨",
+      "error": "오류"
+    },
+    "Panel": {
+      "Title": "Blockworld Bridge",
+      "MyCharacter": "내 캐릭터",
+      "UsernamePlaceholder": "마크 이름 (영문·숫자·_ 3~16자)",
+      "Join": "접속",
+      "Leave": "접속 해제",
+      "Online": "접속 중",
+      "Joining": "접속 대기",
+      "Open3D": "3D 시점",
+      "MapModeOn": "지도 조작 켜짐",
+      "MapModeOff": "지도 조작 꺼짐",
+      "Stop": "멈춤",
+      "MapHint": "지도 조작 중: 클릭 = 이동 · Shift+클릭 = 채굴 · Alt+클릭 = 공격 (Shift+N으로 켜고 끄기)",
+      "ChatPlaceholder": "마크 채팅에 보낼 말",
+      "Avatar": "3D 모습"
+    },
+    "GM": {
+      "Header": "GM",
+      "Connect": "중계 서버 연결",
+      "Disconnect": "연결 끊기",
+      "Resync": "다시 동기화",
+      "NoBots": "접속한 캐릭터가 없습니다",
+      "MapScene": "지도 씬",
+      "MapBound": "이 씬은 지도입니다: 좌측 하단 ({x}, {z}), {size}×{size} 블록",
+      "MapUnbound": "이 씬은 아직 지도가 아닙니다. 기준 캐릭터와 크기를 골라 설정하세요.",
+      "SetupMap": "이 씬을 지도로",
+      "ClearMap": "해제",
+      "Direction": "연출",
+      "Day": "낮",
+      "Night": "밤",
+      "Clear": "맑음",
+      "Storm": "폭풍",
+      "TitlePlaceholder": "화면 중앙 문구 (나레이션)",
+      "Show": "띄우기",
+      "Apply": "적용",
+      "Summon": "소환",
+      "Everyone": "모두",
+      "ViaBotChat": "RCON이 꺼져 있어 명령을 봇 채팅으로 보냅니다. 봇에 OP 권한이 있어야 동작합니다.",
+      "Corner": "좌측 하단",
+      "CornerHint": "지도 왼쪽 아래 모서리가 될 블록의 X, Z (서남쪽 끝). 크기는 위에서 고른 값",
+      "SetupMapAt": "좌표로 지도"
+    },
+    "Effect": {
+      "slowness": "구속",
+      "blindness": "실명",
+      "darkness": "어둠",
+      "nausea": "멀미",
+      "speed": "신속",
+      "regeneration": "재생",
+      "night_vision": "야간 투시",
+      "glowing": "발광"
+    },
+    "Mob": {
+      "zombie": "좀비",
+      "skeleton": "스켈레톤",
+      "spider": "거미",
+      "creeper": "크리퍼",
+      "witch": "마녀",
+      "enderman": "엔더맨",
+      "cow": "소",
+      "wolf": "늑대",
+      "villager": "주민"
+    },
+    "View3D": {
+      "Title": "3D 시점",
+      "NoViewer": "3D 시점을 열 수 없습니다. 캐릭터가 접속 중이고 GM이 중계 서버에 연결되어 있어야 합니다.",
+      "ClickToControl": "클릭해서 조작 시작",
+      "Help": "클릭: 마우스 잡기 · WASD 이동 · Space 점프 · 왼Shift 웅크리기 · 왼Ctrl 달리기 · 좌클릭 공격/채굴 · 우클릭 사용 · Esc 해제",
+      "Preparing": "GM 쪽에서 3D 자료를 준비하고 있습니다. 끝나면 자동으로 열립니다.",
+      "Loading": "3D 화면 불러오는 중…",
+      "Failed": "3D 화면을 열지 못했습니다: {error}"
+    },
+    "Notify": {
+      "NoToken": "모듈 설정에서 중계 서버 토큰을 먼저 입력하세요.",
+      "Forbidden": "허용되지 않은 요청입니다.",
+      "NotYourBot": "자기 캐릭터만 조작할 수 있습니다.",
+      "NoGM": "GM이 접속해 있어야 마인크래프트와 연결됩니다.",
+      "NoScene": "열린 씬이 없습니다.",
+      "NoBotPosition": "기준 캐릭터의 위치를 아직 모릅니다.",
+      "MapReady": "지도 설정 완료: 좌측 하단 ({x}, {z}), {size}×{size} 블록",
+      "NotMapScene": "지금 씬은 지도 씬이 아닙니다. GM이 패널에서 지도를 설정해야 합니다.",
+      "BadUsername": "마크 이름은 영문·숫자·_ 3~16자여야 합니다.",
+      "GmSent": "명령을 보냈습니다.",
+      "VisionSetupFailed": "씬에 시야·안개를 켜지 못했습니다. 씬 설정의 조명·안개 탭에서 직접 켜주세요.",
+      "RelayNotConnected": "중계 서버에 연결되지 않았습니다. GM 패널에서 '중계 서버 연결'을 누르세요.",
+      "AssetsUploading": "3D 화면용 자료(블록 텍스처·모델)를 Foundry 데이터 폴더에 올리는 중입니다. 처음 한 번만 걸립니다.",
+      "AssetsReady": "3D 화면 자료 준비가 끝났습니다.",
+      "AssetsFailed": "3D 화면 자료를 올리지 못했습니다: {error}",
+      "NeedCorner": "좌측 하단 X, Z를 정수로 입력하세요."
+    },
+    "Settings": {
+      "RelayUrl": {
+        "Name": "중계 서버 주소",
+        "Hint": "relay 프로그램의 WebSocket 주소 (GM 브라우저에서만 사용)"
+      },
+      "RelayToken": {
+        "Name": "중계 서버 토큰",
+        "Hint": "relay 의 config.json 에 적은 token. 이 브라우저에만 저장됩니다."
+      },
+      "AutoConnect": {
+        "Name": "자동 연결",
+        "Hint": "월드에 들어올 때 중계 서버에 자동으로 연결"
+      },
+      "MirrorChat": {
+        "Name": "마크 채팅을 Foundry 채팅에 표시",
+        "Hint": "마크 채팅·사망·추방 메시지를 Foundry 채팅 로그에 남깁니다."
+      },
+      "LookSensitivity": {
+        "Name": "3D 시점 마우스 감도",
+        "Hint": ""
+      },
+      "VisionRadius": {
+        "Name": "캐릭터 시야 반경 (블록)",
+        "Hint": "지도 씬에서 각 캐릭터가 볼 수 있는 거리. 이 밖은 회색 안개로 가려집니다."
+      }
+    },
+    "Keybind": {
+      "OpenPanel": "Blockworld Bridge 패널 열기",
+      "ToggleMapMode": "지도 조작 모드 켜기/끄기"
+    },
+    "Avatar": {
+      "Title": "내 캐릭터의 3D 모습",
+      "Color": "상자 색",
+      "Image": "정면 일러스트",
+      "NoImage": "없음 (색만 표시)",
+      "Browse": "파일 고르기",
+      "Clear": "일러스트 빼기",
+      "Scale": "일러스트 크기 (정면 대비)",
+      "Hint": "다른 플레이어의 3D 화면에서 내 캐릭터는 이 색의 상자로 보이고, 바라보는 쪽 면에 일러스트가 붙습니다. 100%면 정면에 꼭 맞고, 더 키우면 상자 밖으로 넘칩니다.",
+      "Save": "저장",
+      "DragHint": "미리보기에서 일러스트를 끌어 위치를, 휠로 크기를 바꿀 수 있습니다.",
+      "Center": "가운데로"
+    },
+    "View": {
+      "Label": "단면",
+      "auto": "자동 (실내만)",
+      "fixed": "높이 지정",
+      "off": "끄기 (지붕 보기)",
+      "YHint": "바닥 높이: 캐릭터 발이 있는 블록의 Y",
+      "FromBot": "위에서 고른 캐릭터의 발 높이로",
+      "Walls": "벽을 Foundry 벽으로 (시야 차단)",
+      "NeedY": "높이 지정에는 Y 값이 필요합니다",
+      "Hint": {
+        "auto": "지붕 아래 들어간 캐릭터 주변만 지붕을 걷어내고 평면도로 보여줍니다. 위아래 층에 나뉘면 위층이 보입니다.",
+        "fixed": "지도 전체를 이 바닥 높이에서 잘라 평면도로 보여줍니다. 층을 바꿀 때 Y만 바꾸세요.",
+        "off": "위에서 내려다본 그대로입니다. 건물은 지붕만 보입니다."
+      }
+    }
+  }
+}

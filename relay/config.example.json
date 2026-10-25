@@ -1,0 +1,33 @@
+{
+  "listen": {
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "token": "CHANGE_ME_TO_A_LONG_RANDOM_STRING",
+  "minecraft": {
+    "host": "localhost",
+    "port": 25565,
+    "version": "1.21.4",
+    "auth": "offline"
+  },
+  "rcon": {
+    "enabled": false,
+    "host": "localhost",
+    "port": 25575,
+    "password": ""
+  },
+  "viewer": {
+    "enabled": true,
+    "radius": 2
+  },
+  "map": {
+    "scanAbove": 24,
+    "scanBelow": 48,
+    "refreshMs": 2000,
+    "refreshRadius": 24,
+    "indoorRadius": 12
+  },
+  "stateHz": 10,
+  "entityRadius": 32,
+  "maxBots": 8
+}

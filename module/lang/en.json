@@ -1,0 +1,160 @@
+{
+  "BWB": {
+    "ChatAlias": "Minecraft",
+    "BlockUnit": "blocks",
+    "Status": {
+      "disconnected": "Disconnected",
+      "connecting": "Connecting…",
+      "connected": "Connected",
+      "error": "Error"
+    },
+    "Panel": {
+      "Title": "Blockworld Bridge",
+      "MyCharacter": "My character",
+      "UsernamePlaceholder": "Minecraft name (A-Z, 0-9, _ · 3–16)",
+      "Join": "Join",
+      "Leave": "Leave",
+      "Online": "online",
+      "Joining": "joining",
+      "Open3D": "3D view",
+      "MapModeOn": "Map control on",
+      "MapModeOff": "Map control off",
+      "Stop": "Stop",
+      "MapHint": "Map control: click = walk · Shift+click = dig · Alt+click = attack (toggle with Shift+N)",
+      "ChatPlaceholder": "Say something in Minecraft chat",
+      "Avatar": "3D look"
+    },
+    "GM": {
+      "Header": "GM",
+      "Connect": "Connect relay",
+      "Disconnect": "Disconnect",
+      "Resync": "Resync",
+      "NoBots": "No characters online",
+      "MapScene": "Map scene",
+      "MapBound": "This scene is a map: bottom-left ({x}, {z}), {size}×{size} blocks",
+      "MapUnbound": "This scene is not a map yet. Pick a character and a size.",
+      "SetupMap": "Make this scene the map",
+      "ClearMap": "Unbind",
+      "Direction": "Direction",
+      "Day": "Day",
+      "Night": "Night",
+      "Clear": "Clear",
+      "Storm": "Storm",
+      "TitlePlaceholder": "Centre-screen narration",
+      "Show": "Show",
+      "Apply": "Apply",
+      "Summon": "Summon",
+      "Everyone": "Everyone",
+      "ViaBotChat": "RCON is off, so commands are sent as bot chat. The bot needs operator rights.",
+      "Corner": "Bottom-left",
+      "CornerHint": "X, Z of the block at the map's bottom-left corner (south-west). Size comes from the picker above",
+      "SetupMapAt": "Map from corner"
+    },
+    "Effect": {
+      "slowness": "Slowness",
+      "blindness": "Blindness",
+      "darkness": "Darkness",
+      "nausea": "Nausea",
+      "speed": "Speed",
+      "regeneration": "Regeneration",
+      "night_vision": "Night vision",
+      "glowing": "Glowing"
+    },
+    "Mob": {
+      "zombie": "Zombie",
+      "skeleton": "Skeleton",
+      "spider": "Spider",
+      "creeper": "Creeper",
+      "witch": "Witch",
+      "enderman": "Enderman",
+      "cow": "Cow",
+      "wolf": "Wolf",
+      "villager": "Villager"
+    },
+    "View3D": {
+      "Title": "3D view",
+      "NoViewer": "The 3D view is not available. Your character must be online and the GM connected to the relay.",
+      "ClickToControl": "Click to take control",
+      "Help": "Click: grab mouse · WASD move · Space jump · L-Shift sneak · L-Ctrl sprint · Left click hit/dig · Right click use · Esc release",
+      "Preparing": "The GM is preparing the 3D files. This window opens when they are ready.",
+      "Loading": "Loading the 3D view…",
+      "Failed": "Could not open the 3D view: {error}"
+    },
+    "Notify": {
+      "NoToken": "Enter the relay token in module settings first.",
+      "Forbidden": "That request is not allowed.",
+      "NotYourBot": "You can only control your own character.",
+      "NoGM": "A GM must be online to reach Minecraft.",
+      "NoScene": "No scene is open.",
+      "NoBotPosition": "That character's position is not known yet.",
+      "MapReady": "Map ready: bottom-left ({x}, {z}), {size}×{size} blocks",
+      "NotMapScene": "This scene is not a map scene. The GM sets it up from the panel.",
+      "BadUsername": "Minecraft names are 3–16 letters, digits or _.",
+      "GmSent": "Command sent.",
+      "VisionSetupFailed": "Could not turn on vision and fog for this scene. Enable them in the scene configuration.",
+      "RelayNotConnected": "Not connected to the relay. Press 'Connect relay' in the GM panel.",
+      "AssetsUploading": "Uploading 3D view files (block textures and models) to the Foundry data folder. This happens once.",
+      "AssetsReady": "3D view files are ready.",
+      "AssetsFailed": "Could not upload the 3D view files: {error}",
+      "NeedCorner": "Enter whole numbers for the bottom-left X and Z."
+    },
+    "Settings": {
+      "RelayUrl": {
+        "Name": "Relay address",
+        "Hint": "WebSocket address of the relay program (used only in the GM's browser)"
+      },
+      "RelayToken": {
+        "Name": "Relay token",
+        "Hint": "The token from the relay's config.json. Stored only in this browser."
+      },
+      "AutoConnect": {
+        "Name": "Auto-connect",
+        "Hint": "Connect to the relay when the world loads"
+      },
+      "MirrorChat": {
+        "Name": "Mirror Minecraft chat",
+        "Hint": "Post Minecraft chat, deaths and kicks to the Foundry chat log."
+      },
+      "LookSensitivity": {
+        "Name": "3D view mouse sensitivity",
+        "Hint": ""
+      },
+      "VisionRadius": {
+        "Name": "Character vision radius (blocks)",
+        "Hint": "How far each character sees on a map scene. Everything beyond is grey fog."
+      }
+    },
+    "Keybind": {
+      "OpenPanel": "Open the Blockworld Bridge panel",
+      "ToggleMapMode": "Toggle map control"
+    },
+    "Avatar": {
+      "Title": "My character's 3D look",
+      "Color": "Box colour",
+      "Image": "Front illustration",
+      "NoImage": "None (colour only)",
+      "Browse": "Choose file",
+      "Clear": "Remove illustration",
+      "Scale": "Illustration size (vs. front face)",
+      "Hint": "In other players' 3D windows your character is a box in this colour with the illustration on the side it faces. 100% fits the front face; larger spills past the box.",
+      "Save": "Save",
+      "DragHint": "Drag the picture in the preview to move it; scroll to resize.",
+      "Center": "Re-centre"
+    },
+    "View": {
+      "Label": "Cutaway",
+      "auto": "Auto (indoors only)",
+      "fixed": "Fixed floor",
+      "off": "Off (show roofs)",
+      "YHint": "Floor level: Y of the block a character's feet are in",
+      "FromBot": "Use the chosen character's floor",
+      "Walls": "Turn walls into Foundry walls (blocks vision)",
+      "NeedY": "A fixed floor needs a Y value",
+      "Hint": {
+        "auto": "Around characters under a roof the roof is cut away into a floor plan. If they are on different storeys, the upper one shows.",
+        "fixed": "The whole map is cut at this floor into a floor plan. Change Y to switch storeys.",
+        "off": "Plain top-down view: buildings show their roofs."
+      }
+    }
+  }
+}

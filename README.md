@@ -1,0 +1,100 @@
+# Blockworld Bridge
+
+Foundry VTT(V14)와 Minecraft: Java Edition 서버를 잇는 모듈 + 중계 프로그램.
+
+- **탑뷰 조작**: Foundry 씬이 마크 지도 아이템처럼 칠해진 지도가 되고, 클릭하면 캐릭터가 그 방향으로 곧장 걷거나, 캐거나, 공격합니다.
+- **시야**: 플레이어는 자기 캐릭터 주변(기본 16블록)만 보이고, 안 가본 곳은 회색 안개입니다.
+- **실내 평면도**: 지붕 아래 들어간 캐릭터 주변은 지붕을 걷어내고 바닥(밝게)·벽(어둡게)·문·창문으로 그립니다. 벽은 Foundry 벽으로 만들어져 시야를 막습니다. GM은 층 높이를 직접 지정할 수도 있습니다.
+- **3D 시점**: Foundry 안의 창에서 1인칭으로 보고 WASD·마우스로 조작합니다. 플레이어 브라우저가 직접 그리고, 데이터는 Foundry 연결로 받으므로 따로 열어야 할 포트가 없습니다.
+- **GM 연출**: 낮/밤, 날씨, 화면 중앙 나레이션, 상태효과, 몹 소환.
+
+> Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.
+> 이 모듈은 마인크래프트 게임 파일·텍스처를 포함하지 않습니다. **각 플레이어는 Minecraft: Java Edition을 보유해야 합니다.**
+
+## 구조
+
+```
+[Minecraft 서버] ⇄ [relay (Node.js, GM PC)] ⇄ WebSocket ⇄ [GM의 Foundry 탭] ⇄ Foundry 소켓 ⇄ [플레이어들]
+                       └ Mineflayer 봇 (플레이어 1명 = 봇 1개)
+```
+
+플레이어에게 필요한 것은 브라우저뿐입니다. 지도, 토큰, 3D 화면 데이터 모두 Foundry 연결로 갑니다.
+
+- `relay/` — 마크 서버에 봇으로 접속해 상태·지도·3D 청크를 보내고, Foundry에서 온 조작을 실행합니다.
+- `module/` — Foundry 모듈. 설치 폴더는 `Data/modules/blockworld-bridge`.
+- `tools/build3d/` — `module/vendor/`의 3D 렌더러를 빌드하는 도구(개발자용).
+
+## 빠른 시작 (로컬 테스트)
+
+요구: Node.js 20 이상, Foundry VTT V14.
+
+```bash
+cd relay
+npm install
+cp config.example.json config.json   # token 을 16자 이상 임의 문자열로 바꾸기
+npm run test:server                   # 1) 테스트용 마크 서버 (1.21.4, 오프라인, 클래식 평면)
+npm start                             # 2) 다른 터미널에서 relay 실행
+```
+
+테스트 서버는 기본이 **클래식 평면**(기반암 y=-64, 흙 2칸, 잔디 y=-61)입니다. 언덕 지형으로 시험하려면 `node test/dev-server.js --hills`.
+
+Foundry에서:
+1. `module/` 폴더를 `Data/modules/blockworld-bridge` 로 복사하고 월드에서 활성화
+2. 모듈 설정(GM 브라우저): 중계 서버 주소 `ws://127.0.0.1:8765`, 토큰 = config.json 의 token. **자동 연결**을 켜두면 편합니다.
+3. 토큰 컨트롤의 🧊 버튼(또는 Shift+M)으로 패널 → **중계 서버 연결**
+   - 처음 연결할 때 GM 브라우저가 3D 화면용 블록 텍스처·모델을 relay에서 받아 Foundry 데이터 폴더(`bwb-assets/`)에 한 번 올립니다.
+4. 마크 이름을 넣고 **접속** → 캐릭터가 서버에 들어옵니다
+5. GM: 빈 씬을 열고 **이 씬을 지도로** → 기준 캐릭터 주변 128×128 블록이 지도가 되고, 시야·안개가 켜집니다
+   - 또는 **좌측 하단** X·Z를 넣고 **좌표로 지도** → 그 블록이 지도의 왼쪽 아래(서남쪽) 모서리가 됩니다
+6. **지도 조작**을 켜고(Shift+N) 클릭 = 직선 이동, Shift+클릭 = 채굴, Alt+클릭 = 공격
+7. **3D 시점** → 창을 클릭해 마우스를 잡고 WASD로 조작, 스페이스 점프, Esc로 해제
+8. **3D 모습**(패널) → 다른 사람 3D 화면에 보일 내 상자 색, 정면 일러스트, 크기·위치
+9. GM: 지도 씬 칸의 **단면** → 자동(실내만) / 높이 지정(층) / 끄기, 벽 자동 생성 켜기·끄기 → **적용**
+
+## 실제 서버로 쓰기
+
+vanilla 또는 Paper **1.21.4** 서버에서 `minecraft.host/port` 를 relay 설정에 넣으세요.
+
+- **클래식 평면 월드**: 새 월드를 만들기 전에 `server.properties`에 `level-type=minecraft\:flat` (설정을 바꾸지 않으면 기본 프리셋이 클래식 평면입니다).
+- **GM 명령**: `server.properties`에서 `enable-rcon=true`, `rcon.password=...` 를 정하고 relay 설정의 `rcon` 을 채우세요. RCON 이 없으면 명령은 봇 채팅으로 보내지고 그 봇에 OP 가 필요합니다.
+- **정품 인증**: `online-mode=true` 서버는 relay 설정 `minecraft.auth` 를 `"microsoft"` 로 바꾸고, 각 캐릭터 첫 접속 때 터미널에 나오는 코드로 그 캐릭터 주인이 로그인합니다.
+- **정품 인증을 끈 서버**는 `server-ip=127.0.0.1` 로 relay 만 붙을 수 있게 하고 25565 포트를 밖에 열지 마세요.
+
+## relay 설정 (config.json)
+
+| 키 | 기본값 | 뜻 |
+| --- | --- | --- |
+| `viewer.enabled` / `viewer.radius` | true / 2 | 3D 화면 사용, 캐릭터 주변 몇 청크를 보낼지 (2 = 5×5) |
+| `map.refreshMs` / `map.refreshRadius` | 2000 / 24 | 지도 주기 동기화 간격과 반경(블록) |
+| `map.indoorRadius` | 12 | 자동 단면: 실내 캐릭터 주변 몇 블록까지 지붕을 걷어낼지 |
+| `stateHz` | 10 | 위치 갱신 횟수(초당). 3D 카메라가 이 값으로 부드럽게 따라갑니다 |
+
+## 버전
+
+| 구성요소 | 기준 |
+|---|---|
+| Minecraft 서버 | **1.21.4** (3D 텍스처 지원 상한) |
+| Mineflayer | 4.39 |
+| Foundry VTT | V14 |
+
+## 테스트
+
+```bash
+npm test                               # relay 단위 + 모듈 로직·권한·3D 전달 테스트
+npm run test:e2e                       # 로컬 서버로 봇 접속·지도·3D 청크·조작·명령 종단 테스트
+cd tools/build3d && npm install && node render-check.js   # 헤드리스 크로미움으로 3D 렌더 확인 (스크린샷 저장)
+```
+
+Foundry 안에서의 동작(패널, 타일 텍스처, 3D 창, 자료 업로드)은 실제 V14 월드에서 확인합니다.
+
+## 3D 렌더러 다시 빌드하기
+
+```bash
+cd tools/build3d && npm install && node build.js
+```
+
+`module/vendor/bwb3d.js`(three.js 장면)와 `bwb3d-worker.js`(블록 메싱, 1.21.4 데이터만)를 만듭니다. prismarine-viewer의 메싱 코드가 높이 0 아래를 그리지 않는 부분은 빌드할 때 월드 최저 높이 기준으로 고쳐 넣습니다.
+
+## 라이선스
+
+MIT. 번들된 서드파티 코드는 `module/vendor/LICENSES.md` 참고.

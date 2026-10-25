@@ -1,0 +1,13 @@
+{
+  "name": "blockworld-bridge",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Foundry VTT (V14) <-> Minecraft: Java Edition bridge: top-down map control + first-person 3D window.",
+  "license": "MIT",
+  "scripts": {
+    "test": "npm --prefix relay run test:unit && npm run test:module",
+    "test:module": "node --experimental-default-type=module --test module/test/module.test.mjs",
+    "test:e2e": "npm --prefix relay run test:e2e",
+    "zip:module": "cd module && zip -r ../dist/module.zip . -x 'test/*'"
+  }
+}
