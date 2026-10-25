@@ -122,6 +122,21 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
   assert.ok((await c.call('gm', { action: 'time', args: { value: 'night' } })).ok)
   assert.strictEqual((await c.call('gm', { action: 'raw', args: { cmd: 'stop' } })).ok, false)
 
+  // GM teleport: the character jumps to the typed block and the map state follows
+  {
+    const from = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+    const dest = { x: Math.floor(from.x) + 20, y: Math.floor(from.y), z: Math.floor(from.z) - 12 }
+    const username = c.msgs.filter((m) => m.type === 'bots').at(-1).bots.find((b) => b.key === 'u1').username
+    assert.ok((await c.call('gm', { action: 'tp', args: { target: username, ...dest } })).ok)
+    const landed = await c.wait((m) => m.type === 'state' && m.bots.some((b) => b.key === 'u1' &&
+      Math.abs(b.x - (dest.x + 0.5)) < 1 && Math.abs(b.z - (dest.z + 0.5)) < 1), 10000)
+    assert.ok(landed)
+    assert.strictEqual((await c.call('gm', { action: 'spawnpoint', args: { target: username, x: 0, y: 400, z: 0 } })).ok, false)
+    // walk back near the room-building spot used below
+    assert.ok((await c.call('gm', { action: 'tp', args: { target: username, x: Math.floor(from.x), y: dest.y, z: Math.floor(from.z) } })).ok)
+    await c.wait((m) => m.type === 'state' && m.bots.some((b) => b.key === 'u1' && Math.abs(b.x - (Math.floor(from.x) + 0.5)) < 1 && Math.abs(b.z - (Math.floor(from.z) + 0.5)) < 1), 10000)
+  }
+
   // resync replays cached chunks
   const before = c.msgs.filter((m) => m.type === 'chunk').length
   assert.ok((await c.call('resync')).ok)

@@ -48,7 +48,17 @@
       "ViaBotChat": "RCON is off, so commands are sent as bot chat. The bot needs operator rights.",
       "Corner": "Bottom-left",
       "CornerHint": "X, Z of the block at the map's bottom-left corner (south-west). Size comes from the picker above",
-      "SetupMapAt": "Map from corner"
+      "SetupMapAt": "Map from corner",
+      "Teleport": "Teleport & spawn",
+      "PosFrom": "From",
+      "HerePos": "Their position",
+      "PosFromHint": "Fill the fields below with the block the picked character stands in",
+      "Tp": "Teleport",
+      "Spawnpoint": "Respawn point",
+      "SpawnpointHint": "The target respawns here after dying",
+      "WorldSpawn": "Set world spawn",
+      "WorldSpawnHint": "First-time joiners appear on this block (sets spawnRadius 0)",
+      "TeleportHint": "Y is the height of the feet. Characters who joined before come back where they left, so teleport them. Sending someone off the map needs a new map to see them."
     },
     "Effect": {
       "slowness": "Slowness",
@@ -96,7 +106,8 @@
       "AssetsUploading": "Uploading 3D view files (block textures and models) to the Foundry data folder. This happens once.",
       "AssetsReady": "3D view files are ready.",
       "AssetsFailed": "Could not upload the 3D view files: {error}",
-      "NeedCorner": "Enter whole numbers for the bottom-left X and Z."
+      "NeedCorner": "Enter whole numbers for the bottom-left X and Z.",
+      "NeedXYZ": "Enter whole numbers for X, Y and Z (Y from -64 to 319)."
     },
     "Settings": {
       "RelayUrl": {

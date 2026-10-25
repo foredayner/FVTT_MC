@@ -32,6 +32,18 @@ test('gm: target names and numbers are validated', () => {
   assert.throws(() => buildGmCommand({ action: 'op', args: {} }))
 })
 
+test('gm: tp / spawnpoint / worldspawn take whole-block coordinates only', () => {
+  assert.deepStrictEqual(buildGmCommand({ action: 'tp', args: { target: '@a', x: 10, y: 64, z: -20 } }), ['tp @a 10 64 -20'])
+  assert.deepStrictEqual(buildGmCommand({ action: 'spawnpoint', args: { target: 'Jo_1', x: '5', y: '-60', z: '7' } }), ['spawnpoint Jo_1 5 -60 7'])
+  assert.deepStrictEqual(buildGmCommand({ action: 'worldspawn', args: { x: 0, y: 70, z: 0 } }), ['setworldspawn 0 70 0', 'gamerule spawnRadius 0'])
+  assert.throws(() => buildGmCommand({ action: 'spawnpoint', args: { target: 'Jo', x: 0, y: 320, z: 0 } }))
+  assert.throws(() => buildGmCommand({ action: 'spawnpoint', args: { target: 'Jo;op', x: 0, y: 64, z: 0 } }))
+  assert.throws(() => buildGmCommand({ action: 'worldspawn', args: { x: '0 ~', y: 64, z: 0 } }))
+  assert.throws(() => buildGmCommand({ action: 'worldspawn', args: { x: 30000000, y: 64, z: 0 } }))
+  assert.throws(() => buildGmCommand({ action: 'tp', args: { target: 'Jo', y: 64, z: 0 } }))
+  assert.throws(() => buildGmCommand({ action: 'tp', args: { target: 'Jo', x: '', y: 64, z: 0 } }))
+})
+
 test('mapColors: palette and block assignments follow the map item', () => {
   assert.strictEqual(BASE.length, 62)
   assert.deepStrictEqual(BASE[ID.GRASS].slice(1), [127, 178, 56])

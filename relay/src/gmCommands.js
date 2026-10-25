@@ -25,9 +25,17 @@ function target (t) {
 }
 
 function int (v, min, max, name) {
-  const n = Number(v)
+  const n = (v === '' || v === null) ? NaN : Number(v) // Number('') would be 0
   if (!Number.isInteger(n) || n < min || n > max) throw new GmCommandError(`${name} 값은 ${min}~${max} 사이 정수여야 합니다`)
   return n
+}
+
+/** Whole-block coordinates within the world border and build height. */
+function pos (args) {
+  const x = int(args.x, -29999999, 29999999, 'x')
+  const y = int(args.y, -64, 319, 'y')
+  const z = int(args.z, -29999999, 29999999, 'z')
+  return `${x} ${y} ${z}`
 }
 
 function text (v, max = 120) {
@@ -68,13 +76,14 @@ function buildGmCommand ({ action, args = {} }) {
       const dz = int(args.dz ?? 0, -16, 16, 'dz')
       return [`execute at ${who} run summon minecraft:${args.mob} ~${dx} ~ ~${dz}`]
     }
-    case 'tp': {
-      const who = target(args.target)
-      const x = int(args.x, -30000000, 30000000, 'x')
-      const y = int(args.y, -64, 320, 'y')
-      const z = int(args.z, -30000000, 30000000, 'z')
-      return [`tp ${who} ${x} ${y} ${z}`]
-    }
+    case 'tp':
+      return [`tp ${target(args.target)} ${pos(args)}`]
+    case 'spawnpoint':
+      // Where that character respawns after dying.
+      return [`spawnpoint ${target(args.target)} ${pos(args)}`]
+    case 'worldspawn':
+      // Where first-time joiners appear; radius 0 so they land on that exact block.
+      return [`setworldspawn ${pos(args)}`, 'gamerule spawnRadius 0']
     default:
       throw new GmCommandError(`알 수 없는 GM 명령: ${action}`)
   }

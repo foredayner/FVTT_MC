@@ -40,6 +40,7 @@ export class BridgePanel extends ApplicationV2 {
       setupMapAt: BridgePanel.#setupMapAt,
       clearMap: BridgePanel.#clearMap,
       gm: BridgePanel.#gm,
+      posFromBot: BridgePanel.#posFromBot,
       resync: BridgePanel.#resync
     }
   };
@@ -141,6 +142,27 @@ export class BridgePanel extends ApplicationV2 {
           <button type="button" data-action="gm" data-cmd="summon" ${online.length ? "" : "disabled"}>${L("GM.Summon")}</button>
         </div>
         <p class="bwb-hint">${st.info?.gmCommandsVia === "bot-chat" ? L("GM.ViaBotChat") : ""}</p>
+      </fieldset>
+      <fieldset ${st.status === "connected" ? "" : "disabled"}><legend>${L("GM.Teleport")}</legend>
+        <div class="bwb-row">
+          <label>${L("GM.PosFrom")}</label>
+          <select name="posFrom">${botOptions}</select>
+          <button type="button" data-action="posFromBot" ${online.length ? "" : "disabled"} title="${L("GM.PosFromHint")}"><i class="fa-solid fa-location-crosshairs"></i> ${L("GM.HerePos")}</button>
+        </div>
+        <div class="bwb-row">
+          X <input type="number" name="posX" class="bwb-num" step="1">
+          Y <input type="number" name="posY" class="bwb-num" step="1" min="-64" max="319">
+          Z <input type="number" name="posZ" class="bwb-num" step="1">
+        </div>
+        <div class="bwb-row">
+          <select name="posTarget">${targets}</select>
+          <button type="button" data-action="gm" data-cmd="tp" ${online.length ? "" : "disabled"}>${L("GM.Tp")}</button>
+          <button type="button" data-action="gm" data-cmd="spawnpoint" ${online.length ? "" : "disabled"} title="${L("GM.SpawnpointHint")}">${L("GM.Spawnpoint")}</button>
+        </div>
+        <div class="bwb-row">
+          <button type="button" data-action="gm" data-cmd="worldspawn" title="${L("GM.WorldSpawnHint")}"><i class="fa-solid fa-flag"></i> ${L("GM.WorldSpawn")}</button>
+        </div>
+        <p class="bwb-hint">${L("GM.TeleportHint")}</p>
       </fieldset>`;
     }
 
@@ -173,7 +195,16 @@ export class BridgePanel extends ApplicationV2 {
   }
 
   _replaceHTML(result, content) {
+    // Keep typed teleport coordinates and picks when the panel re-renders (bots joining, status changes).
+    const keep = ["posX", "posY", "posZ", "posTarget", "posFrom"];
+    const saved = Object.fromEntries(keep.map((n) => [n, content.querySelector(`[name="${n}"]`)?.value]));
     content.innerHTML = result;
+    for (const [n, v] of Object.entries(saved)) {
+      const el = content.querySelector(`[name="${n}"]`);
+      if (!el || v === undefined) continue;
+      if (el.tagName === "SELECT" && ![...el.options].some((o) => o.value === v)) continue;
+      el.value = v;
+    }
     this.refreshLive();
   }
 
@@ -260,6 +291,24 @@ export class BridgePanel extends ApplicationV2 {
 
   static async #resync() { await this.bridge.hub.tryIntent({ type: "resync" }); }
 
+  /** X/Y/Z from the teleport fields, or null unless all three are whole numbers (Y within build height). */
+  typedPos() {
+    const [x, y, z] = ["posX", "posY", "posZ"].map((n) => {
+      const s = this.field(n);
+      return /^-?\d+$/.test(s) ? Number(s) : NaN;
+    });
+    if (![x, y, z].every(Number.isInteger) || y < -64 || y > 319) return null;
+    return { x, y, z };
+  }
+
+  /** Fill X/Y/Z with the block the picked character is standing in. */
+  static #posFromBot() {
+    const p = this.bridge.hub.positions.get(this.field("posFrom"));
+    if (!p) return ui.notifications.warn(L("Notify.NoBotPosition"));
+    const set = (n, v) => { this.element.querySelector(`[name="${n}"]`).value = Math.floor(v); };
+    set("posX", p.x); set("posY", p.y); set("posZ", p.z);
+  }
+
   static async #gm(event, target) {
     const cmd = target.dataset.cmd;
     let args;
@@ -278,6 +327,14 @@ export class BridgePanel extends ApplicationV2 {
       case "summon":
         args = { mob: this.field("mob"), near: this.field("mobNear"), dx: 4, dz: 0 };
         break;
+      case "tp":
+      case "spawnpoint":
+      case "worldspawn": {
+        const p = this.typedPos();
+        if (!p) return ui.notifications.warn(L("Notify.NeedXYZ"));
+        args = cmd === "worldspawn" ? p : { ...p, target: this.field("posTarget") };
+        break;
+      }
       default:
         return;
     }
