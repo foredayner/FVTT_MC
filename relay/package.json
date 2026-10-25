@@ -1,6 +1,6 @@
 {
   "name": "blockworld-bridge-relay",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Relay between a Minecraft: Java Edition server and the Blockworld Bridge Foundry VTT module (Mineflayer based).",
   "main": "src/index.js",
   "license": "MIT",

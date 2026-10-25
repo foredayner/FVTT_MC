@@ -1,5 +1,5 @@
 import { MODULE_ID, ENTITY_COLORS } from "./constants.js";
-import { chunkToRGBA, inMap } from "./coords.js";
+import { chunkToRGBA, inMap, mapTileRect, tileMisplaced } from "./coords.js";
 import { displayCells } from "./displays.js";
 import { viewOf } from "./map-view.js";
 
@@ -47,6 +47,21 @@ export class MapLayer {
     for (const c of this.hub.chunks.values()) this.paintChunk(c, false);
     this.markDirty();
     for (const tile of canvas.tiles?.placeables ?? []) this.applyTo(tile);
+    this.repairTile(cfg);
+  }
+
+  /**
+   * GM: map tiles made by older versions sit at canvas (0,0); on a scene with padding that shifts
+   * the whole picture away from the tokens. Move such a tile onto the scene rectangle.
+   */
+  repairTile(cfg) {
+    if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
+    const doc = canvas.scene?.tiles.find((t) => t.getFlag(MODULE_ID, "mapTile"));
+    if (!doc) return;
+    const d = canvas.dimensions;
+    const rect = mapTileRect(cfg, { grid: canvas.scene.grid.size, sceneX: d.sceneX, sceneY: d.sceneY });
+    if (!tileMisplaced(doc, rect)) return;
+    doc.update(rect).catch((err) => console.warn(`${MODULE_ID} | map tile`, err));
   }
 
   isMapTile(tile) { return !!tile?.document?.getFlag(MODULE_ID, "mapTile"); }

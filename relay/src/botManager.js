@@ -5,6 +5,7 @@ const mineflayer = require('mineflayer')
 const { Vec3 } = require('vec3')
 const { NAME_RE } = require('./gmCommands')
 const { StraightWalker, WalkStopped } = require('./walker')
+const { attachHud } = require('./hud')
 
 const CONTROLS = new Set(['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'])
 const HOSTILE_HINT = /zombie|skeleton|spider|creeper|enderman|witch|slime|husk|stray|drowned|pillager|vindicator|phantom|warden|blaze|ghast|piglin|hoglin|guardian|evoker|ravager|silverfish|endermite|shulker|vex|wither|zoglin|breeze|bogged/
@@ -50,6 +51,8 @@ class BotManager extends EventEmitter {
       entry.online = true
       this.scanner.attach(bot)
       for (const w of this.watchers) w.attach(bot)
+      // Titles / action bar this character sees: only for its own player's 3D view.
+      attachHud(bot, (hud) => this.emit('event', { kind: 'hud', key, ...hud }))
       this.info(key, `${username} 접속`)
       this.emit('bots')
     })

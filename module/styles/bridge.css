@@ -60,3 +60,19 @@ body.bwb-map-mode #board { cursor: crosshair; }
 .bwb-avatar-preview { cursor: grab; touch-action: none; user-select: none; }
 .bwb-avatar-preview.dragging { cursor: grabbing; }
 .bwb-avatar-box img { pointer-events: none; }
+
+/* 3D view: Minecraft-style screen text (never takes the mouse) */
+.bwb-hud { position: absolute; inset: 0; pointer-events: none; font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  color: #fff; text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75); }
+.bwb-hud-chat { position: absolute; left: 8px; bottom: 44px; width: min(55%, 520px); display: flex; flex-direction: column;
+  align-items: flex-start; gap: 1px; }
+.bwb-hud-line { background: rgba(0, 0, 0, 0.45); padding: 1px 6px; font-size: 14px; line-height: 1.35;
+  max-width: 100%; transition: opacity 1s linear; overflow-wrap: break-word; }
+.bwb-hud-line.faded { opacity: 0; }
+.bwb-hud-line-warn { color: #ff8c7a; }
+.bwb-hud-title { position: absolute; left: 0; right: 0; top: 30%; text-align: center; opacity: 0; }
+.bwb-hud-t { font-size: clamp(28px, 6vw, 64px); font-weight: 700; letter-spacing: 0.02em; }
+.bwb-hud-s { font-size: clamp(16px, 2.6vw, 28px); margin-top: 6px; }
+.bwb-hud-actionbar { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 16px;
+  transition: opacity 0.6s linear; }
+.bwb-hud-actionbar.faded { opacity: 0; }

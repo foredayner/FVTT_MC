@@ -1,3 +1,4 @@
+import { Hud3D } from "../hud.js";
 import { MODULE_ID, L } from "../constants.js";
 import { assetUrls, assetsReady } from "../assets.js";
 import { avatarFor } from "../avatar.js";
@@ -128,6 +129,12 @@ export class View3D extends ApplicationV2 {
     const on = (type, fn) => { hub.addEventListener(type, fn); this.listeners.push([type, fn]); };
     for (const type of ["col3d", "block3d", "unload3d"]) on(type, (ev) => { queue.push(ev.detail); pump(); });
     on("state", () => this.followBot());
+    // Chat, GM narration (titles) and the action bar over the view, like the game's own screen.
+    this.hud?.destroy();
+    this.hud = new Hud3D(this.element.querySelector(".bwb-stage"));
+    const recent = hub.log.filter((e) => e.kind === "chat" && Date.now() - e.at < 10000).slice(-5);
+    for (const e of recent) this.hud.chat(e.text);
+    on("event", (ev) => this.hud?.handle(ev.detail, this.key));
     // Objects built from block displays: the whole set for my dimension, redrawn when it changes.
     const pushDisplays = () => this.r3d?.setDisplays([...hub.displays.values()].filter((p) => (p.dim ?? "overworld") === myDim()));
     on("disp", pushDisplays);
@@ -240,6 +247,8 @@ export class View3D extends ApplicationV2 {
     this.releaseAll();
     if (this._onLockChange) document.removeEventListener("pointerlockchange", this._onLockChange);
     this._onLockChange = null;
+    this.hud?.destroy();
+    this.hud = null;
     for (const [type, fn] of this.listeners) this.hub.removeEventListener(type, fn);
     if (this.listeners.length) this.hub.subscribe3d(false);
     this.listeners = [];

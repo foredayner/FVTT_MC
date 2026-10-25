@@ -225,3 +225,57 @@ test("hub: display parts reach every client and late joiners get them in the sna
   player.onSocket({ t: "relay", msg: { type: "disp", add: [], del: ["1"] } }, "gm1");
   assert.strictEqual(player.displays.size, 0);
 });
+
+test("map tile: placed on the scene rectangle, so it lines up with tokens on a padded scene", async () => {
+  const { mapTileRect, tileMisplaced, mcToScene } = await import("../scripts/coords.js");
+  const map = { originX: -200, originZ: -29, size: 128 };
+  // a padded scene like the one in the bug report: the scene starts half a map in
+  const dims = { grid: 100, sceneX: 6400, sceneY: 6400 };
+  const rect = mapTileRect(map, dims);
+  assert.deepStrictEqual(rect, { x: 6400, y: 6400, width: 12800, height: 12800 });
+  // the block a token stands on and the same block in the tile image are the same canvas point
+  const token = mcToScene({ x: -136.5, z: 35.5 }, map, dims);
+  const pixel = { x: rect.x + (-136.5 - map.originX) * dims.grid, y: rect.y + (35.5 - map.originZ) * dims.grid };
+  assert.deepStrictEqual(token, pixel);
+  assert.ok(tileMisplaced({ x: 0, y: 0, width: 12800, height: 12800 }, rect), "old tile at canvas (0,0) is detected");
+  assert.ok(!tileMisplaced({ x: 6400.2, y: 6400, width: 12800, height: 12800 }, rect));
+});
+
+test("map setup: the tile is created at the scene's real origin, whatever the padding", async () => {
+  mockFoundry({ me: "gm1" });
+  const created = [];
+  const updates = [];
+  const scene = {
+    grid: { size: 100 },
+    update: async (d) => { updates.push(d); },
+    getDimensions: () => ({ sceneX: 6400, sceneY: 6400 }), // padding was not removed
+    tiles: { find: () => undefined },
+    createEmbeddedDocuments: async (type, data) => { created.push({ type, data }); }
+  };
+  globalThis.canvas = { scene, dimensions: { sceneX: 0, sceneY: 0 } };
+  const { setupMapScene } = await import("../scripts/map-setup.js");
+  const hub = { positions: new Map([["u1", { x: -136.5, y: -60, z: 35.5, dim: "overworld" }]]) };
+  await setupMapScene(hub, { centerKey: "u1", size: 128 });
+  const tile = created[0].data[0];
+  assert.deepStrictEqual([tile.x, tile.y, tile.width, tile.height], [6400, 6400, 12800, 12800]);
+  delete globalThis.canvas;
+});
+
+test("3D HUD: chat for everyone, titles and deaths only for that character's view", async () => {
+  const { Hud3D } = await import("../scripts/hud.js");
+  const got = [];
+  const hud = Object.create(Hud3D.prototype);
+  hud.chat = (text, kind = "chat") => got.push(["chat", text, kind]);
+  hud.title = (ev) => got.push(["title", ev.text, ev.subtitle]);
+  hud.actionbar = (text) => got.push(["bar", text]);
+  hud.clearTitle = () => got.push(["clear"]);
+  hud.handle({ kind: "chat", text: "<Jo> hi" }, "me");
+  hud.handle({ kind: "hud", key: "other", slot: "title", text: "not mine" }, "me");
+  hud.handle({ kind: "hud", key: "me", slot: "title", text: "T", subtitle: "S" }, "me");
+  hud.handle({ kind: "hud", key: "me", slot: "actionbar", text: "A" }, "me");
+  hud.handle({ kind: "hud", key: "me", slot: "clear" }, "me");
+  hud.handle({ kind: "death", key: "me", text: "Jo died" }, "me");
+  hud.handle({ kind: "death", key: "other", text: "someone died" }, "me");
+  hud.handle({ kind: "info", key: "me", text: "joined" }, "me");
+  assert.deepStrictEqual(got, [["chat", "<Jo> hi", "chat"], ["title", "T", "S"], ["bar", "A"], ["clear"], ["chat", "Jo died", "warn"]]);
+});

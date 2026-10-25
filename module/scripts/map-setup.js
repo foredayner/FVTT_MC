@@ -1,5 +1,5 @@
 import { MODULE_ID, L } from "./constants.js";
-import { originAround, originFromBottomLeft, bottomLeftOf } from "./coords.js";
+import { originAround, originFromBottomLeft, bottomLeftOf, mapTileRect } from "./coords.js";
 
 export const BLANK = `modules/${MODULE_ID}/assets/blank.png`;
 export const UNEXPLORED_GREY = "#7a7a7a";
@@ -47,9 +47,11 @@ export async function setupMapScene(hub, { centerKey, size, corner }) {
     ui.notifications.warn(L("Notify.VisionSetupFailed"));
   }
 
+  // The scene rectangle after the update (padding may not be 0 on every Foundry version).
+  const d = scene.getDimensions?.() ?? scene.dimensions ?? canvas.dimensions;
   const tileData = {
     texture: { src: BLANK },
-    x: 0, y: 0, width: size * grid, height: size * grid,
+    ...mapTileRect({ size }, { grid, sceneX: d.sceneX ?? 0, sceneY: d.sceneY ?? 0 }),
     elevation: -100, sort: -1, locked: true,
     flags: { [MODULE_ID]: { mapTile: true } }
   };

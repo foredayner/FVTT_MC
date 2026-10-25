@@ -164,6 +164,20 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
     await c.wait((m) => m.type === 'disp' && m.del.includes('777001'), 5000)
   }
 
+  // Titles and the action bar reach Foundry as 'hud' events for that character
+  {
+    const nbt = require('prismarine-nbt')
+    const client = serv.players[0]._client
+    client.write('set_title_time', { fadeIn: 5, stay: 40, fadeOut: 10 })
+    client.write('set_title_subtitle', { text: nbt.comp({ text: nbt.string('부제목'), color: nbt.string('gray') }) })
+    client.write('set_title_text', { text: nbt.comp({ text: nbt.string('어둠이 '), extra: nbt.list(nbt.comp([{ text: nbt.string('내려온다') }])) }) })
+    client.write('action_bar', { text: nbt.string('발소리가 들린다') })
+    const title = await c.wait((m) => m.type === 'event' && m.kind === 'hud' && m.slot === 'title', 5000)
+    assert.deepStrictEqual([title.key, title.text, title.subtitle, title.times], ['u1', '어둠이 내려온다', '부제목', { fadeIn: 5, stay: 40, fadeOut: 10 }])
+    const bar = await c.wait((m) => m.type === 'event' && m.kind === 'hud' && m.slot === 'actionbar', 5000)
+    assert.strictEqual(bar.text, '발소리가 들린다')
+  }
+
   // resync replays cached chunks
   const before = c.msgs.filter((m) => m.type === 'chunk').length
   assert.ok((await c.call('resync')).ok)

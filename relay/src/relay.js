@@ -28,7 +28,7 @@ async function startRelay (cfg, log = console) {
   bots.on('bots', () => send({ type: 'bots', bots: bots.botList() }))
   bots.on('event', (ev) => {
     send({ type: 'event', ...ev })
-    if (ev.kind !== 'chat') log.log(`[${ev.kind}] ${ev.text}`)
+    if (ev.kind !== 'chat' && ev.kind !== 'hud') log.log(`[${ev.kind}] ${ev.text}`)
   })
 
   if (cfg.rcon.enabled) {

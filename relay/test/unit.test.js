@@ -294,3 +294,15 @@ test('displays: tracker sends new, changed and removed parts, and a reset on res
   const reset = [...t.all()]
   assert.ok(reset[0].reset && reset[0].add.length === 1)
 })
+
+test('hud: text components become plain text', () => {
+  const { componentText } = require('../src/hud')
+  const nbt = require('prismarine-nbt')
+  assert.strictEqual(componentText('{"text":"He said \\"hi\\""}'), 'He said "hi"')
+  assert.strictEqual(componentText('just text {not json'), 'just text {not json')
+  assert.strictEqual(componentText({ translate: 'chat.type.text', with: [{ text: 'Jo' }, 'hello'] }), '<Jo> hello')
+  assert.strictEqual(componentText({ translate: 'some.unknown.key', fallback: 'Fallback %s', with: ['x'] }), 'Fallback x')
+  assert.strictEqual(componentText(nbt.comp({ text: nbt.string('a'), extra: nbt.list(nbt.string(['b', 'c'])) })), 'abc')
+  assert.strictEqual(componentText(nbt.string('plain')), 'plain')
+  assert.strictEqual(componentText(null), '')
+})

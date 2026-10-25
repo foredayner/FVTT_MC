@@ -74,3 +74,18 @@ export function bottomLeftOf(map) {
 export function originAround(pos, size) {
   return { originX: Math.floor(pos.x) - Math.floor(size / 2), originZ: Math.floor(pos.z) - Math.floor(size / 2) };
 }
+
+/**
+ * Where the map tile belongs: on the scene rectangle (sceneX/sceneY), not at canvas (0,0).
+ * The scene may have padding around it; tokens are placed from sceneX/sceneY, so the tile must be too.
+ * @param {{size:number}} map
+ * @param {{grid:number, sceneX:number, sceneY:number}} dims
+ */
+export function mapTileRect(map, dims) {
+  return { x: dims.sceneX, y: dims.sceneY, width: map.size * dims.grid, height: map.size * dims.grid };
+}
+
+/** True when a tile document is not where mapTileRect says (allowing half a pixel). */
+export function tileMisplaced(tile, rect) {
+  return ["x", "y", "width", "height"].some((k) => Math.abs((tile[k] ?? 0) - rect[k]) > 0.5);
+}
