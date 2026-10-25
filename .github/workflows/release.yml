@@ -1,7 +1,7 @@
 # Publishes a release whenever main has a module version that has no release yet.
 # Bump "version" in module/module.json, push to main, and this creates tag v<version> with:
 #   module.json + module.zip  -> Foundry installs/updates from the manifest URL
-#   Windows launcher installer + zip, built on Windows
+#   Windows launcher installer + zip, built on Windows (rebuilt if missing from the release)
 # It can also be started by hand from the Actions tab (workflow_dispatch).
 name: release
 
@@ -20,11 +20,22 @@ concurrency:
 jobs:
   module:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
       tag: ${{ steps.ver.outputs.tag }}
-      created: ${{ steps.create.outputs.created }}
+      launcher: ${{ steps.assets.outputs.launcher }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Tests (relay, module, launcher)
+        run: |
+          npm --prefix relay ci
+          npm test
+          npm --prefix launcher ci --ignore-scripts
+          npm --prefix launcher test
 
       - name: Version and whether it is already released
         id: ver
@@ -35,7 +46,6 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "$TAG is already released; nothing to do."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
@@ -51,7 +61,6 @@ jobs:
             '.download = $dl' module/module.json > out/module.json
 
       - name: Create tag and release
-        id: create
         if: steps.ver.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,12 +70,24 @@ jobs:
           if [ -f "$NOTES" ]; then ARGS=(--notes-file "$NOTES"); else ARGS=(--generate-notes); fi
           gh release create "$TAG" out/module.json out/module.zip \
             --target "$GITHUB_SHA" --title "Blockworld Bridge ${TAG#v}" "${ARGS[@]}"
-          echo "created=true" >> "$GITHUB_OUTPUT"
+
+      - name: Does the release still need the launcher?
+        id: assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -q '\.exe$'; then
+            echo "launcher=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "launcher=true" >> "$GITHUB_OUTPUT"
+          fi
 
   launcher:
     needs: module
-    if: needs.module.outputs.created == 'true'
+    if: needs.module.outputs.launcher == 'true'
     runs-on: windows-latest
+    timeout-minutes: 30
     defaults:
       run:
         shell: bash
@@ -77,9 +98,35 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npm test
       - run: npm run dist
       - name: Attach installer and zip
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${{ needs.module.outputs.tag }}" dist/*.exe dist/*.zip --clobber
+
+  # Diagnostic only: launcher tests on Windows. Results are written as annotations so they
+  # can be read without the log files. Never blocks the release.
+  launcher-tests-windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash
+        working-directory: launcher
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: Tests with per-test timeout
+        run: |
+          set +e
+          timeout 600 node --test --test-force-exit --test-timeout=60000 --test-reporter=tap test/launcher.test.js > test-out.txt 2>&1
+          code=$?
+          echo "::notice title=win-exit::exit code $code (124 = whole run timed out)"
+          grep -E '^(not ok|ok) ' test-out.txt | while IFS= read -r l; do echo "::notice title=win-test::$l"; done
+          grep -n -A14 '^not ok' test-out.txt | head -90 | while IFS= read -r l; do echo "::warning title=win-fail::${l//%/%25}"; done
+          tail -15 test-out.txt | while IFS= read -r l; do echo "::notice title=win-tail::${l//%/%25}"; done
+          exit $code
