@@ -1,4 +1,9 @@
 .bwb-panel .window-content { display: flex; flex-direction: column; gap: 6px; }
+/* Never taller than the screen; the content scrolls instead of being cut off.
+   The id beats core window styles; max-height also limits a height set by resizing. */
+#bwb-panel { max-height: calc(100vh - 16px); }
+#bwb-panel .window-content { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#bwb-panel .window-content > * { flex: 0 0 auto; } /* sections keep their height and scroll, not squash */
 .bwb-panel h3 { margin: 8px 0 2px; border-bottom: 1px solid var(--color-border-light-2, #777); }
 .bwb-panel fieldset { margin: 4px 0; padding: 4px 6px; }
 .bwb-panel .bwb-row { display: flex; gap: 4px; align-items: center; margin: 3px 0; }

@@ -194,6 +194,33 @@ export class BridgePanel extends ApplicationV2 {
         <p class="bwb-hint">${L(`View.Hint.${v.mode}`)}</p>`;
   }
 
+  /** Keep the bottom on screen: the window is never taller than the space below its top edge. */
+  fitToScreen() {
+    const el = this.element;
+    if (!el?.isConnected) return;
+    const top = Math.max(0, el.getBoundingClientRect().top);
+    el.style.maxHeight = `${Math.max(200, window.innerHeight - top - 8)}px`;
+  }
+
+  setPosition(position) {
+    const result = super.setPosition(position);
+    this.fitToScreen();
+    return result;
+  }
+
+  _onRender(context, options) {
+    super._onRender?.(context, options);
+    this.fitToScreen();
+    this._onWindowResize ??= foundry.utils.debounce(() => this.fitToScreen(), 100);
+    window.removeEventListener("resize", this._onWindowResize);
+    window.addEventListener("resize", this._onWindowResize);
+  }
+
+  _onClose(options) {
+    super._onClose?.(options);
+    if (this._onWindowResize) window.removeEventListener("resize", this._onWindowResize);
+  }
+
   _replaceHTML(result, content) {
     // Keep typed teleport coordinates and picks when the panel re-renders (bots joining, status changes).
     const keep = ["posX", "posY", "posZ", "posTarget", "posFrom"];
