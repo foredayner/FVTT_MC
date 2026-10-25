@@ -1,0 +1,58 @@
+{
+  "name": "blockworld-bridge-launcher",
+  "productName": "Blockworld Bridge",
+  "version": "0.1.0",
+  "description": "Prepares and runs the Minecraft server and relay for the Blockworld Bridge Foundry VTT module.",
+  "main": "main.js",
+  "license": "MIT",
+  "private": true,
+  "author": "foredayner",
+  "scripts": {
+    "prepare-bundle": "node scripts/prepare.js",
+    "start": "node scripts/prepare.js && electron .",
+    "test": "node --test test/launcher.test.js",
+    "dist": "node scripts/prepare.js && electron-builder --win --x64"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "mineflayer": "^4.39.0",
+    "prismarine-nbt": "^2.7.0",
+    "prismarine-viewer": "^1.33.0",
+    "vec3": "^0.1.10",
+    "ws": "^8.22.0"
+  },
+  "repository": "github:foredayner/McTestBuilder",
+  "build": {
+    "appId": "io.github.foredayner.blockworld-bridge",
+    "productName": "Blockworld Bridge",
+    "asar": false,
+    "publish": null,
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**",
+      "renderer/**",
+      "bundled/**",
+      "node_modules/**",
+      "!node_modules/minecraft-data/minecraft-data/data/bedrock/**",
+      "node_modules/minecraft-data/minecraft-data/data/bedrock/common/**",
+      "!node_modules/prismarine-viewer/public/**",
+      "node_modules/prismarine-viewer/public/textures/1.21.4.png",
+      "node_modules/prismarine-viewer/public/blocksStates/1.21.4.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0"
+  }
+}

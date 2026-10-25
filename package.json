@@ -8,6 +8,7 @@
     "test": "npm --prefix relay run test:unit && npm run test:module",
     "test:module": "node --experimental-default-type=module --test module/test/module.test.mjs",
     "test:e2e": "npm --prefix relay run test:e2e",
-    "zip:module": "cd module && zip -r ../dist/module.zip . -x 'test/*'"
+    "zip:module": "cd module && zip -r ../dist/module.zip . -x 'test/*'",
+    "test:launcher": "npm --prefix launcher test"
   }
 }

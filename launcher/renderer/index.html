@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+  <title>Blockworld Bridge</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <span class="logo" aria-hidden="true"></span>
+      <div>
+        <h1>Blockworld Bridge</h1>
+        <p>마크 서버 · 맵 · relay · 모듈 준비</p>
+      </div>
+    </div>
+    <span class="badge" id="mcVersion">Minecraft 1.21.4</span>
+  </header>
+
+  <main class="work">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="server"><span class="tnum">1</span>서버</button>
+      <button role="tab" data-tab="map"><span class="tnum">2</span>맵</button>
+      <button role="tab" data-tab="settings"><span class="tnum">3</span>설정</button>
+      <button role="tab" data-tab="module"><span class="tnum">4</span>모듈 설치</button>
+      <button role="tab" data-tab="run"><span class="tnum">5</span>실행</button>
+    </nav>
+
+    <div class="panels">
+      <!-- 1. 서버 -->
+      <section class="panel" data-panel="server" role="tabpanel">
+        <h2>서버 준비</h2>
+        <p class="lead">마인크래프트 1.21.4 서버를 이 PC에 설치합니다. 한 번만 하면 됩니다.</p>
+        <ol class="steps">
+          <li class="step">
+            <h3>Java 21 확인</h3>
+            <p class="desc">1.21.4 서버는 Java 21 이상으로 실행됩니다. 없으면 <b>Java 자동 설치</b>를 누르세요. 앱 폴더에만 설치되고 PC의 다른 Java 는 건드리지 않습니다.</p>
+            <div class="controls">
+              <button data-call="java:check">다시 확인</button>
+              <button data-call="java:install" class="primary" id="btnJavaInstall">Java 자동 설치</button>
+              <button data-call="java:pick" class="ghost">직접 고르기…</button>
+            </div>
+            <div class="progress" data-progress="java" hidden><div></div><span></span></div>
+            <p class="result" id="javaResult"></p>
+          </li>
+          <li class="step">
+            <h3>서버 종류 고르기</h3>
+            <p class="desc">잘 모르겠으면 <b>Paper</b>를 고르세요. 바닐라와 같은 게임이면서 더 가볍습니다.</p>
+            <div class="choices" id="serverType">
+              <label class="choice"><input type="radio" name="serverType" value="paper"><span><b>Paper</b><small>추천 · 가볍고 빠름</small></span></label>
+              <label class="choice"><input type="radio" name="serverType" value="vanilla"><span><b>Vanilla</b><small>Mojang 공식 서버 그대로</small></span></label>
+            </div>
+          </li>
+          <li class="step">
+            <h3>EULA 동의</h3>
+            <p class="desc">서버를 실행하려면 Mojang 의 최종 사용자 사용권 계약(EULA)에 동의해야 합니다. 앱이 대신 동의하지 않습니다. 읽어 본 뒤 직접 체크하세요.</p>
+            <div class="controls">
+              <button data-open="https://aka.ms/MinecraftEULA" class="ghost">EULA 읽기 ↗</button>
+              <label class="check"><input type="checkbox" id="eula"> EULA 를 읽었고 동의합니다</label>
+            </div>
+          </li>
+          <li class="step">
+            <h3>서버 받기</h3>
+            <p class="desc">고른 종류의 서버 파일을 공식 주소에서 받고 체크섬을 확인합니다. 종류를 바꾸면 다시 받으세요.</p>
+            <div class="controls">
+              <button data-call="server:download" class="primary" id="btnServerDownload">서버 받기</button>
+            </div>
+            <div class="progress" data-progress="server" hidden><div></div><span></span></div>
+            <p class="result" id="serverResult"></p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 2. 맵 -->
+      <section class="panel" data-panel="map" role="tabpanel">
+        <h2>맵</h2>
+        <p class="lead">서버가 열 월드를 정합니다. 가져온 맵은 앱 폴더로 복사되고 원본은 그대로 남습니다.</p>
+        <ol class="steps">
+          <li class="step">
+            <h3>가진 맵 넣기</h3>
+            <p class="desc">싱글플레이 월드는 <code>%appdata%\.minecraft\saves\월드이름</code> 폴더입니다. 받은 맵은 zip 그대로 넣어도 됩니다. 가져온 맵은 바로 선택됩니다.</p>
+            <div class="controls">
+              <button data-call="world:importFolder">폴더에서 가져오기…</button>
+              <button data-call="world:importZip">zip 가져오기…</button>
+            </div>
+            <div class="drop" id="drop">여기에 월드 폴더나 zip 을 끌어다 놓기</div>
+            <div class="progress" data-progress="world" hidden><div></div><span></span></div>
+          </li>
+          <li class="step">
+            <h3>또는 새 맵 만들기</h3>
+            <p class="desc">서버를 처음 켤 때 만들어집니다. 평면은 모듈 시험에 좋고, 일반은 보통 생존 지형입니다.</p>
+            <div class="controls">
+              <input type="text" id="newWorldName" maxlength="48" placeholder="맵 이름 (예: 평면시험)">
+              <select id="newWorldType"><option value="flat">평면</option><option value="normal">일반</option></select>
+              <button id="btnCreateWorld">만들기</button>
+            </div>
+          </li>
+          <li class="step">
+            <h3>사용할 맵 고르기</h3>
+            <p class="desc">서버 폴더에 있는 맵입니다. 1.21.4보다 새 버전으로 저장된 맵은 열 수 없습니다.</p>
+            <ul class="worlds" id="worldList"></ul>
+            <div class="controls"><button data-call="world:openFolder" class="ghost">서버 폴더 열기</button></div>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 3. 설정 -->
+      <section class="panel" data-panel="settings" role="tabpanel">
+        <h2>설정</h2>
+        <p class="lead">고르면 저장되고, 마지막의 <b>설정 적용</b>을 눌러야 서버와 relay 파일에 써집니다. 토큰과 RCON 비밀번호는 자동으로 만들어 양쪽에 똑같이 넣습니다.</p>
+        <ol class="steps">
+          <li class="step">
+            <h3>접속 방식</h3>
+            <div class="choices" id="onlineMode">
+              <label class="choice"><input type="radio" name="onlineMode" value="false"><span><b>오프라인</b><small>추천 · 캐릭터마다 마이크로소프트 로그인 없이 접속</small></span></label>
+              <label class="choice"><input type="radio" name="onlineMode" value="true"><span><b>정품 인증</b><small>캐릭터 첫 접속 때 relay 로그에 나오는 코드로 로그인</small></span></label>
+            </div>
+            <p class="desc note">어느 쪽이든 서버는 이 PC(127.0.0.1)에서만 열리고 밖에서는 접속할 수 없습니다.</p>
+          </li>
+          <li class="step">
+            <h3>성능 프리셋</h3>
+            <p class="desc">Foundry 로 보내는 3D 범위와 지도 갱신 빈도입니다. 플레이어가 많거나 PC가 느리면 가볍게.</p>
+            <div class="choices" id="preset"></div>
+          </li>
+          <li class="step">
+            <h3>서버 메모리</h3>
+            <p class="desc">PC 메모리가 8GB 면 2~3GB, 16GB 이상이면 4GB 를 권합니다.</p>
+            <div class="controls">
+              <select id="memoryGB"><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option></select><span class="unit">GB</span>
+            </div>
+          </li>
+          <li class="step">
+            <h3>포트 <small class="muted">(보통은 그대로)</small></h3>
+            <p class="desc">다른 마크 서버가 이미 켜져 있을 때만 바꾸세요.</p>
+            <div class="controls ports">
+              <label>마크 서버 <input type="number" id="mcPort" min="1024" max="65535"></label>
+              <label>RCON <input type="number" id="rconPort" min="1024" max="65535"></label>
+              <label>relay <input type="number" id="relayPort" min="1024" max="65535"></label>
+            </div>
+          </li>
+          <li class="step">
+            <h3>설정 적용</h3>
+            <p class="desc">server.properties 와 relay 설정을 씁니다. 캐릭터가 스폰 근처에서도 블록을 캘 수 있도록 스폰 보호도 끕니다.</p>
+            <div class="controls"><button data-call="settings:apply" class="primary">설정 적용</button></div>
+            <p class="result" id="settingsResult"></p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 4. 모듈 설치 -->
+      <section class="panel" data-panel="module" role="tabpanel">
+        <h2>모듈 설치</h2>
+        <p class="lead">이 앱에 들어 있는 Blockworld Bridge 모듈을 이 PC의 Foundry 에 설치합니다.</p>
+        <ol class="steps">
+          <li class="step">
+            <h3>Foundry 데이터 폴더 지정</h3>
+            <p class="desc">Foundry 설정의 <b>사용자 데이터 경로</b> 안에 있는 <code>Data</code> 폴더입니다. 바꾼 적이 없다면 <b>기본 위치 사용</b>을 누르세요.</p>
+            <div class="controls">
+              <button data-call="foundry:useDefault">기본 위치 사용</button>
+              <button data-call="foundry:pick" class="ghost">폴더 고르기…</button>
+            </div>
+            <p class="result" id="foundryPath"></p>
+          </li>
+          <li class="step">
+            <h3>설치 · 업데이트</h3>
+            <p class="desc">모듈 폴더만 바꿉니다. 월드와 3D 텍스처(<code>bwb-assets</code>)는 그대로 둡니다. Foundry 가 켜져 있었다면 설치 뒤 Foundry 를 다시 시작하세요.</p>
+            <div class="controls"><button data-call="module:install" class="primary" id="btnModule">설치</button></div>
+            <p class="result" id="moduleResult"></p>
+          </li>
+          <li class="step">
+            <h3>Foundry 에서 할 일</h3>
+            <ol class="sub">
+              <li>월드를 열고 <b>설정 → 모듈 관리</b>에서 <b>Blockworld Bridge</b> 켜기</li>
+              <li><b>설정 → 모듈 설정</b>에 실행 탭의 <b>주소</b>와 <b>토큰</b> 붙여 넣기, <b>자동 연결</b> 켜기</li>
+              <li>토큰 컨트롤의 🧊 버튼(Shift+M)으로 패널 열기</li>
+            </ol>
+          </li>
+        </ol>
+      </section>
+
+      <!-- 5. 실행 -->
+      <section class="panel" data-panel="run" role="tabpanel">
+        <h2>실행</h2>
+        <p class="lead">서버를 켜고, 준비되면 relay 를 켭니다. 그다음 Foundry 를 따로 실행하세요.</p>
+        <ol class="steps">
+          <li class="step">
+            <h3>시작 · 정지</h3>
+            <p class="desc">정지하면 relay 를 먼저 끄고 서버에 <code>stop</code> 을 보내 맵을 저장한 뒤 끕니다. 창을 닫아도 같은 순서로 끕니다.</p>
+            <div class="controls">
+              <button class="primary big" data-call="run:start" id="btnStart">시작</button>
+              <button class="big" data-call="run:stop" id="btnStop">정지</button>
+            </div>
+            <p class="result warn" id="runBlocked"></p>
+          </li>
+          <li class="step">
+            <h3>Foundry 에 넣을 값</h3>
+            <p class="desc">모듈 설정의 <b>중계 서버 주소</b>와 <b>토큰</b>에 그대로 붙여 넣으세요. 토큰은 설정 적용 때 한 번 만들어지고 바뀌지 않습니다.</p>
+            <dl class="values">
+              <dt>주소</dt><dd><code id="valAddr">-</code><button class="ghost small" data-copy="valAddr">복사</button></dd>
+              <dt>토큰</dt><dd><code id="valToken" class="secret">-</code><button class="ghost small" id="btnReveal">보기</button><button class="ghost small" data-copy="valToken">복사</button></dd>
+            </dl>
+          </li>
+          <li class="step grow">
+            <h3>로그</h3>
+            <div class="logtabs">
+              <button data-log="server" class="on">서버</button>
+              <button data-log="relay">relay</button>
+            </div>
+            <pre class="log" id="log"></pre>
+            <form class="controls" id="cmdForm">
+              <input type="text" id="cmd" placeholder="서버 콘솔 명령 (예: say 안녕, tp Jo 0 70 0)" autocomplete="off">
+              <button type="submit">보내기</button>
+            </form>
+          </li>
+        </ol>
+      </section>
+    </div>
+  </main>
+
+  <aside class="status" aria-label="진행 상태">
+    <h2>상태</h2>
+    <ul id="statusList"></ul>
+    <p class="allgood" id="allGood" hidden>모두 준비됐습니다. Foundry 를 실행하세요.</p>
+    <p class="hint">빨간 항목을 누르면 해결할 탭으로 갑니다.</p>
+  </aside>
+
+  <div class="toast" id="toast" role="alert" hidden></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

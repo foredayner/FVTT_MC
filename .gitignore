@@ -3,3 +3,5 @@ dist/
 tools/build3d/render-check-out/
 relay/config.json
 *.log
+launcher/bundled/
+logs/

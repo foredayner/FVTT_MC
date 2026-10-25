@@ -17,6 +17,11 @@ async function main () {
   }
   process.on('SIGINT', shutdown)
   process.on('SIGTERM', shutdown)
+  // When started by the launcher (child process with IPC): report ready, stop on request.
+  if (process.send) {
+    process.on('message', (m) => { if (m?.type === 'stop') shutdown() })
+    process.send({ type: 'ready', port: relay.port })
+  }
 }
 
 main().catch((err) => {
