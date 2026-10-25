@@ -1,6 +1,6 @@
 {
   "name": "blockworld-bridge",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "private": true,
   "description": "Foundry VTT (V14) <-> Minecraft: Java Edition bridge: top-down map control + first-person 3D window.",
   "license": "MIT",

@@ -287,3 +287,24 @@ test("map scene padding: removed when present, reported once if the scene still 
   assert.strictEqual(paddingAction(undefined, { sceneX: 0, sceneY: 0 }), "ok");
   assert.strictEqual(paddingAction(0, { sceneX: 6400, sceneY: 6400 }), "report");
 });
+
+test("map picture alignment: a centre-anchored picture placed at the tile corner is moved onto the tile", async () => {
+  const { alignToRect } = await import("../scripts/align.js");
+  // minimal stand-in for a sprite under a scaled, panned stage (no rotation)
+  const zoom = 0.0394; const pan = { x: 135, y: 65 };
+  const stage = { toGlobal: (p) => ({ x: pan.x + p.x * zoom, y: pan.y + p.y * zoom }) };
+  const sprite = {
+    anchor: 0.5, position: { x: 0, y: 0 }, scale: { x: 100, y: 100 }, size: 256,
+    parent: { worldTransform: { a: zoom, d: zoom } },
+    getBounds() {
+      const w = this.size * this.scale.x * zoom; const h = this.size * this.scale.y * zoom;
+      return { x: pan.x + this.position.x * zoom - this.anchor * w, y: pan.y + this.position.y * zoom - this.anchor * h, width: w, height: h };
+    }
+  };
+  const rect = { x: 0, y: 0, width: 25600, height: 25600 };
+  assert.ok(Math.abs(sprite.getBounds().x - (pan.x - 504.32)) < 0.01, "before: shifted half a map up-left, as on V14");
+  assert.ok(alignToRect(sprite, rect, stage));
+  const b = sprite.getBounds();
+  assert.ok(Math.abs(b.x - pan.x) < 0.01 && Math.abs(b.y - pan.y) < 0.01 && Math.abs(b.width - 25600 * zoom) < 0.01);
+  assert.strictEqual(alignToRect({ parent: null }, rect, stage), false, "not laid out yet: left alone");
+});

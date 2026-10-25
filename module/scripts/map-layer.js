@@ -1,6 +1,7 @@
 import { MODULE_ID, ENTITY_COLORS, L } from "./constants.js";
 import { chunkToRGBA, inMap, mapTileRect, tileMisplaced, paddingAction } from "./coords.js";
 import { displayCells } from "./displays.js";
+import { alignToRect } from "./align.js";
 import { viewOf } from "./map-view.js";
 
 /**
@@ -97,9 +98,12 @@ export class MapLayer {
     if (mesh.texture !== this.texture) mesh.texture = this.texture;
     // The mesh was scaled for the 1x1 placeholder image. Re-fit it to the tile, or a 128px map
     // gets stretched 128 times and only one or two blocks fill the whole scene.
-    const { width, height } = tile.document;
+    const { x, y, width, height } = tile.document;
     if (typeof mesh.resize === "function") mesh.resize(width, height, { fit: "fill" });
     else { mesh.width = width; mesh.height = height; }
+    // Then make sure the picture really covers the tile: its anchor/parent may differ from what the
+    // resize assumed (on V14 the picture's centre ended up on the tile's top-left corner).
+    alignToRect(mesh, { x, y, width, height }, canvas.stage);
   }
 
   paintChunk(c, redraw = true) {
