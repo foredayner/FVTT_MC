@@ -130,10 +130,6 @@ MIT. 번들된 서드파티 코드는 `module/vendor/LICENSES.md` 참고.
 
 ## 릴리스 만들기
 
-`module/module.json` 의 `version` 을 올리고 커밋한 뒤 같은 이름의 태그를 올리면 GitHub Actions 가 릴리스를 만듭니다.
+`module/module.json` 의 `version` 을 올리고 `main` 에 push 하면, 그 버전의 릴리스가 아직 없을 때 GitHub Actions 가 `v<버전>` 태그와 릴리스를 만듭니다. Actions 탭에서 손으로 실행할 수도 있습니다.
 
-```bash
-git tag v0.4.3 && git push origin v0.4.3
-```
-
-릴리스에는 `module.json`·`module.zip`(Foundry manifest 설치/업데이트용)과 Windows 런처 설치 파일·zip 이 붙습니다. 릴리스 설명은 `.github/release-notes/<태그>.md` 가 있으면 그것을, 없으면 커밋 목록을 씁니다.
+릴리스에는 `module.json`·`module.zip`(Foundry manifest 설치/업데이트용)과 Windows 런처 설치 파일·zip 이 붙습니다. 릴리스 설명은 `.github/release-notes/v<버전>.md` 가 있으면 그것을, 없으면 커밋 목록을 씁니다.

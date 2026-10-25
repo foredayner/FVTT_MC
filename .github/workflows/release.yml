@@ -1,46 +1,71 @@
-# Push a tag like v0.4.2 (matching module/module.json "version") to publish a release:
+# Publishes a release whenever main has a module version that has no release yet.
+# Bump "version" in module/module.json, push to main, and this creates tag v<version> with:
 #   module.json + module.zip  -> Foundry installs/updates from the manifest URL
 #   Windows launcher installer + zip, built on Windows
+# It can also be started by hand from the Actions tab (workflow_dispatch).
 name: release
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   module:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.ver.outputs.tag }}
+      created: ${{ steps.create.outputs.created }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Tag must match module version
-        run: |
-          VERSION=$(jq -r .version module/module.json)
-          if [ "v$VERSION" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME but module.json says $VERSION"; exit 1
-          fi
-
-      - name: Build module.zip and the release manifest
-        run: |
-          mkdir -p out
-          (cd module && zip -qr ../out/module.zip . -x 'test/*')
-          jq --arg dl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/module.zip" \
-            '.download = $dl' module/module.json > out/module.json
-
-      - name: Create release
+      - name: Version and whether it is already released
+        id: ver
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          NOTES=".github/release-notes/${GITHUB_REF_NAME}.md"
+          TAG="v$(jq -r .version module/module.json)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "$TAG is already released; nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build module.zip and the release manifest
+        if: steps.ver.outputs.exists == 'false'
+        env:
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          mkdir -p out
+          (cd module && zip -qr ../out/module.zip . -x 'test/*')
+          jq --arg dl "https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/module.zip" \
+            '.download = $dl' module/module.json > out/module.json
+
+      - name: Create tag and release
+        id: create
+        if: steps.ver.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          NOTES=".github/release-notes/${TAG}.md"
           if [ -f "$NOTES" ]; then ARGS=(--notes-file "$NOTES"); else ARGS=(--generate-notes); fi
-          gh release create "$GITHUB_REF_NAME" out/module.json out/module.zip \
-            --title "Blockworld Bridge ${GITHUB_REF_NAME#v}" "${ARGS[@]}"
+          gh release create "$TAG" out/module.json out/module.zip \
+            --target "$GITHUB_SHA" --title "Blockworld Bridge ${TAG#v}" "${ARGS[@]}"
+          echo "created=true" >> "$GITHUB_OUTPUT"
 
   launcher:
     needs: module
+    if: needs.module.outputs.created == 'true'
     runs-on: windows-latest
     defaults:
       run:
@@ -57,4 +82,4 @@ jobs:
       - name: Attach installer and zip
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" dist/*.exe dist/*.zip --clobber
+        run: gh release upload "${{ needs.module.outputs.tag }}" dist/*.exe dist/*.zip --clobber
