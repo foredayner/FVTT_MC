@@ -29,7 +29,8 @@ Foundry VTT(V14)와 Minecraft: Java Edition 서버를 잇는 모듈 + 중계 프
 요구: Node.js 20 이상, Foundry VTT V14.
 
 ```bash
-cd relay
+git clone https://github.com/foredayner/FVTT_MC
+cd FVTT_MC/relay
 npm install
 cp config.example.json config.json   # token 을 16자 이상 임의 문자열로 바꾸기
 npm run test:server                   # 1) 테스트용 마크 서버 (1.21.4, 오프라인, 클래식 평면)
