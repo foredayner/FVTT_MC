@@ -107,7 +107,8 @@
       "AssetsReady": "3D view files are ready.",
       "AssetsFailed": "Could not upload the 3D view files: {error}",
       "NeedCorner": "Enter whole numbers for the bottom-left X and Z.",
-      "NeedXYZ": "Enter whole numbers for X, Y and Z (Y from -64 to 319)."
+      "NeedXYZ": "Enter whole numbers for X, Y and Z (Y from -64 to 319).",
+      "PaddingStuck": "The map scene has no padding but still does not start at the canvas corner (starts at {x}, {y}). The map is drawn on the scene; please report these numbers."
     },
     "Settings": {
       "RelayUrl": {

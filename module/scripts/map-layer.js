@@ -1,5 +1,5 @@
-import { MODULE_ID, ENTITY_COLORS } from "./constants.js";
-import { chunkToRGBA, inMap, mapTileRect, tileMisplaced } from "./coords.js";
+import { MODULE_ID, ENTITY_COLORS, L } from "./constants.js";
+import { chunkToRGBA, inMap, mapTileRect, tileMisplaced, paddingAction } from "./coords.js";
 import { displayCells } from "./displays.js";
 import { viewOf } from "./map-view.js";
 
@@ -56,12 +56,37 @@ export class MapLayer {
    */
   repairTile(cfg) {
     if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
+    if (this.removePadding()) return; // the scene redraws; the tile is checked again then
     const doc = canvas.scene?.tiles.find((t) => t.getFlag(MODULE_ID, "mapTile"));
     if (!doc) return;
     const d = canvas.dimensions;
     const rect = mapTileRect(cfg, { grid: canvas.scene.grid.size, sceneX: d.sceneX, sceneY: d.sceneY });
     if (!tileMisplaced(doc, rect)) return;
     doc.update(rect).catch((err) => console.warn(`${MODULE_ID} | map tile`, err));
+  }
+
+  /**
+   * GM: a map scene is exactly the map, with no grey padding around it. Returns true when it asked
+   * Foundry to remove the padding. If the scene still starts away from the canvas corner with
+   * padding 0, say so once with the numbers instead of retrying.
+   */
+  removePadding() {
+    const scene = canvas.scene;
+    const d = canvas.dimensions;
+    let action = paddingAction(scene?.padding, d);
+    this.paddingTried ??= new Set();
+    if (action === "update" && this.paddingTried.has(scene.id)) action = "report"; // tried once already: never loop
+    if (action === "update") {
+      this.paddingTried.add(scene.id);
+      scene.update({ padding: 0 }).catch((err) => console.warn(`${MODULE_ID} | scene padding`, err));
+      return true;
+    }
+    if (action === "report" && this.reportedScene !== scene.id) {
+      this.reportedScene = scene.id;
+      console.warn(`${MODULE_ID} | map scene starts at`, { sceneX: d.sceneX, sceneY: d.sceneY, padding: scene.padding });
+      ui.notifications.warn(L("Notify.PaddingStuck", { x: d.sceneX, y: d.sceneY }));
+    }
+    return false;
   }
 
   isMapTile(tile) { return !!tile?.document?.getFlag(MODULE_ID, "mapTile"); }

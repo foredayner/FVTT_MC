@@ -279,3 +279,11 @@ test("3D HUD: chat for everyone, titles and deaths only for that character's vie
   hud.handle({ kind: "info", key: "me", text: "joined" }, "me");
   assert.deepStrictEqual(got, [["chat", "<Jo> hi", "chat"], ["title", "T", "S"], ["bar", "A"], ["clear"], ["chat", "Jo died", "warn"]]);
 });
+
+test("map scene padding: removed when present, reported once if the scene still starts off the corner", async () => {
+  const { paddingAction } = await import("../scripts/coords.js");
+  assert.strictEqual(paddingAction(0.25, { sceneX: 3200, sceneY: 3200 }), "update");
+  assert.strictEqual(paddingAction(0, { sceneX: 0, sceneY: 0 }), "ok");
+  assert.strictEqual(paddingAction(undefined, { sceneX: 0, sceneY: 0 }), "ok");
+  assert.strictEqual(paddingAction(0, { sceneX: 6400, sceneY: 6400 }), "report");
+});

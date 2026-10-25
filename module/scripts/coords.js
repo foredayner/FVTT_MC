@@ -89,3 +89,15 @@ export function mapTileRect(map, dims) {
 export function tileMisplaced(tile, rect) {
   return ["x", "y", "width", "height"].some((k) => Math.abs((tile[k] ?? 0) - rect[k]) > 0.5);
 }
+
+/**
+ * What to do about a map scene's padding: "update" (set it to 0), "report" (padding is 0 but the
+ * scene still does not start at the canvas corner) or "ok".
+ * @param {number|undefined} padding scene.padding
+ * @param {{sceneX:number, sceneY:number}} dims canvas.dimensions
+ */
+export function paddingAction(padding, dims) {
+  if (padding) return "update";
+  if ((dims?.sceneX ?? 0) > 0 || (dims?.sceneY ?? 0) > 0) return "report";
+  return "ok";
+}

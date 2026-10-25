@@ -6,7 +6,7 @@ const path = require('path')
 const MC_VERSION = '1.21.4'
 /** Minecraft data version of 1.21.4; worlds saved by a newer game cannot be opened. */
 const DATA_VERSION = 4189
-const USER_AGENT = 'BlockworldBridgeLauncher/0.2.2 (https://github.com/foredayner/FVTT_MC)'
+const USER_AGENT = 'BlockworldBridgeLauncher/0.2.3 (https://github.com/foredayner/FVTT_MC)'
 
 const DEFAULTS = {
   serverType: 'paper', // 'paper' | 'vanilla'
