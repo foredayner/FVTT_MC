@@ -7,6 +7,7 @@ Foundry VTT(V14)와 Minecraft: Java Edition 서버를 잇는 모듈 + 중계 프
 - **실내 평면도**: 지붕 아래 들어간 캐릭터 주변은 지붕을 걷어내고 바닥(밝게)·벽(어둡게)·문·창문으로 그립니다. 벽은 Foundry 벽으로 만들어져 시야를 막습니다. GM은 층 높이를 직접 지정할 수도 있습니다.
 - **3D 시점**: Foundry 안의 창에서 1인칭으로 보고 WASD·마우스로 조작합니다. 플레이어 브라우저가 직접 그리고, 데이터는 Foundry 연결로 받으므로 따로 열어야 할 포트가 없습니다.
 - **GM 연출**: 낮/밤, 날씨, 화면 중앙 나레이션, 상태효과, 몹 소환.
+- **디스플레이 블록 오브젝트**: `block_display` 엔티티로 만든 물체(예: AI 건축 모드의 소품)가 3D 시점에는 실제 블록 모양·텍스처로, 지도에는 그 블록 색으로 나옵니다. 모드 없는 서버에서도 보입니다(모드 전용 엔티티는 빠짐).
 
 > Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.
 > 이 모듈은 마인크래프트 게임 파일·텍스처를 포함하지 않습니다. **각 플레이어는 Minecraft: Java Edition을 보유해야 합니다.**
@@ -97,6 +98,7 @@ vanilla 또는 Paper **1.21.4** 서버에서 `minecraft.host/port` 를 relay 설
 | `map.refreshMs` / `map.refreshRadius` | 2000 / 24 | 지도 주기 동기화 간격과 반경(블록) |
 | `map.indoorRadius` | 12 | 자동 단면: 실내 캐릭터 주변 몇 블록까지 지붕을 걷어낼지 |
 | `stateHz` | 10 | 위치 갱신 횟수(초당). 3D 카메라가 이 값으로 부드럽게 따라갑니다 |
+| `displays.radius` / `displays.maxParts` | 48 / 6000 | 캐릭터 주변 몇 블록의 디스플레이 블록을 보낼지, 최대 몇 개까지 |
 
 ## 버전
 
@@ -112,6 +114,13 @@ vanilla 또는 Paper **1.21.4** 서버에서 `minecraft.host/port` 를 relay 설
 npm test                               # relay 단위 + 모듈 로직·권한·3D 전달 테스트
 npm run test:e2e                       # 로컬 서버로 봇 접속·지도·3D 청크·조작·명령 종단 테스트
 cd tools/build3d && npm install && node render-check.js   # 헤드리스 크로미움으로 3D 렌더 확인 (스크린샷 저장)
+```
+
+디스플레이 블록은 저장된 월드로도 시험할 수 있습니다(마크 서버 없이, 실제 패킷 경로로):
+
+```bash
+cd relay && node test/display-from-world.js <월드폴더> [태그] parts.json   # 월드의 block_display 를 봇에게 보내고 relay 결과 검증
+cd tools/build3d && node render-check.js --displays parts.json            # 그 부품들을 3D 로 그려 스크린샷
 ```
 
 Foundry 안에서의 동작(패널, 타일 텍스처, 3D 창, 자료 업로드)은 실제 V14 월드에서 확인합니다.

@@ -243,3 +243,54 @@ test('mapScanner: fixed and off view modes', () => {
   assert.throws(() => scanner.setView({ mode: 'fixed' }))
   assert.throws(() => scanner.setView({ mode: 'sideways' }))
 })
+
+test('displays: matrix follows the game order and gives the right box', () => {
+  const { displayMatrix, unitBox } = require('../src/displays')
+  const none = { translation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, left: { x: 0, y: 0, z: 0, w: 1 }, right: { x: 0, y: 0, z: 0, w: 1 } }
+  const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-6)
+  assert.ok(near(unitBox(displayMatrix({ x: 1, y: 2, z: 3 }, 0, 0, none)), [1, 2, 3, 2, 3, 4]))
+  // a real part of an AI-built object: translation + non-uniform scale
+  const part = { ...none, translation: { x: -0.0833, y: 0.1142, z: -0.1042 }, scale: { x: 0.1667, y: 0.0417, z: 0.2083 } }
+  assert.ok(near(unitBox(displayMatrix({ x: 8.5, y: -59.8642, z: 10.3958 }, 0, 0, part)), [8.4167, -59.75, 10.2916, 8.5834, -59.7083, 10.4999]))
+  // left rotation 90° about +Y turns +X into -Z
+  const s = Math.SQRT1_2
+  const turned = { ...none, left: { x: 0, y: s, z: 0, w: s } }
+  assert.ok(near(unitBox(displayMatrix({ x: 0, y: 0, z: 0 }, 0, 0, turned)), [0, 0, -1, 1, 1, 0]))
+  // entity yaw 90° (Minecraft) turns the other way round Y: rotateY(-90°) sends +X to +Z
+  assert.ok(near(unitBox(displayMatrix({ x: 0, y: 0, z: 0 }, 90, 0, none)), [-1, 0, 0, 0, 1, 1]))
+  // scale happens before translation is applied, after left rotation: translation is not scaled
+  const moved = { ...none, translation: { x: 2, y: 0, z: 0 }, scale: { x: 0.5, y: 0.5, z: 0.5 } }
+  assert.ok(near(unitBox(displayMatrix({ x: 0, y: 0, z: 0 }, 0, 0, moved)), [2, 0, 0, 2.5, 0.5, 0.5]))
+})
+
+test('displays: tracker sends new, changed and removed parts, and a reset on resync', () => {
+  const { DisplayTracker } = require('../src/displays')
+  const registry = require('minecraft-data')('1.21.4')
+  const keys = registry.entitiesByName.block_display.metadataKeys
+  const stone = registry.blocksByName.stone.defaultState
+  const meta = (stateId, sx = 1) => {
+    const m = []
+    m[keys.indexOf('scale')] = { x: sx, y: 1, z: 1 }
+    m[keys.indexOf('block_state')] = stateId
+    return m
+  }
+  const ent = (id, x, metadata) => ({ id, name: 'block_display', position: { x, y: 0, z: 0 }, yaw: Math.PI, pitch: 0, metadata })
+  const bot = { entity: { position: { x: 0, y: 0, z: 0 } }, registry, game: { dimension: 'overworld' }, entities: {} }
+  bot.entities = { 1: ent(1, 1, meta(stone)), 2: ent(2, 2, meta(stone)), 3: ent(3, 100, meta(stone)), 4: ent(4, 3, meta(0)) }
+  const sent = []
+  const t = new DisplayTracker({ radius: 48 }, (m) => sent.push(m), { log () {} })
+  t.update([bot])
+  assert.deepStrictEqual(sent.flatMap((m) => m.add.map((p) => p.id)).sort(), ['1', '2'], 'far away and air parts are left out')
+  assert.strictEqual(sent[0].add[0].name, 'stone')
+  const { rgb, ID, SHADE } = require('../src/mapColors')
+  assert.deepStrictEqual(sent[0].add[0].c, rgb(ID.STONE, SHADE.NORMAL), 'map colour of the block')
+  sent.length = 0
+  t.update([bot])
+  assert.strictEqual(sent.length, 0, 'nothing changed: nothing sent')
+  bot.entities[2].metadata = meta(stone, 2)
+  delete bot.entities[1]
+  t.update([bot])
+  assert.deepStrictEqual(sent.map((m) => [m.add.map((p) => p.id), m.del]), [[['2'], []], [[], ['1']]])
+  const reset = [...t.all()]
+  assert.ok(reset[0].reset && reset[0].add.length === 1)
+})

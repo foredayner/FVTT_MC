@@ -1,6 +1,7 @@
 import { MODULE_ID, SOCKET, PLAYER_INTENTS, GM_INTENTS, L } from "./constants.js";
 import { RelayClient } from "./relay-client.js";
 import { ensureAssets } from "./assets.js";
+import { applyDisp } from "./displays.js";
 
 /** High-rate inputs: no ack, so they never queue up behind a slow dig. */
 const FIRE_AND_FORGET = new Set(["look", "control"]);
@@ -13,7 +14,9 @@ const FIRE_AND_FORGET = new Set(["look", "control"]);
  * 3D world data (col3d/block3d/unload3d) is cached by the GM and only forwarded while somebody
  * has a 3D window open; a player opening one gets the cache first.
  *
- * Events: status, bots, state, chunk, event, col3d, block3d, unload3d
+ * Block display parts ("disp") are kept like map chunks: every client has them, for the map and 3D.
+ *
+ * Events: status, bots, state, chunk, disp, event, col3d, block3d, unload3d
  */
 export class Hub extends EventTarget {
   constructor() {
@@ -23,6 +26,7 @@ export class Hub extends EventTarget {
     this.positions = new Map();     // key -> {x,y,z,yaw,pitch,health,food,dim,moving}
     this.entities = [];             // [{id, kind, name, x,y,z}]
     this.chunks = new Map();        // "dim:cx:cz" -> chunk msg
+    this.displays = new Map();      // id -> block display part (see displays.js)
     this.log = [];                  // recent events
     this.waiting = new Map();       // reqId -> {resolve, reject, timer} (players)
     this.reqSeq = 0;
@@ -44,7 +48,7 @@ export class Hub extends EventTarget {
     game.socket.on(SOCKET, (data, sender) => this.onSocket(data, sender));
     if (this.isGM) {
       this.relay = new RelayClient();
-      for (const type of ["welcome", "bots", "state", "chunk", "event", "col3d", "block3d", "unload3d"]) {
+      for (const type of ["welcome", "bots", "state", "chunk", "disp", "event", "col3d", "block3d", "unload3d"]) {
         this.relay.addEventListener(type, (ev) => this.fromRelay(ev.detail));
       }
       this.relay.addEventListener("status", (ev) => {
@@ -122,6 +126,9 @@ export class Hub extends EventTarget {
       case "chunk":
         this.chunks.set(`${msg.dim}:${msg.cx}:${msg.cz}`, msg);
         break;
+      case "disp":
+        applyDisp(this.displays, msg);
+        break;
       case "event":
         this.log.push({ ...msg, at: Date.now() });
         if (this.log.length > 50) this.log.shift();
@@ -174,7 +181,8 @@ export class Hub extends EventTarget {
   sendSnapshot(to) {
     this.broadcast({
       t: "snapshot", to, status: this.status, bots: this.bots,
-      positions: [...this.positions.values()], entities: this.entities, chunks: [...this.chunks.values()]
+      positions: [...this.positions.values()], entities: this.entities, chunks: [...this.chunks.values()],
+      displays: [...this.displays.values()]
     });
   }
 
@@ -187,6 +195,8 @@ export class Hub extends EventTarget {
     this.emit("status", this.status);
     this.emit("bots", { bots: this.bots });
     for (const c of s.chunks) this.emit("chunk", c);
+    applyDisp(this.displays, { reset: true, add: s.displays ?? [] });
+    this.emit("disp", { reset: true, add: s.displays ?? [], del: [] });
     this.emit("state", { bots: s.positions, entities: s.entities });
   }
 

@@ -125,6 +125,49 @@ async function main () {
   await page.waitForTimeout(1500)
   await page.screenshot({ path: path.join(OUT, '2-after-dig.png') })
 
+  // Block displays: parts as the relay sends them ({s, m, box}). --displays <file> loads real parts
+  // (e.g. an object saved by the AI build mod); otherwise a small sample with stairs and a turned part.
+  const fileArg = process.argv[process.argv.indexOf('--displays') + 1]
+  const useFile = process.argv.includes('--displays') && fileArg
+  const md = require(path.join(RELAY, 'node_modules/minecraft-data'))('1.21.4')
+  const { displayMatrix, unitBox } = require(path.join(RELAY, 'src/displays'))
+  const part = (name, pos, t) => {
+    const m = displayMatrix(pos, 0, 0, { translation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 }, left: { x: 0, y: 0, z: 0, w: 1 }, right: { x: 0, y: 0, z: 0, w: 1 }, ...t })
+    return { s: md.blocksByName[name].defaultState, m, box: unitBox(m) }
+  }
+  const gx = Math.floor(s.x) - 6; const gz = Math.floor(s.z) - 6; const gy = Math.floor(s.y)
+  const parts = useFile
+    ? JSON.parse(fs.readFileSync(fileArg, 'utf8'))
+    : [
+        part('white_concrete', { x: gx, y: gy, z: gz }, { scale: { x: 1, y: 0.5, z: 1.5 } }),
+        part('orange_concrete', { x: gx + 0.5, y: gy + 0.5, z: gz + 0.2 }, { scale: { x: 0.4, y: 0.4, z: 0.4 }, left: { x: 0, y: Math.sin(Math.PI / 8), z: 0, w: Math.cos(Math.PI / 8) } }),
+        part('oak_stairs', { x: gx + 2, y: gy, z: gz }, { scale: { x: 1, y: 1, z: 1 } }),
+        part('oak_stairs', { x: gx + 3.2, y: gy, z: gz }, { scale: { x: 0.5, y: 0.5, z: 0.5 } })
+      ]
+  const bb = parts.reduce((b, p) => [Math.min(b[0], p.box[0]), Math.min(b[1], p.box[1]), Math.min(b[2], p.box[2]), Math.max(b[3], p.box[3]), Math.max(b[4], p.box[4]), Math.max(b[5], p.box[5])], [Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity])
+  const cx = (bb[0] + bb[3]) / 2; const cz = (bb[2] + bb[5]) / 2; const size = Math.max(bb[3] - bb[0], bb[4] - bb[1], bb[5] - bb[2])
+  const stairs = md.blocksByName.oak_stairs.defaultState
+  await page.evaluate(({ parts, cam, stairs, terrainStairs }) => {
+    window.r.setDisplays(parts)
+    window.r.setBlock(terrainStairs.x, terrainStairs.y, terrainStairs.z, stairs) // a stairs block in the terrain
+    window.r.setTarget(cam); window.r.placed = false; window.r.setTarget(cam)
+    window.r.setLook(0, -0.35) // yaw 0 looks toward -Z
+  }, {
+    parts,
+    stairs,
+    terrainStairs: { x: Math.floor(cx) + (useFile ? 2 : 1), y: Math.floor(bb[1]), z: Math.floor(cz) + 1 },
+    cam: { x: cx, y: bb[1] + size * 0.9 - 1.62 + 0.2, z: bb[5] + size * 1.6 + 0.5 }
+  })
+  await page.waitForFunction((n) => window.r.stats().displayMeshes >= n, new Set(parts.map((p) => p.s)).size, { timeout: 30000 })
+  await page.waitForTimeout(1500)
+  await page.screenshot({ path: path.join(OUT, '3-displays.png') })
+  // and from the other side (yaw π looks toward +Z)
+  await page.evaluate((cam) => { window.r.setTarget(cam); window.r.placed = false; window.r.setTarget(cam); window.r.setLook(Math.PI, -0.35) },
+    { x: cx, y: bb[1] + size * 0.9 - 1.62 + 0.2, z: bb[2] - size * 1.6 - 0.5 })
+  await page.waitForTimeout(800)
+  await page.screenshot({ path: path.join(OUT, '4-displays-other-side.png') })
+  console.log('display stats', await page.evaluate(() => window.r.stats()), 'parts', parts.length, 'bounds', bb.map((v) => v.toFixed(2)).join(','))
+
   console.log('page errors', errors.length ? errors : 'none')
   await browser.close(); web.close(); ws.close(); await relay.close(); serv.quit?.()
   process.exit(errors.length ? 1 : 0)

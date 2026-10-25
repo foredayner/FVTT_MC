@@ -30,13 +30,18 @@ function trimmedDataJs () {
 
 // prismarine-viewer's mesher skips faces whose neighbour is below y=0 (pre-1.18 worlds).
 // 1.18+ worlds go down to -64, so compare with the world's real bottom instead.
+// It also treats every block whose name contains "air" as air (stairs!); match the real air blocks only.
 const negativeHeights = {
   name: 'negative-heights',
   setup (build) {
     build.onLoad({ filter: /prismarine-viewer[\\/]viewer[\\/]lib[\\/]models\.js$/ }, (args) => {
       const src = fs.readFileSync(args.path, 'utf8')
-      const patched = src.replaceAll('neighbor.position.y < 0', 'neighbor.position.y < (world.minY ?? 0)')
+      let patched = src.replaceAll('neighbor.position.y < 0', 'neighbor.position.y < (world.minY ?? 0)')
       if (patched === src) throw new Error('models.js patch did not apply; check the prismarine-viewer version')
+      // "air" check matched any name containing it, so stairs ("st-air-s") were never drawn.
+      const airFixed = patched.replace("if (block.name.includes('air')) return []", "if (/^(air|cave_air|void_air)$/.test(block.name)) return []")
+      if (airFixed === patched) throw new Error('models.js air patch did not apply; check the prismarine-viewer version')
+      patched = airFixed
       return { contents: patched, loader: 'js', resolveDir: path.dirname(args.path) }
     })
   }

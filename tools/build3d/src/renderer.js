@@ -1,7 +1,8 @@
 /* global Worker, requestAnimationFrame, cancelAnimationFrame, performance */
 // Browser 3D view for Blockworld Bridge. Exposed as globalThis.BWB3D.
-// Chunk meshing runs in workers (see worker.js); this file owns the three.js scene, the camera
-// and simple boxes for other characters and mobs.
+// Chunk meshing runs in workers (see worker.js); this file owns the three.js scene, the camera,
+// simple boxes for other characters and mobs, and block display entities (objects built from
+// small transformed blocks), drawn as instanced copies of each block's real model.
 const THREE = require('three')
 
 const ENTITY_STYLE = {
@@ -50,6 +51,9 @@ class Renderer3D {
     this.columns = new Map()   // "x,z" -> {minY, height}
     this.meshes = new Map()    // section key -> mesh
     this.entities = new Map()  // id -> mesh
+    this.displayParts = []     // [{s: stateId, m: 4x4 column-major}]
+    this.models = new Map()    // stateId -> BufferGeometry | 'pending'
+    this.displayMeshes = []    // InstancedMesh per block state
     this.target = null         // {x,y,z}
     this.yaw = 0
     this.pitch = 0
@@ -63,7 +67,8 @@ class Renderer3D {
       const w = new Worker(opts.workerUrl)
       w.onmessage = ({ data }) => {
         if (data.type === 'geometry') this.onGeometry(data)
-        else if (data.type === 'ready' && ++readyCount === n) { this.ready = true; this.onReady?.() }
+        else if (data.type === 'model') this.onModel(data)
+        else if (data.type === 'ready' && ++readyCount === n) { this.ready = true; this.rebuildDisplays(); this.onReady?.() }
       }
       w.postMessage({ type: 'version', version: opts.version })
       w.postMessage({ type: 'blockStates', url: opts.blockStatesUrl })
@@ -142,6 +147,58 @@ class Renderer3D {
     this.scene.remove(m)
     m.geometry.dispose()
     this.meshes.delete(key)
+  }
+
+  // ---------- block displays ----------
+
+  /**
+   * Block display parts to show (replaces the previous set).
+   * @param {{s:number, m:number[]}[]} parts block state id and the world matrix of the unit block
+   */
+  setDisplays (parts) {
+    this.displayParts = parts
+    if (this.displayTimer) return
+    // several updates in a row (batches of parts) become one rebuild
+    this.displayTimer = setTimeout(() => { this.displayTimer = null; this.rebuildDisplays() }, 50)
+  }
+
+  rebuildDisplays () {
+    if (!this.ready) return
+    for (const mesh of this.displayMeshes) { this.scene.remove(mesh); mesh.dispose() }
+    this.displayMeshes = []
+    const groups = new Map()
+    for (const p of this.displayParts) {
+      if (!groups.has(p.s)) groups.set(p.s, [])
+      groups.get(p.s).push(p.m)
+    }
+    const matrix = new THREE.Matrix4()
+    for (const [stateId, list] of groups) {
+      const geo = this.models.get(stateId)
+      if (!geo) {
+        this.models.set(stateId, 'pending')
+        this.workers[0].postMessage({ type: 'blockModel', stateId })
+        continue
+      }
+      if (geo === 'pending' || !geo.attributes.position.count) continue
+      const mesh = new THREE.InstancedMesh(geo, this.material, list.length)
+      list.forEach((m, i) => mesh.setMatrixAt(i, matrix.fromArray(m)))
+      mesh.instanceMatrix.needsUpdate = true
+      if (mesh.computeBoundingSphere) mesh.computeBoundingSphere()
+      else mesh.frustumCulled = false
+      this.displayMeshes.push(mesh)
+      this.scene.add(mesh)
+    }
+  }
+
+  onModel ({ stateId, geometry: g }) {
+    const geo = new THREE.BufferGeometry()
+    geo.setAttribute('position', new THREE.BufferAttribute(g.positions, 3))
+    geo.setAttribute('normal', new THREE.BufferAttribute(g.normals, 3))
+    geo.setAttribute('color', new THREE.BufferAttribute(g.colors, 3))
+    geo.setAttribute('uv', new THREE.BufferAttribute(g.uvs, 2))
+    geo.setIndex(g.indices)
+    this.models.set(stateId, geo)
+    this.setDisplays(this.displayParts)
   }
 
   // ---------- camera and entities ----------
@@ -264,7 +321,10 @@ class Renderer3D {
   }
 
   stats () {
-    return { columns: this.columns.size, meshes: this.meshes.size, entities: this.entities.size, ready: this.ready }
+    return {
+      columns: this.columns.size, meshes: this.meshes.size, entities: this.entities.size, ready: this.ready,
+      displays: this.displayParts.length, displayMeshes: this.displayMeshes.length
+    }
   }
 
   dispose () {
@@ -272,6 +332,9 @@ class Renderer3D {
     for (const w of this.workers) w.terminate()
     for (const k of [...this.meshes.keys()]) this.dropMesh(k)
     for (const id of [...this.entities.keys()]) this.dropEntity(id)
+    clearTimeout(this.displayTimer)
+    for (const mesh of this.displayMeshes) { this.scene.remove(mesh); mesh.dispose() }
+    for (const geo of this.models.values()) if (geo !== 'pending') geo.dispose()
     for (const p of this.textures?.values() ?? []) p.then((t) => t?.dispose())
     this.renderer.dispose()
   }
@@ -284,4 +347,4 @@ async function gunzipBase64 (b64) {
   return new Response(stream).text()
 }
 
-globalThis.BWB3D = { Renderer3D, gunzipBase64, version: '0.3.0' }
+globalThis.BWB3D = { Renderer3D, gunzipBase64, version: '0.4.0' }

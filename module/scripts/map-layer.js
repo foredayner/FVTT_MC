@@ -1,5 +1,7 @@
 import { MODULE_ID, ENTITY_COLORS } from "./constants.js";
 import { chunkToRGBA, inMap } from "./coords.js";
+import { displayCells } from "./displays.js";
+import { viewOf } from "./map-view.js";
 
 /**
  * Paints the top-down map into an off-screen canvas and shows it through a flagged Tile.
@@ -16,6 +18,7 @@ export class MapLayer {
     this.dirty = false;
 
     hub.addEventListener("chunk", (ev) => this.paintChunk(ev.detail));
+    hub.addEventListener("disp", () => this.markDirty());
     hub.addEventListener("state", () => this.markDirty());
     Hooks.on("canvasReady", () => this.bindScene());
     Hooks.on("updateScene", (scene, change) => {
@@ -75,12 +78,19 @@ export class MapLayer {
     requestAnimationFrame(() => this.compose());
   }
 
-  /** Terrain + entity dots -> the texture the tile shows. */
+  /** Terrain + block-display objects + entity dots -> the texture the tile shows. */
   compose() {
     this.dirty = false;
     if (!this.map || !this.view) return;
     const ctx = this.view.getContext("2d");
     ctx.drawImage(this.base, 0, 0);
+    // Objects made of block displays, coloured like blocks (above the cut in a fixed floor plan: hidden).
+    const v = viewOf(canvas.scene);
+    const maxY = v.mode === "fixed" && Number.isInteger(v.y) ? v.y + 3 : Infinity;
+    for (const cell of displayCells(this.hub.displays.values(), this.map, { maxY }).values()) {
+      ctx.fillStyle = `rgb(${cell.c[0]},${cell.c[1]},${cell.c[2]})`;
+      ctx.fillRect(cell.x, cell.z, 1, 1);
+    }
     for (const e of this.hub.entities) {
       const x = Math.floor(e.x); const z = Math.floor(e.z);
       if (!inMap(x, z, this.map)) continue;

@@ -8,6 +8,8 @@ const { getSectionGeometry } = require('prismarine-viewer/viewer/lib/models')
 
 let blocksStates = null
 let world = null
+let version = null
+let modelWorld = null // one empty section holding a single block, for block display models
 const dirty = new Set()
 
 const key = (x, y, z) => `${x},${y},${z}`
@@ -32,7 +34,11 @@ function setDirty (x, y, z, value) {
 self.onmessage = async ({ data }) => {
   switch (data.type) {
     case 'version':
+      version = data.version
       world = new World(data.version)
+      break
+    case 'blockModel':
+      postModel(data.stateId)
       break
     case 'blockStates':
       blocksStates = await (await fetch(data.url)).json()
@@ -53,6 +59,27 @@ self.onmessage = async ({ data }) => {
       world.setBlockStateId(new Vec3(data.x, data.y, data.z), data.stateId)
       break
   }
+}
+
+/**
+ * Geometry of one block in the unit cube [0,1]^3: the block sits at (8,8,8) of an empty section,
+ * and the mesher writes positions relative to the section centre (8,8,8). Neighbours are air, so no
+ * face is culled. Used for block display entities, placed by the main thread with their matrix.
+ */
+function postModel (stateId) {
+  if (!blocksStates) return
+  if (!modelWorld) {
+    const Chunk = require('prismarine-chunk')(version)
+    modelWorld = new World(version)
+    modelWorld.columns['0,0'] = new Chunk({ minY: 0, worldHeight: 16 })
+    modelWorld.minY = 0
+  }
+  const pos = new Vec3(8, 8, 8)
+  modelWorld.setBlockStateId(pos, stateId)
+  const geometry = getSectionGeometry(0, 0, 0, modelWorld, blocksStates)
+  modelWorld.setBlockStateId(pos, 0)
+  const transfer = [geometry.positions.buffer, geometry.normals.buffer, geometry.colors.buffer, geometry.uvs.buffer]
+  postMessage({ type: 'model', stateId, geometry }, transfer)
 }
 
 setInterval(() => {

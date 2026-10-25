@@ -178,3 +178,50 @@ test("coords: map from its bottom-left (south-west) block", async () => {
   const dims = { grid: 100, sceneX: 0, sceneY: 0 };
   assert.deepStrictEqual(mcToScene({ x: 100, z: 200 }, map, dims), { x: 0, y: 12700 });
 });
+
+test("displays: parts paint the cells they cover, highest part wins, other dimensions and cut are skipped", async () => {
+  const { applyDisp, displayCells } = await import("../scripts/displays.js");
+  const parts = new Map();
+  const part = (id, box, c, dim = "overworld") => ({ id, dim, box, c });
+  applyDisp(parts, { reset: true, add: [
+    part("body", [8.04, -60, 9.79, 8.96, -59.2, 11.21], [200, 200, 200]),   // spans z 9..11, one x cell
+    part("beak", [8.4, -59.0, 9.8, 8.6, -58.9, 10.0], [216, 127, 51]),      // higher: wins its cell
+    part("tiny", [20.1, -60, 20.1, 20.2, -59.9, 20.2], [0, 0, 0]),          // smaller than a block: still 1 cell
+    part("nether", [8, -60, 9, 9, -59, 10], [255, 0, 0], "the_nether"),
+    part("glass", [8, 0, 8, 9, 1, 9], null)
+  ], del: [] });
+  const map = { originX: 0, originZ: 0, size: 32, dim: "overworld" };
+  const cells = displayCells(parts.values(), map);
+  const at = (x, z) => cells.get(z * map.size + x)?.c;
+  assert.deepStrictEqual(at(8, 9), [216, 127, 51]);
+  assert.deepStrictEqual(at(8, 10), [200, 200, 200]);
+  assert.deepStrictEqual(at(8, 11), [200, 200, 200]);
+  assert.deepStrictEqual(at(20, 20), [0, 0, 0]);
+  assert.strictEqual(cells.size, 4);
+  assert.strictEqual(displayCells(parts.values(), map, { maxY: -59.5 }).get(9 * 32 + 8).c[0], 200, "beak above the cut is hidden");
+  applyDisp(parts, { add: [], del: ["beak", "tiny"] });
+  assert.deepStrictEqual([...parts.keys()].sort(), ["body", "glass", "nether"]);
+  assert.strictEqual(displayCells(parts.values(), { originX: 100, originZ: 0, size: 32, dim: "overworld" }).size, 0, "outside the map");
+});
+
+test("hub: display parts reach every client and late joiners get them in the snapshot", async () => {
+  const sent = mockFoundry({ me: "gm1" });
+  const { Hub } = await import("../scripts/hub.js");
+  const hub = new Hub();
+  hub.fromRelay({ type: "disp", reset: true, add: [{ id: "1", dim: "overworld", box: [0, 0, 0, 1, 1, 1], c: [1, 2, 3] }], del: [] });
+  assert.strictEqual(hub.displays.size, 1);
+  assert.ok(sent.some((s) => s.t === "relay" && s.msg.type === "disp"), "broadcast to players like map chunks");
+  hub.sendSnapshot("p1");
+  const snap = sent.find((s) => s.t === "snapshot");
+  assert.strictEqual(snap.displays.length, 1);
+
+  mockFoundry({ me: "p1" });
+  const player = new Hub();
+  const got = [];
+  player.addEventListener("disp", (e) => got.push(e.detail));
+  player.onSocket(snap, "gm1");
+  assert.strictEqual(player.displays.size, 1);
+  assert.ok(got[0].reset);
+  player.onSocket({ t: "relay", msg: { type: "disp", add: [], del: ["1"] } }, "gm1");
+  assert.strictEqual(player.displays.size, 0);
+});

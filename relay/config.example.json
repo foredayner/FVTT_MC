@@ -29,5 +29,9 @@
   },
   "stateHz": 10,
   "entityRadius": 32,
-  "maxBots": 8
+  "maxBots": 8,
+  "displays": {
+    "radius": 48,
+    "maxParts": 6000
+  }
 }

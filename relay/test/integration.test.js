@@ -137,6 +137,33 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
     await c.wait((m) => m.type === 'state' && m.bots.some((b) => b.key === 'u1' && Math.abs(b.x - (Math.floor(from.x) + 0.5)) < 1 && Math.abs(b.z - (Math.floor(from.z) + 0.5)) < 1), 10000)
   }
 
+  // Block display entities (objects made of small blocks) reach Foundry as parts with a world box
+  {
+    const registry = require('minecraft-data')('1.21.4')
+    const me = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+    const client = serv.players[0]._client
+    const at = { x: Math.floor(me.x) + 3.5, y: Math.floor(me.y), z: Math.floor(me.z) + 0.5 }
+    client.write('spawn_entity', {
+      entityId: 777001, objectUUID: '00000000-0000-4000-8000-000000777001', type: registry.entitiesByName.block_display.id,
+      ...at, pitch: 0, yaw: 0, headPitch: 0, objectData: 0, velocity: { x: 0, y: 0, z: 0 }
+    })
+    client.write('entity_metadata', {
+      entityId: 777001,
+      metadata: [
+        { key: 11, type: 'vector3', value: { x: -0.25, y: 0, z: -0.25 } },
+        { key: 12, type: 'vector3', value: { x: 0.5, y: 0.25, z: 0.5 } },
+        { key: 23, type: 'block_state', value: registry.blocksByName.orange_concrete.defaultState }
+      ]
+    })
+    const msg = await c.wait((m) => m.type === 'disp' && m.add.some((p) => p.id === '777001'), 5000)
+    const part = msg.add.find((p) => p.id === '777001')
+    assert.strictEqual(part.name, 'orange_concrete')
+    const want = [at.x - 0.25, at.y, at.z - 0.25, at.x + 0.25, at.y + 0.25, at.z + 0.25]
+    assert.ok(part.box.every((v, i) => Math.abs(v - want[i]) < 1e-3), `box ${part.box} vs ${want}`)
+    client.write('entity_destroy', { entityIds: [777001] })
+    await c.wait((m) => m.type === 'disp' && m.del.includes('777001'), 5000)
+  }
+
   // resync replays cached chunks
   const before = c.msgs.filter((m) => m.type === 'chunk').length
   assert.ok((await c.call('resync')).ok)

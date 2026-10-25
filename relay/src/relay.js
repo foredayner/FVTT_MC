@@ -8,6 +8,7 @@ const { buildGmCommand } = require('./gmCommands')
 const { Rcon } = require('./rcon')
 const { PROTOCOL_VERSION } = require('./protocol')
 const { World3D, readAsset, assetVersion } = require('./world3d')
+const { DisplayTracker } = require('./displays')
 
 function safeEqual (a, b) {
   const ba = Buffer.from(String(a)); const bb = Buffer.from(String(b))
@@ -23,6 +24,7 @@ async function startRelay (cfg, log = console) {
   const scanner = new MapScanner(cfg.map, (chunk) => send({ type: 'chunk', ...chunk }))
   const world3d = new World3D({ radius: cfg.viewer.radius }, (msg) => send(msg))
   const bots = new BotManager(cfg, scanner, cfg.viewer.enabled ? [world3d] : [])
+  const displays = new DisplayTracker(cfg.displays ?? { radius: 48 }, (msg) => send(msg), log)
   bots.on('bots', () => send({ type: 'bots', bots: bots.botList() }))
   bots.on('event', (ev) => {
     send({ type: 'event', ...ev })
@@ -61,6 +63,7 @@ async function startRelay (cfg, log = console) {
       send({ type: 'bots', bots: bots.botList() })
       for (const c of scanner.all()) send({ type: 'chunk', ...c })
       for (const c of world3d.all()) send(c)
+      for (const d of displays.all()) send(d)
       return true
     },
     asset3d: (m) => readAsset(cfg.minecraft.version, m.name),
@@ -150,10 +153,16 @@ async function startRelay (cfg, log = console) {
     ? setInterval(() => { try { world3d.update(bots.onlineBots().map((e) => e.bot)) } catch (err) { log.warn(`3D 갱신 실패: ${err.message}`) } }, 500)
     : null
 
+  // Block displays (objects built from small blocks): for the map and the 3D view alike.
+  const displayTimer = setInterval(() => {
+    try { displays.update(bots.onlineBots().map((e) => e.bot)) } catch (err) { log.warn(`디스플레이 갱신 실패: ${err.message}`) }
+  }, 500)
+
   async function close () {
     clearInterval(heartbeat)
     clearInterval(stateTimer)
     clearInterval(mapTimer)
+    clearInterval(displayTimer)
     if (world3dTimer) clearInterval(world3dTimer)
     scanner.close()
     bots.closeAll()
@@ -162,7 +171,7 @@ async function startRelay (cfg, log = console) {
     await new Promise((r) => wss.close(r))
   }
 
-  return { close, bots, scanner, world3d, port: wss.address().port }
+  return { close, bots, scanner, world3d, displays, port: wss.address().port }
 }
 
 function reply (ws, id, ok, error, result) {

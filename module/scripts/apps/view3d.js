@@ -128,6 +128,10 @@ export class View3D extends ApplicationV2 {
     const on = (type, fn) => { hub.addEventListener(type, fn); this.listeners.push([type, fn]); };
     for (const type of ["col3d", "block3d", "unload3d"]) on(type, (ev) => { queue.push(ev.detail); pump(); });
     on("state", () => this.followBot());
+    // Objects built from block displays: the whole set for my dimension, redrawn when it changes.
+    const pushDisplays = () => this.r3d?.setDisplays([...hub.displays.values()].filter((p) => (p.dim ?? "overworld") === myDim()));
+    on("disp", pushDisplays);
+    pushDisplays();
     // Someone changed their look: redraw at once instead of waiting for the next state tick.
     this._userHook ??= Hooks.on("updateUser", (user, change) => {
       if (foundry.utils.hasProperty(change, `flags.${MODULE_ID}`) || "avatar" in change) this.followBot();
