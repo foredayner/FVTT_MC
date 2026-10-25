@@ -1,7 +1,7 @@
 {
   "name": "blockworld-bridge-launcher",
   "productName": "Blockworld Bridge",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Prepares and runs the Minecraft server and relay for the Blockworld Bridge Foundry VTT module.",
   "main": "main.js",
   "license": "MIT",

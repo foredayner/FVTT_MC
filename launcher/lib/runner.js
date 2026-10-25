@@ -24,6 +24,28 @@ function waitExit (child, ms) {
   })
 }
 
+/** java arguments for the server: start small, never above the chosen maximum. */
+function serverArgs (memoryGB) {
+  const max = Math.max(1, Math.floor(memoryGB))
+  return [`-Xms${Math.min(1, max)}G`, `-Xmx${max}G`, '-jar', 'server.jar', 'nogui']
+}
+
+/**
+ * Environment for the server process. _JAVA_OPTIONS is applied by Java *after* the command line,
+ * so a PC-wide value (some programs set -Xmx512M) would override the memory chosen here, or stop
+ * the JVM outright when it is below -Xms. It is removed for this process only; the PC keeps it.
+ * Windows variable names are case-insensitive, so any spelling is matched.
+ */
+function serverEnv (base) {
+  const env = {}
+  const ignored = []
+  for (const [k, v] of Object.entries(base)) {
+    if (/^_java_options$/i.test(k)) { if (v) ignored.push([k, v]); continue }
+    env[k] = v
+  }
+  return { env, ignored }
+}
+
 class Runner extends EventEmitter {
   constructor () {
     super()
@@ -54,8 +76,10 @@ class Runner extends EventEmitter {
       if (!(await portFree(port))) throw new Error(`${name} 포트 ${port} 를 다른 프로그램이 쓰고 있습니다. 그 프로그램을 끄거나 설정 탭에서 포트를 바꾸세요.`)
     }
     this.setState('starting')
-    const args = o.javaArgs ?? [`-Xms1G`, `-Xmx${o.memoryGB}G`, '-jar', 'server.jar', 'nogui']
-    const mc = spawn(o.javaPath, args, { cwd: o.serverDir, env: { ...process.env, ...o.mcEnv }, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
+    const args = o.javaArgs ?? serverArgs(o.memoryGB)
+    const { env, ignored } = serverEnv({ ...process.env, ...o.mcEnv })
+    for (const [k, v] of ignored) this.log('launcher', `PC 의 ${k}(${v}) 는 이 서버에서 무시합니다. 메모리는 설정 탭의 값을 씁니다.`)
+    const mc = spawn(o.javaPath, args, { cwd: o.serverDir, env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] })
     this.mc = mc
 
     const ready = new Promise((resolve, reject) => {
@@ -150,4 +174,4 @@ class Runner extends EventEmitter {
   }
 }
 
-module.exports = { Runner, portFree, READY_RE }
+module.exports = { Runner, portFree, READY_RE, serverArgs, serverEnv }

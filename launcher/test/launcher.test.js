@@ -17,7 +17,7 @@ const props = require('../lib/properties')
 const worlds = require('../lib/worlds')
 const settings = require('../lib/settings')
 const foundry = require('../lib/foundry')
-const { Runner } = require('../lib/runner')
+const { Runner, serverArgs, serverEnv } = require('../lib/runner')
 const { computeStatus } = require('../lib/status')
 
 const tmpHome = () => fs.mkdtempSync(path.join(os.tmpdir(), 'bwb-launcher-'))
@@ -248,6 +248,8 @@ test('runner: server then relay start, console command, stop saves and ends both
   settings.applySettings(home, state)
   const runner = new Runner()
   t.after(() => runner.stop()) // never leave the fake server running if an assertion fails
+  process.env._JAVA_OPTIONS = '-Xmx512M' // like the PC in the bug report
+  t.after(() => { delete process.env._JAVA_OPTIONS })
   const logs = []
   runner.on('log', (l) => logs.push(l))
   await runner.start({
@@ -273,12 +275,33 @@ test('runner: server then relay start, console command, stop saves and ends both
   runner.command('/say hi')
   await new Promise((r) => setTimeout(r, 300))
   assert.ok(logs.some((l) => l.src === 'server' && /got command: say hi/.test(l.line)))
+  assert.ok(logs.some((l) => l.src === 'server' && /env _JAVA_OPTIONS=\(none\)/.test(l.line)), 'server process does not get _JAVA_OPTIONS')
+  assert.ok(logs.some((l) => l.src === 'launcher' && /_JAVA_OPTIONS\(-Xmx512M\)/.test(l.line)), 'and the log says so')
   await assert.rejects(runner.start({}), /이미/)
 
   await runner.stop()
   assert.deepStrictEqual(runner.status(), { mc: 'stopped', relay: 'stopped' })
   assert.ok(logs.some((l) => /got command: stop/.test(l.line)), 'server got stop so the world is saved')
   assert.throws(() => runner.command('say late'), /실행 중이 아닙니다/)
+})
+
+test('runner: a PC-wide _JAVA_OPTIONS cannot override or break the server memory', (t) => {
+  assert.deepStrictEqual(serverArgs(4), ['-Xms1G', '-Xmx4G', '-jar', 'server.jar', 'nogui'])
+  assert.deepStrictEqual(serverArgs(1).slice(0, 2), ['-Xms1G', '-Xmx1G'])
+  const { env, ignored } = serverEnv({ PATH: '/bin', _JAVA_OPTIONS: '-Xmx512M', _java_options: '-Xmx256M', JAVA_HOME: '/j' })
+  assert.deepStrictEqual(env, { PATH: '/bin', JAVA_HOME: '/j' })
+  assert.deepStrictEqual(ignored.map(([k]) => k), ['_JAVA_OPTIONS', '_java_options'])
+
+  // The real failure, with the real java on this machine: same arguments, with and without the variable.
+  const j = java.findJava(tmpHome(), {})
+  if (!j.ok) return t.skip('no Java 21+ here')
+  const { spawnSync } = require('child_process')
+  const args = [...serverArgs(2).slice(0, 2), '-version']
+  const broken = spawnSync(j.path, args, { env: { ...process.env, _JAVA_OPTIONS: '-Xmx512M' }, encoding: 'utf8' })
+  assert.notStrictEqual(broken.status, 0)
+  assert.match(broken.stdout + broken.stderr, /Initial heap size set to a larger value than the maximum heap size/)
+  const fixed = spawnSync(j.path, args, { env: serverEnv({ ...process.env, _JAVA_OPTIONS: '-Xmx512M' }).env, encoding: 'utf8' })
+  assert.strictEqual(fixed.status, 0, fixed.stderr)
 })
 
 test('runner: busy port is reported before anything starts', async () => {

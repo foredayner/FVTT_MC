@@ -71,13 +71,14 @@ jobs:
           gh release create "$TAG" out/module.json out/module.zip \
             --target "$GITHUB_SHA" --title "Blockworld Bridge ${TAG#v}" "${ARGS[@]}"
 
-      - name: Does the release still need the launcher?
+      - name: Does the release still need this launcher version?
         id: assets
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.ver.outputs.tag }}
         run: |
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -q '\.exe$'; then
+          LV=$(jq -r .version launcher/package.json)
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qF "Setup.${LV}.exe"; then
             echo "launcher=false" >> "$GITHUB_OUTPUT"
           else
             echo "launcher=true" >> "$GITHUB_OUTPUT"
@@ -99,10 +100,18 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npm run dist
-      - name: Attach installer and zip
+      - name: Attach installer and zip (replacing older launcher builds)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${{ needs.module.outputs.tag }}" dist/*.exe dist/*.zip --clobber
+          TAG: ${{ needs.module.outputs.tag }}
+        run: |
+          LV=$(jq -r .version package.json)
+          for a in $(gh release view "$TAG" --json assets --jq '.assets[].name' | grep -E '\.exe$|-win\.zip$' | grep -vF "${LV}"); do
+            gh release delete-asset "$TAG" "$a" --yes
+          done
+          gh release upload "$TAG" dist/*.exe dist/*.zip --clobber
+          NOTES="../.github/release-notes/${TAG}.md"
+          if [ -f "$NOTES" ]; then gh release edit "$TAG" --notes-file "$NOTES"; fi
 
   # Diagnostic only: launcher tests on Windows. Results are written as annotations so they
   # can be read without the log files. Never blocks the release.
