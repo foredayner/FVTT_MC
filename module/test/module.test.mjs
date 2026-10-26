@@ -356,3 +356,39 @@ test("tokens: a player on another map scene than the GM gets a token there too",
   assert.strictEqual(scene2.tokens[0].x, (-240.5 + 300) * 100 - 50, "follows the bot on the player's scene");
   delete globalThis.canvas; delete game.scenes;
 });
+
+test("tokens: following uses V14 movement options (fast step, no auto-rotate, no wall constraint), teleports jump", async () => {
+  const { followOptions } = await import("../scripts/token-sync.js");
+  const step = followOptions(false);
+  assert.strictEqual(step.animation.duration, 120, "arrives before the next position update");
+  assert.ok(step.animation.movementSpeed > 6, "not the default 6 squares/s");
+  assert.deepStrictEqual([step.autoRotate, step.showRuler, step.constrainOptions.ignoreWalls], [false, false, true]);
+  const jump = followOptions(true);
+  assert.deepStrictEqual([jump.animate, jump.animation.duration], [false, 0]);
+
+  // a real sync: a small step is animated, a 50-block teleport jumps
+  mockFoundry({ me: "gm1" });
+  const calls = [];
+  const tokens = [{ id: "t1", actorId: "a1", x: 0, y: 0, hidden: false, sight: { enabled: true, range: 16 }, getFlag: (m, k) => (k === "botKey" ? "p1" : undefined) }];
+  const scene = {
+    id: "s1", grid: { size: 100 }, padding: 0, tokens,
+    getFlag: (m, k) => (k === "map" ? { originX: 0, originZ: 0, size: 128, dim: "overworld" } : undefined),
+    updateEmbeddedDocuments: async (type, docs, opts) => { calls.push([docs.map((d) => d.x), opts]); },
+    createEmbeddedDocuments: async () => {}, deleteEmbeddedDocuments: async () => {}
+  };
+  game.scenes = new Map([["s1", scene]]);
+  game.users[Symbol.iterator] = function () { return this.values(); };
+  globalThis.canvas = { ready: true, scene, dimensions: { sceneX: 0, sceneY: 0 } };
+  globalThis.Hooks = { on: () => 0, off: () => {} };
+  game.settings.get = () => 16;
+  const { TokenSync } = await import("../scripts/token-sync.js");
+  const hub = { isRelayHost: true, addEventListener: () => {}, bots: [{ key: "p1", username: "Jo", online: true }], positions: new Map() };
+  const sync = new TokenSync(hub);
+  sync.last.set("s1:p1", { x: 10.5, z: 10.5, rot: 180 });
+  hub.positions.set("p1", { x: 11.5, y: -60, z: 10.5, yaw: 0, dim: "overworld" });
+  await sync.sync();
+  hub.positions.set("p1", { x: 61.5, y: -60, z: 10.5, yaw: 0, dim: "overworld" });
+  await sync.sync();
+  assert.deepStrictEqual(calls.map(([xs, o]) => [xs[0], o.animate === false]), [[1100, false], [6100, true]]);
+  delete globalThis.canvas; delete game.scenes;
+});

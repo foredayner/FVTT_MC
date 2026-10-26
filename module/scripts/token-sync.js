@@ -2,6 +2,28 @@ import { MODULE_ID } from "./constants.js";
 import { tokenTopLeft, yawToRotation, inMap } from "./coords.js";
 
 const MIN_MOVE_BLOCKS = 0.2;
+/** A bit longer than the relay's state interval (0.1 s), so the token arrives just as the next update comes. */
+const STEP_MS = 120;
+/** Further than this in one update (teleport, respawn): jump instead of sliding across the map. */
+const JUMP_BLOCKS = 8;
+
+/**
+ * Update options for following the bot. Since V13, x/y updates are token *movement*: animated at
+ * CONFIG.Token.movement.defaultSpeed (6 squares/s) unless told otherwise, constrained like a
+ * player's move, and the old `animation` option alone is not enough. A sprinting character
+ * (~5.6 blocks/s) then outruns its token. The same options also work on older versions.
+ */
+export function followOptions(jump) {
+  const opts = {
+    method: "api",
+    autoRotate: false,       // rotation comes from Minecraft
+    showRuler: false,
+    constrainOptions: { ignoreWalls: true, ignoreCost: true }, // the bot already walked it
+    animation: { duration: STEP_MS, movementSpeed: 1000 }
+  };
+  if (jump) { opts.animate = false; opts.animation = { duration: 0 }; }
+  return opts;
+}
 
 /**
  * GM only: keeps one Token per online bot on every map scene that is in use, following the bot's
@@ -64,6 +86,7 @@ export class TokenSync {
     }
     const create = [];
     const update = [];
+    const jumps = [];
 
     for (const bot of this.hub.bots) {
       const pos = this.hub.positions.get(bot.key);
@@ -84,7 +107,8 @@ export class TokenSync {
       if (force || moved || prev.rot !== rotation || tok.hidden || sightWrong) {
         const u = { _id: tok.id, x: tl.x, y: tl.y, rotation, elevation: Math.floor(pos.y), hidden: false };
         if (sightWrong) u.sight = { enabled: true, range: radius };
-        update.push(u);
+        const far = !prev || tok.hidden || Math.hypot(pos.x - prev.x, pos.z - prev.z) > JUMP_BLOCKS;
+        (far ? jumps : update).push(u);
         this.last.set(lk, { x: pos.x, z: pos.z, rot: rotation });
       }
     }
@@ -95,7 +119,8 @@ export class TokenSync {
       const actor = await this.ensureActor(bot);
       await scene.createEmbeddedDocuments("Token", [{ ...data, actorId: actor.id, actorLink: true }]);
     }
-    if (update.length) await scene.updateEmbeddedDocuments("Token", update, { animation: { duration: 250 } });
+    if (jumps.length) await scene.updateEmbeddedDocuments("Token", jumps, followOptions(true));
+    if (update.length) await scene.updateEmbeddedDocuments("Token", update, followOptions(false));
   }
 
   newToken(bot, tl, rotation, y, radius) {

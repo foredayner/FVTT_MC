@@ -2,7 +2,7 @@
   "id": "blockworld-bridge",
   "title": "Blockworld Bridge",
   "description": "Minecraft: Java Edition 서버와 Foundry VTT를 잇는 모듈. 씬을 탑뷰 지도로 쓰고 클릭으로 캐릭터를 조작하며, 필요할 때 1인칭 3D 창에서 직접 조작합니다. 별도의 중계 프로그램(relay)이 필요합니다. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "authors": [
     {
       "name": "JCG",
