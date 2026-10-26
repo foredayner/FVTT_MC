@@ -308,3 +308,51 @@ test("map picture alignment: a centre-anchored picture placed at the tile corner
   assert.ok(Math.abs(b.x - pan.x) < 0.01 && Math.abs(b.y - pan.y) < 0.01 && Math.abs(b.width - 25600 * zoom) < 0.01);
   assert.strictEqual(alignToRect({ parent: null }, rect, stage), false, "not laid out yet: left alone");
 });
+
+test("tokens: a player on another map scene than the GM gets a token there too", async () => {
+  mockFoundry({ me: "gm1" });
+  const flags = (map) => ({ getFlag: (m, k) => (k === "map" ? map : undefined) });
+  const makeScene = (id, map) => {
+    const tokens = [];
+    return {
+      id, name: id, padding: 0, grid: { size: 100 }, tokens,
+      getDimensions: () => ({ sceneX: 0, sceneY: 0 }),
+      ...flags(map),
+      createEmbeddedDocuments: async (type, docs) => { for (const d of docs) tokens.push({ id: `${id}-t${tokens.length}`, ...d, getFlag: (m, k) => d.flags?.[m]?.[k] }); },
+      updateEmbeddedDocuments: async (type, docs) => { for (const d of docs) Object.assign(tokens.find((t) => t.id === d._id), d); },
+      deleteEmbeddedDocuments: async () => {}
+    };
+  };
+  const scene1 = makeScene("s1", { originX: -100, originZ: -100, size: 128, dim: "overworld" });
+  const scene2 = makeScene("s2", { originX: -300, originZ: 0, size: 128, dim: "overworld" });
+  const plain = makeScene("s3", undefined);
+  game.scenes = new Map([["s1", scene1], ["s2", scene2], ["s3", plain]]);
+  // GM looks at scene 1; the player p1 is on scene 2; p2 is offline but last viewed scene 3
+  game.users[Symbol.iterator] = function () { return this.values(); }; // Foundry collections iterate their documents
+  game.users.get("gm1").active = true; game.users.get("gm1").viewedScene = "s1";
+  game.users.get("p1").active = true; game.users.get("p1").viewedScene = "s2";
+  game.users.get("p2").active = false; game.users.get("p2").viewedScene = "s3";
+  globalThis.canvas = { ready: true, scene: scene1, dimensions: { sceneX: 0, sceneY: 0 } };
+  globalThis.Hooks = { on: () => 0, off: () => {} };
+  globalThis.CONST = { TOKEN_DISPLAY_MODES: { ALWAYS: 50 }, TOKEN_DISPOSITIONS: { FRIENDLY: 1 }, DOCUMENT_OWNERSHIP_LEVELS: { NONE: 0, OWNER: 3 } };
+  game.actors = { find: () => ({ id: "a1", name: "Jo_bot", ownership: { p1: 3 } }) };
+
+  const { TokenSync, mapScenesInUse } = await import("../scripts/token-sync.js");
+  assert.deepStrictEqual(mapScenesInUse().map((s) => s.id).sort(), ["s1", "s2"], "plain and unviewed scenes are left alone");
+  const hub = {
+    isRelayHost: true, addEventListener: () => {},
+    bots: [{ key: "p1", username: "Jo_bot", online: true }],
+    positions: new Map([["p1", { x: -250.5, y: -60, z: 40.5, yaw: 0, dim: "overworld" }]])
+  };
+  const sync = new TokenSync(hub);
+  await sync.sync(true);
+  const t2 = scene2.tokens[0];
+  assert.ok(t2, "token created on the player's scene although the GM looks elsewhere");
+  assert.deepStrictEqual([t2.x, t2.y, t2.hidden ?? false], [(-250.5 + 300) * 100 - 50, 40.5 * 100 - 50, false]);
+  assert.ok(!scene1.tokens.length || scene1.tokens[0].hidden !== false, "outside scene 1's map: no visible token there");
+
+  hub.positions.set("p1", { x: -240.5, y: -60, z: 40.5, yaw: 0, dim: "overworld" });
+  await sync.sync();
+  assert.strictEqual(scene2.tokens[0].x, (-240.5 + 300) * 100 - 50, "follows the bot on the player's scene");
+  delete globalThis.canvas; delete game.scenes;
+});

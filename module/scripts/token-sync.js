@@ -4,7 +4,9 @@ import { tokenTopLeft, yawToRotation, inMap } from "./coords.js";
 const MIN_MOVE_BLOCKS = 0.2;
 
 /**
- * GM only: keeps one Token per online bot on the map scene, following the bot's position.
+ * GM only: keeps one Token per online bot on every map scene that is in use, following the bot's
+ * position. "In use" = the scene the GM is looking at plus every scene an active player is viewing,
+ * so a player on another map scene than the GM still has a token there (and so can see).
  * Minecraft owns the position; dragging the token in Foundry does not move the bot.
  *
  * Each bot gets an Actor owned by its Foundry user, so that player sees through the token
@@ -15,10 +17,13 @@ export class TokenSync {
     this.hub = hub;
     this.busy = false;
     this.again = false;
-    this.last = new Map(); // key -> {x,z,rot}
+    this.last = new Map(); // "sceneId:key" -> {x,z,rot}
     hub.addEventListener("state", () => this.sync());
     hub.addEventListener("bots", () => this.sync(true));
     Hooks.on("updateSetting", (s) => { if (s.key === `${MODULE_ID}.visionRadius`) this.sync(true); });
+    // A player went to another scene: give them their token there right away.
+    Hooks.on("updateUser", (user, change) => { if ("viewedScene" in change) this.sync(true); });
+    Hooks.on("userConnected", () => this.sync(true));
   }
 
   get radius() { return Number(game.settings.get(MODULE_ID, "visionRadius")) || 16; }
@@ -26,61 +31,71 @@ export class TokenSync {
   async sync(force = false) {
     if (!this.hub.isRelayHost) return;
     if (this.busy) { this.again ||= force; return; }
-    const scene = canvas.scene;
-    const map = scene?.getFlag(MODULE_ID, "map");
-    if (!map || !canvas.ready) return;
+    const scenes = mapScenesInUse();
+    if (!scenes.length) return;
     this.busy = true;
     try {
-      const dims = { grid: scene.grid.size, sceneX: canvas.dimensions.sceneX, sceneY: canvas.dimensions.sceneY };
-      const radius = this.radius;
-      const tokens = scene.tokens.filter((t) => t.getFlag(MODULE_ID, "botKey"));
-      const byKey = new Map();
-      const remove = [];
-      for (const t of tokens) {
-        const key = t.getFlag(MODULE_ID, "botKey");
-        // Tokens from 0.1.0 had no actor, so players could not see through them: replace them.
-        if (!t.actorId || byKey.has(key)) remove.push(t.id);
-        else byKey.set(key, t);
-      }
-      const create = [];
-      const update = [];
-
-      for (const bot of this.hub.bots) {
-        const pos = this.hub.positions.get(bot.key);
-        const tok = byKey.get(bot.key);
-        const visible = bot.online && pos && pos.dim === (map.dim ?? "overworld") && inMap(pos.x, pos.z, map);
-        if (!visible) { if (tok && !tok.hidden) update.push({ _id: tok.id, hidden: true }); continue; }
-        const tl = tokenTopLeft(pos, map, dims);
-        const rotation = yawToRotation(pos.yaw);
-        if (!tok) {
-          create.push({ bot, data: this.newToken(bot, tl, rotation, pos.y, radius) });
-          this.last.set(bot.key, { x: pos.x, z: pos.z, rot: rotation });
-          continue;
-        }
-        const prev = this.last.get(bot.key);
-        const moved = !prev || Math.hypot(pos.x - prev.x, pos.z - prev.z) >= MIN_MOVE_BLOCKS;
-        const sightWrong = !tok.sight?.enabled || tok.sight?.range !== radius;
-        if (force || moved || prev.rot !== rotation || tok.hidden || sightWrong) {
-          const u = { _id: tok.id, x: tl.x, y: tl.y, rotation, elevation: Math.floor(pos.y), hidden: false };
-          if (sightWrong) u.sight = { enabled: true, range: radius };
-          update.push(u);
-          this.last.set(bot.key, { x: pos.x, z: pos.z, rot: rotation });
+      for (const scene of scenes) {
+        try {
+          await this.syncScene(scene, force);
+        } catch (err) {
+          console.error(`${MODULE_ID} | token sync (${scene.name})`, err);
         }
       }
-      for (const [key, tok] of byKey) if (!this.hub.bots.some((b) => b.key === key)) remove.push(tok.id);
-
-      if (remove.length) await scene.deleteEmbeddedDocuments("Token", remove);
-      for (const { bot, data } of create) {
-        const actor = await this.ensureActor(bot);
-        await scene.createEmbeddedDocuments("Token", [{ ...data, actorId: actor.id, actorLink: true }]);
-      }
-      if (update.length) await scene.updateEmbeddedDocuments("Token", update, { animation: { duration: 250 } });
-    } catch (err) {
-      console.error(`${MODULE_ID} | token sync`, err);
     } finally {
       this.busy = false;
       if (this.again) { const f = this.again; this.again = false; this.sync(f); }
     }
+  }
+
+  async syncScene(scene, force) {
+    const map = scene.getFlag(MODULE_ID, "map");
+    const dims = sceneDims(scene);
+    if (!map || !dims) return;
+    const radius = this.radius;
+    const tokens = scene.tokens.filter((t) => t.getFlag(MODULE_ID, "botKey"));
+    const byKey = new Map();
+    const remove = [];
+    for (const t of tokens) {
+      const key = t.getFlag(MODULE_ID, "botKey");
+      // Tokens from 0.1.0 had no actor, so players could not see through them: replace them.
+      if (!t.actorId || byKey.has(key)) remove.push(t.id);
+      else byKey.set(key, t);
+    }
+    const create = [];
+    const update = [];
+
+    for (const bot of this.hub.bots) {
+      const pos = this.hub.positions.get(bot.key);
+      const tok = byKey.get(bot.key);
+      const lk = `${scene.id}:${bot.key}`;
+      const visible = bot.online && pos && pos.dim === (map.dim ?? "overworld") && inMap(pos.x, pos.z, map);
+      if (!visible) { if (tok && !tok.hidden) update.push({ _id: tok.id, hidden: true }); continue; }
+      const tl = tokenTopLeft(pos, map, dims);
+      const rotation = yawToRotation(pos.yaw);
+      if (!tok) {
+        create.push({ bot, data: this.newToken(bot, tl, rotation, pos.y, radius) });
+        this.last.set(lk, { x: pos.x, z: pos.z, rot: rotation });
+        continue;
+      }
+      const prev = this.last.get(lk);
+      const moved = !prev || Math.hypot(pos.x - prev.x, pos.z - prev.z) >= MIN_MOVE_BLOCKS;
+      const sightWrong = !tok.sight?.enabled || tok.sight?.range !== radius;
+      if (force || moved || prev.rot !== rotation || tok.hidden || sightWrong) {
+        const u = { _id: tok.id, x: tl.x, y: tl.y, rotation, elevation: Math.floor(pos.y), hidden: false };
+        if (sightWrong) u.sight = { enabled: true, range: radius };
+        update.push(u);
+        this.last.set(lk, { x: pos.x, z: pos.z, rot: rotation });
+      }
+    }
+    for (const [key, tok] of byKey) if (!this.hub.bots.some((b) => b.key === key)) remove.push(tok.id);
+
+    if (remove.length) await scene.deleteEmbeddedDocuments("Token", remove);
+    for (const { bot, data } of create) {
+      const actor = await this.ensureActor(bot);
+      await scene.createEmbeddedDocuments("Token", [{ ...data, actorId: actor.id, actorLink: true }]);
+    }
+    if (update.length) await scene.updateEmbeddedDocuments("Token", update, { animation: { duration: 250 } });
   }
 
   newToken(bot, tl, rotation, y, radius) {
@@ -134,4 +149,25 @@ export class TokenSync {
 function pickActorType() {
   const types = (globalThis.Actor?.TYPES ?? game.documentTypes?.Actor ?? []).filter((t) => t !== "base");
   return types.includes("character") ? "character" : (types[0] ?? "character");
+}
+
+/** Map scenes someone is looking at: the GM's own canvas and every active player's viewed scene. */
+export function mapScenesInUse() {
+  const ids = new Set();
+  if (canvas?.ready && canvas.scene) ids.add(canvas.scene.id);
+  for (const u of game.users) if (u.active && u.viewedScene) ids.add(u.viewedScene);
+  return [...ids].map((id) => game.scenes.get(id)).filter((s) => s?.getFlag(MODULE_ID, "map"));
+}
+
+/**
+ * Grid size and where the scene rectangle starts, for any scene (not only the one on the canvas).
+ * Uses the live canvas for the scene being viewed; otherwise the scene's own computed dimensions.
+ */
+export function sceneDims(scene) {
+  if (canvas?.ready && canvas.scene?.id === scene.id && canvas.dimensions) {
+    return { grid: scene.grid.size, sceneX: canvas.dimensions.sceneX, sceneY: canvas.dimensions.sceneY };
+  }
+  const d = scene.getDimensions?.() ?? scene.dimensions;
+  if (d && Number.isFinite(d.sceneX)) return { grid: scene.grid.size, sceneX: d.sceneX, sceneY: d.sceneY };
+  return scene.padding ? null : { grid: scene.grid.size, sceneX: 0, sceneY: 0 }; // map scenes have no padding
 }
