@@ -15,12 +15,18 @@ const ROOF_SCAN = 24 // how far above the cut a "roof" may be
  * What each map pixel is, sent alongside the colours so the module can build Foundry walls.
  * SURFACE = normal top-down view; the rest only appear under a roof in cut (floor-plan) view.
  */
-const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5 }
+const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, FURNITURE: 6 }
 
 // Floor-plan palette: light floors, dark walls, so rooms read at a glance.
 const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR: [181, 101, 29], DOOR_OPEN: [224, 176, 112] }
 const WINDOW_RE = /(^|_)glass(_pane)?$|^iron_bars$/
 const DOOR_RE = /_door$|_fence_gate$/
+const WALL_RE = /_wall$/ // cobblestone walls and the like: thin, but a wall all the same
+// Furniture (something at head height that is not a full block: a hanging lantern, a fence post, a
+// slab shelf, a trapdoor): the block's own colour, a little lighter, so it reads as a thing in the
+// room and not as a wall. It does not block sight.
+const FURNITURE_FALLBACK = [120, 104, 88]
+const furnish = ([r, g, b]) => [r * 0.8 + 235 * 0.2, g * 0.8 + 235 * 0.2, b * 0.8 + 235 * 0.2].map(Math.round)
 const lighten = ([r, g, b]) => [r * 0.55 + 235 * 0.45, g * 0.55 + 235 * 0.45, b * 0.55 + 235 * 0.45].map(Math.round)
 
 const NO_HEIGHT = -32768
@@ -191,6 +197,7 @@ class MapScanner {
 
     // Floor-plan cell: what is at body height (wall, window, door), else the floor below it.
     const solidAt = blockSolidity(bot)
+    const fullAt = blockFullness(bot)
     const plan = (x, z, floorY) => {
       const cut = floorY + 1
       if (!this.hasRoof(bot, x, cut, z, nameAt)) return null
@@ -199,7 +206,7 @@ class MapScanner {
       if (name === null) return null
       if (DOOR_RE.test(name)) return { kind: isOpen(bot, p) ? KIND.DOOR_OPEN : KIND.DOOR, y: cut }
       if (WINDOW_RE.test(name)) return { kind: KIND.WINDOW, y: cut }
-      if (solidAt(p)) return { kind: KIND.WALL, y: cut }
+      if (solidAt(p)) return { kind: fullAt(p) || WALL_RE.test(name) ? KIND.WALL : KIND.FURNITURE, y: cut, id: colorId(name) }
       for (let y = cut; y >= bottom; y--) {
         p.set(x, y, z)
         const n = nameAt(p)
@@ -229,6 +236,7 @@ class MapScanner {
           let c
           if (cell.kind === KIND.FLOOR) c = lighten(shadeRgb(cell.id, SHADE.NORMAL))
           else if (cell.kind === KIND.WALL) c = PLAN.WALL
+          else if (cell.kind === KIND.FURNITURE) c = cell.id === ID.NONE ? FURNITURE_FALLBACK : furnish(shadeRgb(cell.id, SHADE.NORMAL))
           else if (cell.kind === KIND.WINDOW) c = PLAN.WINDOW
           else if (cell.kind === KIND.DOOR) c = PLAN.DOOR
           else c = PLAN.DOOR_OPEN
@@ -322,6 +330,34 @@ function blockSolidity (bot) {
     return (p) => byState[world.getBlockStateId(p)]?.boundingBox === 'block'
   }
   return (p) => bot.blockAt(p, false)?.boundingBox === 'block'
+}
+
+/**
+ * Is the block at p a whole cube (a wall, a tall bookcase, a stack of crates), rather than something
+ * thin or small that has collision (a fence, a lantern, a slab, a trapdoor, a chain)? Uses the
+ * block state's own collision shape.
+ */
+function blockFullness (bot) {
+  const world = bot.world
+  const reg = bot.registry
+  const shapes = reg?.blockCollisionShapes
+  const byState = reg?.blocksByStateId
+  if (!world?.getBlockStateId || !byState || !shapes) return () => true
+  const cache = new Map()
+  return (p) => {
+    const id = world.getBlockStateId(p)
+    if (cache.has(id)) return cache.get(id)
+    const block = byState[id]
+    let full = false
+    if (block) {
+      const entry = shapes.blocks[block.name]
+      const shapeId = Array.isArray(entry) ? entry[id - block.minStateId] ?? entry[0] : entry
+      const boxes = shapes.shapes[shapeId] ?? []
+      full = boxes.some((b) => b[0] <= 0 && b[1] <= 0 && b[2] <= 0 && b[3] >= 1 && b[4] >= 1 && b[5] >= 1)
+    }
+    cache.set(id, full)
+    return full
+  }
 }
 
 function isOpen (bot, p) {

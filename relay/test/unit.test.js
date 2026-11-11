@@ -180,6 +180,10 @@ function houseBot () {
   put(6, -60, 3, 'oak_door', { open: true }); put(6, -59, 3, 'oak_door', { open: true })
   put(0, -59, 3, 'glass')
   put(2, -60, 2, 'red_carpet')
+  put(4, -60, 4, 'barrel') // furniture one block high: under the cut, the floor
+  put(5, -60, 5, 'bookshelf'); put(5, -59, 5, 'bookshelf') // a tall bookcase reads as wall
+  put(1, -59, 4, 'lantern') // a lantern at head height: furniture, not a wall
+  put(4, -59, 1, 'oak_fence') // a fence post at head height: furniture
   const state = (b) => (b ? mcData.blocksByName[b.name].defaultState : mcData.blocksByName.air.defaultState)
   const at = (p) => blocks.get(`${Math.floor(p.x)},${Math.floor(p.y)},${Math.floor(p.z)}`)
   return {
@@ -210,11 +214,16 @@ test('mapScanner: floor plan under a roof (auto), normal ground outside, back to
   assert.strictEqual(k(0, 3), KIND.WINDOW)
   assert.strictEqual(k(3, 3), KIND.FLOOR)
   assert.strictEqual(k(2, 2), KIND.FLOOR, 'carpet is furniture on the floor, not a wall')
+  assert.strictEqual(k(4, 4), KIND.FLOOR, 'a barrel on the floor is not a wall')
+  assert.strictEqual(k(5, 5), KIND.WALL, 'a bookcase two blocks high blocks sight')
+  assert.strictEqual(k(1, 4), KIND.FURNITURE, 'a hanging lantern is not a wall')
+  assert.strictEqual(k(4, 1), KIND.FURNITURE, 'a fence post is not a wall')
   assert.strictEqual(k(10, 10), KIND.SURFACE, 'no roof outside: normal view')
   const rgb = Buffer.from(sent.at(-1).rgb, 'base64')
   const px = (x, z) => [...rgb.subarray((z * 16 + x) * 3, (z * 16 + x) * 3 + 3)]
   assert.deepStrictEqual(px(0, 0), [43, 43, 48], 'walls are dark')
   assert.ok(px(3, 3).reduce((a, b) => a + b) > px(10, 10).reduce((a, b) => a + b), 'floors are drawn light')
+  assert.notDeepStrictEqual(px(1, 4), [43, 43, 48], 'furniture is not drawn as wall')
 
   // Walk outside: the cut goes away and the chunk is listed for redrawing.
   bot.entity.position.set(12.5, -60, 12.5)

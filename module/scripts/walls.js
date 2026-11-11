@@ -2,8 +2,8 @@ import { MODULE_ID } from "./constants.js";
 import { mcToScene } from "./coords.js";
 
 /** Map pixel kinds sent by the relay (relay/src/mapScanner.js KIND). */
-export const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5 };
-/** Cells that block sight: walls and closed doors. Windows and open doors let you see through. */
+export const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, FURNITURE: 6 };
+/** Cells that block sight: walls and closed doors. Windows, open doors and furniture let you see through. */
 const BLOCKS = (k) => k === KIND.WALL || k === KIND.DOOR;
 
 export function decodeKinds(b64) {

@@ -167,6 +167,10 @@ test("walls: floor-plan walls become merged wall segments; windows and open door
   assert.ok(!segs.some(([x1, z1, x2, z2]) => x1 === x2 && x1 === 0 && z1 <= 2 && z2 > 2), "no wall across the window");
   // Nothing outside the map.
   assert.strictEqual(chunkWallSegments(0, 0, kindAt, { originX: 10, originZ: 10, size: 64 }).length, 0);
+  // Furniture in the room makes no wall.
+  cells.set("2,2", KIND.FURNITURE);
+  assert.ok(!chunkWallSegments(0, 0, kindAt, map).some(([x1, z1, x2, z2]) => (x1 === 2 || x1 === 3) && (z1 === 2 || z1 === 3)
+    && !(x1 === x2 && z1 === z2)), "no wall round furniture");
 });
 
 test("coords: map from its bottom-left (south-west) block", async () => {
