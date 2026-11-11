@@ -42,7 +42,8 @@ class Bridge {
   }
 
   /**
-   * Map-mode clicks on the canvas: click = walk, Shift+click = dig, Alt+click = attack.
+   * Map-mode clicks on the canvas: click = walk, Shift+click = dig, Alt+click = attack,
+   * GM Ctrl+click = mark a wall cell as a secret door (or unmark it).
    * Uses the pointer position in scene coordinates and converts it to block coordinates.
    */
   onCanvasPointer(event) {
@@ -55,6 +56,11 @@ class Bridge {
     const mc = sceneToMc(pt, map, dims);
     const key = game.user.id;
     const ev = event.nativeEvent ?? event;
+    if (ev.ctrlKey && game.user.isGM) {
+      // GM: Ctrl+click a wall to make it a secret door (or a plain wall again).
+      this.mapView?.walls.toggleSecret(Math.floor(mc.x), Math.floor(mc.z)).catch((err) => ui.notifications.warn(err.message));
+      return;
+    }
     let payload;
     if (ev.shiftKey) payload = { type: "dig", key, x: Math.floor(mc.x), z: Math.floor(mc.z) };
     else if (ev.altKey) payload = { type: "attackAt", key, x: mc.x, z: mc.z };

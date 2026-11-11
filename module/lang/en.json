@@ -20,7 +20,7 @@
       "MapModeOn": "Map control on",
       "MapModeOff": "Map control off",
       "Stop": "Stop",
-      "MapHint": "Map control: click = walk · Shift+click = dig · Alt+click = attack (toggle with Shift+N)",
+      "MapHint": "Map control: click = walk · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · GM: Ctrl+click = make a wall a secret door / a wall again",
       "ChatPlaceholder": "Say something in Minecraft chat",
       "Avatar": "3D look"
     },
@@ -167,6 +167,13 @@
         "fixed": "The whole map is cut at this floor into a floor plan. Change Y to switch storeys.",
         "off": "Plain top-down view: buildings show their roofs."
       }
+    },
+    "Walls": {
+      "DoorFailed": "Could not change the Minecraft door",
+      "CloseFirst": "Close the secret door before unmarking it",
+      "SecretOff": "Secret door removed (a wall again)",
+      "SecretOn": "Secret door marked (a door only the GM sees)",
+      "NotAWall": "Not a wall cell (pick a cell drawn as wall on the floor plan)"
     }
   }
 }

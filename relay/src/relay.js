@@ -9,6 +9,7 @@ const { Rcon } = require('./rcon')
 const { PROTOCOL_VERSION } = require('./protocol')
 const { World3D, readAsset, assetVersion } = require('./world3d')
 const { DisplayTracker } = require('./displays')
+const { setDoor, setSecret } = require('./doors')
 
 function safeEqual (a, b) {
   const ba = Buffer.from(String(a)); const bb = Buffer.from(String(b))
@@ -66,6 +67,8 @@ async function startRelay (cfg, log = console) {
       for (const d of displays.all()) send(d)
       return true
     },
+    door: async (m) => { const r = await setDoor(bots, m); redraw(m); return r },
+    secret: async (m) => { const r = await setSecret(bots, m); redraw(m); return r },
     asset3d: (m) => readAsset(cfg.minecraft.version, m.name),
     mapView: (m) => {
       scanner.setView({ mode: m.mode, y: m.y })
@@ -73,6 +76,16 @@ async function startRelay (cfg, log = console) {
       scanner.setCharacters(live)
       return scanner.rescanAll(live)
     }
+  }
+
+  // Redraw the chunk of a block the GM just changed, once the server has told the characters.
+  function redraw (m) {
+    setTimeout(() => {
+      const live = bots.onlineBots().map((e) => e.bot)
+      if (!live.length) return
+      const dim = String(live[0].game?.dimension ?? 'overworld')
+      try { scanner.rescan(live, [`${dim}:${Math.floor(Number(m.x) / 16)}:${Math.floor(Number(m.z) / 16)}`]) } catch { /* next sync */ }
+    }, 250)
   }
 
   const wss = new WebSocketServer({ host: cfg.listen.host, port: cfg.listen.port, maxPayload: 64 * 1024 })

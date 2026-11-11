@@ -7,7 +7,7 @@ export const PLAYER_INTENTS = new Set([
   "spawnBot", "despawnBot", "moveTo", "stop", "dig", "attackAt", "control", "look", "cursor", "chat"
 ]);
 /** GM-only relay calls. */
-export const GM_INTENTS = new Set(["gm", "resync", "mapView"]);
+export const GM_INTENTS = new Set(["gm", "resync", "mapView", "door", "secret"]);
 
 export const ENTITY_COLORS = {
   hostile: [230, 40, 40],

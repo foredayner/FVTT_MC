@@ -160,13 +160,28 @@ test("walls: floor-plan walls become merged wall segments; windows and open door
   const segs = chunkWallSegments(0, 0, kindAt, map);
   const key = (s) => s.join(",");
   const set = new Set(segs.map(key));
-  assert.ok(set.has("0,0,5,0"), "north outer face is one run (closed door blocks too)");
-  assert.ok(set.has("1,1,4,1"), "north inner face");
+  assert.ok(set.has("0,0,2,0") && set.has("3,0,5,0"), "north outer face ends at the door (the door is a door wall)");
+  assert.ok(set.has("1,1,2,1") && set.has("3,1,4,1"), "north inner face");
   assert.ok(set.has("0,0,0,2") && set.has("0,3,0,5"), "west face is split by the window");
   assert.ok(set.has("5,0,5,2") && set.has("5,3,5,5"), "east face is split by the open door");
   assert.ok(!segs.some(([x1, z1, x2, z2]) => x1 === x2 && x1 === 0 && z1 <= 2 && z2 > 2), "no wall across the window");
   // Nothing outside the map.
   assert.strictEqual(chunkWallSegments(0, 0, kindAt, { originX: 10, originZ: 10, size: 64 }).length, 0);
+  // Doors: one door wall across the middle of each door cell, along its wall.
+  const { chunkDoors } = await import("../scripts/walls.js");
+  const doors = chunkDoors(0, 0, kindAt, map);
+  const at = (x, z) => doors.find((d) => d.x === x && d.z === z);
+  assert.deepStrictEqual(at(2, 0).seg, [2, 0.5, 3, 0.5]);
+  assert.strictEqual(at(2, 0).open, false);
+  assert.deepStrictEqual(at(4, 2).seg, [4.5, 2, 4.5, 3], "the east door runs north-south");
+  assert.strictEqual(at(4, 2).open, true);
+  assert.strictEqual(doors.length, 2, "windows are not doors");
+  // A secret door: the wall cell is left out of the plain walls and gets a door wall instead.
+  const secretAt = (x, z) => (x === 0 && z === 3 ? { open: false } : null);
+  const plain = chunkWallSegments(0, 0, kindAt, map, (x, z) => !!secretAt(x, z)).map(key);
+  assert.ok(plain.includes("0,0,0,2") && plain.includes("0,4,0,5"), "the west face stops at the secret door");
+  const secret = chunkDoors(0, 0, kindAt, map, secretAt).find((d) => d.secret);
+  assert.deepStrictEqual(secret.seg, [0.5, 3, 0.5, 4]);
   // Furniture in the room makes no wall.
   cells.set("2,2", KIND.FURNITURE);
   assert.ok(!chunkWallSegments(0, 0, kindAt, map).some(([x1, z1, x2, z2]) => (x1 === 2 || x1 === 3) && (z1 === 2 || z1 === 3)

@@ -315,3 +315,28 @@ test('hud: text components become plain text', () => {
   assert.strictEqual(componentText(nbt.string('plain')), 'plain')
   assert.strictEqual(componentText(null), '')
 })
+
+test('doors: a door is opened by its lower half; a secret passage is lifted out and put back', async () => {
+  const { setDoor, setSecret } = require('../src/doors')
+  const blocks = new Map()
+  const put = (x, y, z, name, props = {}) => blocks.set(`${x},${y},${z}`, { name, getProperties: () => props })
+  put(3, -60, 0, 'oak_door', { facing: 'south', half: 'lower', hinge: 'left', open: false, powered: false })
+  put(3, -59, 0, 'oak_door', { facing: 'south', half: 'upper', hinge: 'left', open: false, powered: false })
+  put(0, -60, 3, 'bookshelf'); put(0, -59, 3, 'bookshelf')
+  const cmds = []
+  const bots = {
+    onlineBots: () => [{ bot: { blockAt: (p) => blocks.get(`${p.x},${p.y},${p.z}`) ?? { name: 'air', getProperties: () => ({}) } } }],
+    runCommand: async (c) => { cmds.push(c); return '' }
+  }
+  await setDoor(bots, { x: 3, y: -59, z: 0, open: true })
+  assert.deepStrictEqual(cmds, ['setblock 3 -60 0 minecraft:oak_door[facing=south,half=lower,hinge=left,open=true,powered=false]'])
+  cmds.length = 0
+  const lifted = await setSecret(bots, { x: 0, y: -59, z: 3, open: true })
+  assert.deepStrictEqual(lifted, [[-60, 'bookshelf'], [-59, 'bookshelf']])
+  assert.deepStrictEqual(cmds, ['setblock 0 -60 3 minecraft:air', 'setblock 0 -59 3 minecraft:air'])
+  cmds.length = 0
+  await setSecret(bots, { x: 0, y: -59, z: 3, open: false, blocks: lifted })
+  assert.deepStrictEqual(cmds, ['setblock 0 -60 3 minecraft:bookshelf', 'setblock 0 -59 3 minecraft:bookshelf'])
+  await assert.rejects(() => setSecret(bots, { x: 0, y: -59, z: 3, open: false, blocks: [[-60, 'stone; op @a']] }))
+  await assert.rejects(() => setDoor(bots, { x: 9, y: -59, z: 9, open: true }), /문을 찾지 못했습니다/)
+})
