@@ -129,6 +129,14 @@ test('walker: a closed wooden door ahead is found (iron doors and open doors are
   assert.strictEqual(doorAhead(bot(2.5, 0.5), 1, 0), null, 'already open')
 })
 
+test('walker: turning is gradual and takes the short way round', () => {
+  const { turnStep, angleTo } = require('../src/walker')
+  assert.ok(Math.abs(turnStep(0, Math.PI) - 0.32) < 1e-9, 'one step toward a half turn')
+  assert.strictEqual(turnStep(1, 1.1), 1.1, 'a small turn is done at once')
+  assert.ok(turnStep(3.0, -3.0, 0.1) > 3.0, 'from just under +pi to just over -pi it goes through pi, not round the long way')
+  assert.ok(Math.abs(angleTo(3.0, -3.0) - (2 * Math.PI - 6)) < 1e-9)
+})
+
 test('walker: yawToward faces the target in mineflayer convention', () => {
   const { yawToward } = require('../src/walker')
   assert.ok(Math.abs(yawToward(0, -1)) < 1e-9)               // north

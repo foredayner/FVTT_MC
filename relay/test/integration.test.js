@@ -101,8 +101,20 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
   assert.strictEqual((await c.call('control', { key: 'u1', control: 'fly', state: true })).ok, false)
 
   // click-to-move on the map: walks in a straight line (no zig-zag)
-  await new Promise((r) => setTimeout(r, 800)) // let the earlier manual walk settle
-  const here = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+  // Pin the character to a block first: after the manual walk the dev server may still move it
+  // back to where it thinks it is, which would look like a detour.
+  const latest = () => c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+  const pinName = c.msgs.filter((m) => m.type === 'bots').at(-1).bots.find((b) => b.key === 'u1').username
+  await new Promise((r) => setTimeout(r, 800))
+  const pin = latest()
+  assert.ok((await c.call('gm', { action: 'tp', args: { target: pinName, x: Math.floor(pin.x), y: Math.floor(pin.y), z: Math.floor(pin.z) } })).ok)
+  let here = null
+  for (let i = 0; i < 20; i++) {
+    await new Promise((r) => setTimeout(r, 400))
+    const now = latest()
+    if (here && Math.hypot(now.x - here.x, now.z - here.z) < 0.01 && Math.abs(now.x - Math.floor(pin.x)) < 1.01) break
+    here = now
+  }
   const target = { x: here.x + 5, z: here.z + 5 }
   const mark = c.msgs.length
   assert.ok((await c.call('moveTo', { key: 'u1', x: target.x, z: target.z })).ok)
@@ -115,6 +127,38 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
   const lx = target.x - here.x; const lz = target.z - here.z; const len = Math.hypot(lx, lz)
   const maxOff = Math.max(...track.map((p) => Math.abs((p.x - here.x) * lz - (p.z - here.z) * lx) / len))
   assert.ok(maxOff < 0.8, `path should be straight (max sideways ${maxOff.toFixed(2)} blocks)`)
+
+  // click-to-move around a wall: the path finder goes round it (a straight walk would stick)
+  {
+    await new Promise((r) => setTimeout(r, 500))
+    const { Vec3 } = require('vec3')
+    const stone = require('minecraft-data')('1.21.4').blocksByName.stone.defaultState
+    const from = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+    const fx = Math.floor(from.x); const fz = Math.floor(from.z); const fy = Math.floor(from.y)
+    for (let dz = -4; dz <= 4; dz++) for (let dy = 0; dy < 3; dy++) await serv.setBlock(serv.overworld, new Vec3(fx + 3, fy + dy, fz + dz), stone)
+    await new Promise((r) => setTimeout(r, 500))
+    const goal = { x: fx + 6.5, z: fz + 0.5 }
+    assert.ok((await c.call('moveTo', { key: 'u1', x: goal.x, z: goal.z })).ok)
+    let end
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 500))
+      end = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+      if (Math.hypot(end.x - goal.x, end.z - goal.z) < 1) break
+    }
+    assert.ok(Math.hypot(end.x - goal.x, end.z - goal.z) < 1.2, `went round the wall (ended ${end.x.toFixed(1)},${end.z.toFixed(1)}, goal ${goal.x},${goal.z})`)
+  }
+
+  // turning round to walk back is gradual, not a snap
+  {
+    const start = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
+    const mark2 = c.msgs.length
+    assert.ok((await c.call('moveTo', { key: 'u1', x: start.x + 0.5, z: start.z + 4 })).ok)
+    await new Promise((r) => setTimeout(r, 1500))
+    const yaws = c.msgs.slice(mark2).filter((m) => m.type === 'state').map((m) => m.bots.find((b) => b.key === 'u1').yaw)
+    const steps = yaws.slice(1).map((y, i) => { let d = Math.abs(y - yaws[i]) % (2 * Math.PI); return d > Math.PI ? 2 * Math.PI - d : d })
+    assert.ok(Math.max(...steps) < 1.0, `turns gradually (largest step ${Math.max(...steps).toFixed(2)} rad per state)`)
+    assert.ok(steps.filter((d) => d > 0.05).length >= 2, 'the turn is spread over several updates')
+  }
 
   // chat and GM commands
   assert.ok((await c.call('chat', { key: 'u1', text: 'hello from foundry' })).ok)

@@ -66,7 +66,9 @@ const RULES = [
   [/^dead_bush$/, ID.WOOD],
   [/^(moss_block|moss_carpet)$/, ID.COLOR_GREEN],
   [/^pale_moss_(block|carpet)$/, ID.COLOR_LIGHT_GRAY],
-  [/^(dirt|coarse_dirt|farmland|dirt_path|rooted_dirt|packed_mud|granite|polished_granite|granite_slab|granite_stairs|granite_wall|polished_granite_slab|polished_granite_stairs)$/, ID.DIRT],
+  // Paths a lighter tan than the dirt and grass round them, so they read on the map (the map item draws them as dirt).
+  [/^dirt_path$/, ID.TERRACOTTA_WHITE],
+  [/^(dirt|coarse_dirt|farmland|rooted_dirt|packed_mud|granite|polished_granite|granite_slab|granite_stairs|granite_wall|polished_granite_slab|polished_granite_stairs)$/, ID.DIRT],
   [/^podzol$|^campfire$|^soul_campfire$/, ID.PODZOL],
   [/^mycelium$/, ID.COLOR_PURPLE],
   [/^(red_sand|red_sandstone|chiseled_red_sandstone|cut_red_sandstone|smooth_red_sandstone)(_slab|_stairs|_wall)?$/, ID.COLOR_ORANGE],

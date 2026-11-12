@@ -5,6 +5,7 @@ const mineflayer = require('mineflayer')
 const { Vec3 } = require('vec3')
 const { NAME_RE } = require('./gmCommands')
 const { StraightWalker, WalkStopped, HAND_DOOR_RE } = require('./walker')
+const pathfinderLib = (() => { try { return require('mineflayer-pathfinder') } catch { return null } })()
 const { attachHud } = require('./hud')
 
 const CONTROLS = new Set(['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'])
@@ -46,6 +47,12 @@ class BotManager extends EventEmitter {
     const bot = mineflayer.createBot({ host, port, version, auth, username, hideErrors: true })
     const entry = { key, username, bot, online: false, busy: null, walker: new StraightWalker(bot) }
     this.entries.set(key, entry)
+    if (pathfinderLib) {
+      try {
+        bot.loadPlugin(pathfinderLib.pathfinder)
+        entry.walker.usePathfinder(pathfinderLib)
+      } catch (err) { this.emit('event', { kind: 'warn', key, text: `길찾기를 쓸 수 없어 직선으로 걷습니다: ${err.message}` }) }
+    }
 
     bot.once('spawn', () => {
       entry.online = true
