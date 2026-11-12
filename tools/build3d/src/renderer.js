@@ -209,8 +209,15 @@ class Renderer3D {
     if (!this.placed) { this.camera.position.set(this.target.x, this.target.y, this.target.z); this.placed = true }
   }
 
-  /** Mineflayer yaw/pitch (radians). */
-  setLook (yaw, pitch) { this.yaw = yaw; this.pitch = pitch }
+  /**
+   * Mineflayer yaw/pitch (radians). `smooth`: ease toward it over the next frames (the bot's own
+   * heading arrives ten times a second); otherwise turn at once (the mouse).
+   */
+  setLook (yaw, pitch, smooth = false) {
+    if (smooth && Number.isFinite(this.yaw)) { this.lookTarget = { yaw, pitch }; return }
+    this.lookTarget = null
+    this.yaw = yaw; this.pitch = pitch
+  }
 
   /**
    * Other characters and mobs. A character with `avatar` is drawn as a box in its colour with
@@ -302,6 +309,13 @@ class Renderer3D {
       p.x += (this.target.x - p.x) * k
       p.y += (this.target.y - p.y) * k
       p.z += (this.target.z - p.z) * k
+    }
+    if (this.lookTarget) {
+      const kl = Math.min(1, dt * 10)
+      const d = Math.atan2(Math.sin(this.lookTarget.yaw - this.yaw), Math.cos(this.lookTarget.yaw - this.yaw)) // shortest way round
+      this.yaw += d * kl
+      this.pitch += (this.lookTarget.pitch - this.pitch) * kl
+      if (Math.abs(d) < 1e-4 && Math.abs(this.lookTarget.pitch - this.pitch) < 1e-4) { this.yaw = this.lookTarget.yaw; this.lookTarget = null }
     }
     this.camera.rotation.set(this.pitch, this.yaw, 0, 'ZYX')
     for (const obj of this.entities.values()) {

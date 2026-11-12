@@ -54,6 +54,11 @@ class BotManager extends EventEmitter {
       } catch (err) { this.emit('event', { kind: 'warn', key, text: `길찾기를 쓸 수 없어 직선으로 걷습니다: ${err.message}` }) }
     }
 
+    // Jump boost I on every (re)spawn, so a character can hop a fence (dying clears effects).
+    bot.on('spawn', () => {
+      this.runCommand(`effect give ${username} minecraft:jump_boost infinite 0 true`)
+        .catch((err) => this.emit('event', { kind: 'warn', key, text: `점프 강화를 걸지 못했습니다: ${err.message}` }))
+    })
     bot.once('spawn', () => {
       entry.online = true
       this.scanner.attach(bot)

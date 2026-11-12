@@ -76,8 +76,12 @@ function buildGmCommand ({ action, args = {} }) {
       const dz = int(args.dz ?? 0, -16, 16, 'dz')
       return [`execute at ${who} run summon minecraft:${args.mob} ~${dx} ~ ~${dz}`]
     }
-    case 'tp':
-      return [`tp ${target(args.target)} ${pos(args)}`]
+    case 'tp': {
+      if (args.center !== true) return [`tp ${target(args.target)} ${pos(args)}`]
+      // To the middle of the block (a GM dragging a token there), so the character stands clear of walls.
+      const [x, y, z] = pos(args).split(' ').map(Number)
+      return [`tp ${target(args.target)} ${x + 0.5} ${y} ${z + 0.5}`]
+    }
     case 'spawnpoint':
       // Where that character respawns after dying.
       return [`spawnpoint ${target(args.target)} ${pos(args)}`]

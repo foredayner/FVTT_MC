@@ -19,7 +19,9 @@ const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, 
 
 // Floor-plan palette: light floors, dark walls, so rooms read at a glance.
 // Doors are blue everywhere (floor plan and top view) so entrances stand out from wood floors.
-const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR: [28, 72, 214], DOOR_OPEN: [96, 150, 255] }
+// Doors leading outside are deep blue (open or shut, on the floor plan and on roofs alike);
+// doors inside a building are yellow. Open or shut shows on the Foundry door.
+const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR_OUT: [28, 72, 214], DOOR_IN: [236, 190, 24] }
 /** How far under a roof a door is looked for, and how far out from it the open sky. */
 const DOOR_UNDER_ROOF = 12
 const DOOR_SKY_REACH = 4
@@ -210,7 +212,15 @@ class MapScanner {
       p.set(x, cut, z)
       const name = nameAt(p)
       if (name === null) return null
-      if (DOOR_RE.test(name)) return { kind: isOpen(bot, p) ? KIND.DOOR_OPEN : KIND.DOOR, y: cut }
+      // A door at the cut, or just under it (standing a block up, on a step or a bed, the cut
+      // runs through the wall over the door).
+      for (const dy of [cut, cut - 1]) {
+        p.set(x, dy, z)
+        if (DOOR_RE.test(nameAt(p) ?? '')) {
+          return { kind: isOpen(bot, p) ? KIND.DOOR_OPEN : KIND.DOOR, y: dy, outer: this.leadsOutside(x, dy, z, bottom, nameAt, surface) }
+        }
+      }
+      p.set(x, cut, z)
       if (WINDOW_RE.test(name)) return { kind: KIND.WINDOW, y: cut }
       if (solidAt(p)) return { kind: fullAt(p) || WALL_RE.test(name) ? KIND.WALL : KIND.FURNITURE, y: cut, id: colorId(name) }
       for (let y = cut; y >= bottom; y--) {
@@ -244,8 +254,7 @@ class MapScanner {
           else if (cell.kind === KIND.WALL) c = PLAN.WALL
           else if (cell.kind === KIND.FURNITURE) c = cell.id === ID.NONE ? FURNITURE_FALLBACK : furnish(shadeRgb(cell.id, SHADE.NORMAL))
           else if (cell.kind === KIND.WINDOW) c = PLAN.WINDOW
-          else if (cell.kind === KIND.DOOR) c = PLAN.DOOR
-          else c = PLAN.DOOR_OPEN
+          else c = cell.outer ? PLAN.DOOR_OUT : PLAN.DOOR_IN
           rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2]
           heights[i] = cell.y
           kinds[i] = cell.kind
@@ -257,8 +266,7 @@ class MapScanner {
         row.push(s)
         if (!s) continue
         const shade = s.id === ID.WATER ? waterShade(s.depth, x, z) : landShade(s.y, northRow[dx]?.y ?? null)
-        const door = this.outerDoor(bot, x, z, s.y, bottom, nameAt, surface)
-        const [r, g, b] = door ? PLAN[door] : shadeRgb(s.id, shade)
+        const [r, g, b] = this.outerDoor(x, z, s.y, bottom, nameAt, surface) ? PLAN.DOOR_OUT : shadeRgb(s.id, shade)
         rgb[i * 3] = r; rgb[i * 3 + 1] = g; rgb[i * 3 + 2] = b
         heights[i] = s.y
         found++
@@ -276,41 +284,42 @@ class MapScanner {
   }
 
   /**
-   * On the top view: a door at the top of this column, or under its roof when the door leads
-   * outside (open sky within a few blocks of it, so a door under eaves or a porch counts but the
-   * doors inside a building do not; those show in the floor plan once a character is inside).
-   * Returns 'DOOR', 'DOOR_OPEN' or null.
+   * On the top view: is there a door to the outside at the top of this column, or under its roof
+   * (a door under eaves or a porch)? Doors inside a building stay hidden until a character is in
+   * there and the floor plan shows them.
    */
-  outerDoor (bot, x, z, topY, bottom, nameAt, surface) {
+  outerDoor (x, z, topY, bottom, nameAt, surface) {
     const p = new Vec3(x, topY, z)
-    if (OPEN_GROUND_RE.test(nameAt(p) ?? '')) return null // bare ground or water: no roof to look under
+    if (OPEN_GROUND_RE.test(nameAt(p) ?? '')) return false // bare ground or water: no roof to look under
     for (let y = topY; y >= Math.max(bottom, topY - DOOR_UNDER_ROOF); y--) {
       p.set(x, y, z)
       const name = nameAt(p)
-      if (name === null) return null
-      if (DOOR_RE.test(name)) {
-        const open = isOpen(bot, p)
-        if (y === topY) return open ? 'DOOR_OPEN' : 'DOOR'
-        // The door's foot: walk down to its lowest block.
-        let foot = y
-        p.set(x, y - 1, z)
-        while (foot - 1 >= bottom && DOOR_RE.test(nameAt(p) ?? '')) { foot--; p.set(x, foot - 1, z) }
-        // Walk out from the door on each side at head height (through a room, a wall stops it).
-        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          for (let step = 1; step <= DOOR_SKY_REACH; step++) {
-            const ax = x + dx * step; const az = z + dz * step
-            p.set(ax, foot + 1, az)
-            const head = nameAt(p)
-            if (head === null || (head !== 'air' && head !== 'cave_air')) break
-            let s
-            try { s = surface(ax, az) } catch { s = null }
-            if (s && s.y < foot + 1) return open ? 'DOOR_OPEN' : 'DOOR'
-          }
-        }
-        return null
+      if (name === null) return false
+      if (DOOR_RE.test(name)) return y === topY || this.leadsOutside(x, y, z, bottom, nameAt, surface)
+    }
+    return false
+  }
+
+  /**
+   * Does the door with a block at x,y,z lead outside? Walking out from it at head height on any
+   * side, open sky comes within a few blocks before a wall does.
+   */
+  leadsOutside (x, y, z, bottom, nameAt, surface) {
+    const p = new Vec3(x, y - 1, z)
+    let foot = y
+    while (foot - 1 >= bottom && DOOR_RE.test(nameAt(p) ?? '')) { foot--; p.set(x, foot - 1, z) }
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (let step = 1; step <= DOOR_SKY_REACH; step++) {
+        const ax = x + dx * step; const az = z + dz * step
+        p.set(ax, foot + 1, az)
+        const head = nameAt(p)
+        if (head === null || (head !== 'air' && head !== 'cave_air')) break
+        let s
+        try { s = surface(ax, az) } catch { s = null }
+        if (s && s.y < foot + 1) return true
       }
     }
-    return null
+    return false
   }
 
   /** Surface of the column north of a chunk edge, if that chunk is loaded. */

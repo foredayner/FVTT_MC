@@ -152,12 +152,13 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
   {
     const start = c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
     const mark2 = c.msgs.length
-    assert.ok((await c.call('moveTo', { key: 'u1', x: start.x + 0.5, z: start.z + 4 })).ok)
+    // the spot 4 blocks behind it (yaw 0 faces -Z, so behind is +sin, +cos)
+    assert.ok((await c.call('moveTo', { key: 'u1', x: start.x + 4 * Math.sin(start.yaw), z: start.z + 4 * Math.cos(start.yaw) })).ok)
     await new Promise((r) => setTimeout(r, 1500))
     const yaws = c.msgs.slice(mark2).filter((m) => m.type === 'state').map((m) => m.bots.find((b) => b.key === 'u1').yaw)
     const steps = yaws.slice(1).map((y, i) => { let d = Math.abs(y - yaws[i]) % (2 * Math.PI); return d > Math.PI ? 2 * Math.PI - d : d })
     assert.ok(Math.max(...steps) < 1.0, `turns gradually (largest step ${Math.max(...steps).toFixed(2)} rad per state)`)
-    assert.ok(steps.filter((d) => d > 0.05).length >= 2, 'the turn is spread over several updates')
+    assert.ok(steps.filter((d) => d > 0.05).length >= 2, `the turn is spread over several updates (${yaws.map((y) => y.toFixed(2)).join(' ')})`)
   }
 
   // chat and GM commands

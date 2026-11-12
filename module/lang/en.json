@@ -20,7 +20,7 @@
       "MapModeOn": "Map control on",
       "MapModeOff": "Map control off",
       "Stop": "Stop",
-      "MapHint": "Map control: click = walk (click a door to open/close it; doors on the way open by themselves) · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · GM: Ctrl+click = make a wall a secret door / a wall again",
+      "MapHint": "Map control: click = walk (click a door to open/close it; doors on the way open by themselves) · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · GM: Ctrl+click = make a wall a secret door / a wall again · GM: Alt+drag a token = teleport",
       "ChatPlaceholder": "Say something in Minecraft chat",
       "Avatar": "3D look"
     },
@@ -174,6 +174,11 @@
       "SecretOff": "Secret door removed (a wall again)",
       "SecretOn": "Secret door marked (a door only the GM sees)",
       "NotAWall": "Not a wall cell (pick a cell drawn as wall on the floor plan)"
+    },
+    "Teleport": {
+      "Offline": "That character is not online",
+      "NotThere": "Cannot teleport there (a wall, window, door or furniture, or not mapped yet)",
+      "Failed": "Teleport failed"
     }
   }
 }

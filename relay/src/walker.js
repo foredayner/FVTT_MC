@@ -6,6 +6,8 @@
 // Turning is gradual: the character swings round at a fixed rate and only walks on once it is
 // roughly facing the way, so it does not snap about.
 
+const { Vec3 } = require('vec3')
+
 const STUCK_WINDOW_MS = 1500
 const STUCK_MIN_PROGRESS = 0.5 // blocks per window
 /** Doors a character opens by hand on the way (iron doors need redstone). */
@@ -14,13 +16,19 @@ const DOOR_RETRY_MS = 600
 /** How fast a character turns, radians per tick (20 ticks a second): about half a turn in half a second. */
 const TURN_PER_TICK = 0.32
 /** Facing further off than this, the character turns on the spot before walking on. */
-const WALK_WHILE_OFF = 0.35 // 20 degrees
+const WALK_WHILE_OFF = 0.5 // about 30 degrees
 /** How long a path may take to work out, and how much of each tick it may use. */
 const PATH_TIMEOUT_MS = 1500
 const PATH_TICK_MS = 15
 /** Waypoint reached when this close (horizontal). */
 const WAYPOINT_REACH = 0.35
 const MAX_REPLANS = 3
+/** How many waypoints ahead the character may cut straight to, when the way there is clear. */
+const LOOK_AHEAD = 4
+/** Half the character's width, plus a little: what a straight cut must keep clear on each side. */
+const HALF_WIDTH = 0.38
+/** Fences (not walls or gates) a character hops over, with its jump boost. */
+const FENCE_RE = /_fence$/
 
 class WalkStopped extends Error {
   /** @param {'replaced'|'cancelled'|'stuck'|'offline'|'nopath'} reason */
@@ -62,7 +70,7 @@ class StraightWalker {
     const bot = this.bot
     if (!bot.pathfinder || !this.Movements) return null
     if (!this._movements) {
-      const m = new this.Movements(bot)
+      const m = new (townMovements(this.Movements))(bot)
       m.canDig = false
       m.allow1by1towers = false
       m.scafoldingBlocks = []
@@ -118,7 +126,8 @@ class StraightWalker {
         if (!movements) { planner = null; route = null; return }
         const goal = stopDist < 1 ? new this.goals.GoalXZ(x, z) : new this.goals.GoalNearXZ(x, z, stopDist)
         try {
-          planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout: PATH_TIMEOUT_MS, tickTimeout: PATH_TICK_MS })
+          // Every block of the way (not merged into long straight runs, which cut corners).
+          planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout: PATH_TIMEOUT_MS, tickTimeout: PATH_TICK_MS, optimizePath: false })
         } catch { planner = null; route = null }
       }
 
@@ -135,7 +144,7 @@ class StraightWalker {
           route = null // nothing found: walk straight and see
           return
         }
-        route = path.map((n) => ({ x: n.x + 0.5, y: n.y, z: n.z + 0.5 }))
+        route = path.map((n) => ({ x: n.x + 0.5, y: n.y, z: n.z + 0.5, hop: !!n.hop }))
         lastCheck = Date.now()
         lastPos = bot.entity.position.clone()
       }
@@ -159,12 +168,23 @@ class StraightWalker {
             const d = Math.hypot(route[i].x - p.x, route[i].z - p.z)
             if (d < bd) { bd = d; best = i }
           }
-          if (best > 0) route.splice(0, best)
+          // Only skip ahead to a waypoint the character is already standing at (never across a wall).
+          if (best > 0 && bd < 0.9) route.splice(0, best)
           if (bd > 3 && replans < MAX_REPLANS) { replans++; plan(); return }
         }
         // Where to head now: the next waypoint, or the target itself.
         while (route && route.length && Math.hypot(route[0].x - p.x, route[0].z - p.z) <= WAYPOINT_REACH) route.shift()
         if (route && !route.length) route = null
+        // Cut straight to a waypoint further on when nothing is in the way of the whole body.
+        if (route && route.length > 1 && !route[0].hop) {
+          let far = 0
+          for (let i = 1; i < Math.min(route.length, LOOK_AHEAD + 1); i++) {
+            if (route[i].y !== route[0].y || route[i].hop || route[i - 1].hop) break
+            if (!clearWay(bot, p, route[i])) break
+            far = i
+          }
+          if (far > 0) route.splice(0, far)
+        }
         const aim = route ? route[0] : { x, z, y: null }
         const dx = aim.x - p.x
         const dz = aim.z - p.z
@@ -181,7 +201,7 @@ class StraightWalker {
           lastDoor = now
           lastCheck = now // opening is not being stuck
         }
-        const up = aim.y !== null && aim.y > p.y + 0.5
+        const up = aim.y !== null && (aim.y > p.y + 0.5 || (aim.hop && dist < 1.6))
         bot.setControlState('jump', (up || !!(bot.entity.isCollidedHorizontally || bot.entity.isInWater)) && !doorAhead(bot, dx / dist, dz / dist))
         if (off >= WALK_WHILE_OFF) { lastCheck = now; lastPos = p.clone(); return } // turning on the spot
         if (now - lastCheck >= STUCK_WINDOW_MS) {
@@ -214,6 +234,73 @@ class StraightWalker {
   }
 }
 
+/**
+ * The path finder's moves, made for walking through a town: a diagonal step only when both
+ * blocks beside it are free (no clipping wall corners, door frames or posts), and a hop over a
+ * one-block fence when there is room to land.
+ */
+function townMovements (Movements) {
+  if (Movements.__town) return Movements.__town
+  let Move
+  try { Move = require('mineflayer-pathfinder/lib/move') } catch { Move = null }
+  class TownMovements extends Movements {
+    getMoveDiagonal (node, dir, neighbors) {
+      for (const [dx, dz] of [[dir.x, 0], [0, dir.z]]) {
+        for (const dy of [0, 1]) {
+          const b = this.getBlock(node, dx, dy, dz)
+          if (!b.safe || b.openable) return
+        }
+      }
+      return super.getMoveDiagonal(node, dir, neighbors)
+    }
+
+    getNeighbors (node) {
+      const neighbors = super.getNeighbors(node)
+      if (!Move) return neighbors
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const fence = this.getBlock(node, dx, 0, dz)
+        if (!fence.name || !FENCE_RE.test(fence.name)) continue
+        const clear = [[0, 2, 0], [dx, 1, dz], [dx, 2, dz], [2 * dx, 0, 2 * dz], [2 * dx, 1, 2 * dz]]
+          .every(([a, b, c]) => this.getBlock(node, a, b, c).safe)
+        const floor = this.getBlock(node, 2 * dx, -1, 2 * dz)
+        if (!clear || !floor.physical) continue
+        const m = new Move(node.x + 2 * dx, node.y, node.z + 2 * dz, node.remainingBlocks, 4)
+        m.hop = true
+        neighbors.push(m)
+      }
+      return neighbors
+    }
+  }
+  Movements.__town = TownMovements
+  return TownMovements
+}
+
+/** Can the whole body go straight from p to the waypoint (feet and head level, both edges)? */
+function clearWay (bot, p, to) {
+  if (typeof bot.blockAt !== 'function') return false
+  const dx = to.x - p.x; const dz = to.z - p.z
+  const len = Math.hypot(dx, dz)
+  if (len < 1e-6) return true
+  const nx = -dz / len; const nz = dx / len // sideways
+  const y = Math.floor(to.y ?? p.y)
+  for (let t = 0; t <= len; t += 0.25) {
+    for (const side of [-HALF_WIDTH, 0, HALF_WIDTH]) {
+      const cx = p.x + dx * (t / len) + nx * side
+      const cz = p.z + dz * (t / len) + nz * side
+      for (const up of [0, 1]) {
+        const b = bot.blockAt(new Vec3(Math.floor(cx), y + up, Math.floor(cz)), false)
+        if (!b) return false
+        if (b.boundingBox !== 'empty' && !CARPET_RE.test(b.name)) return false
+      }
+      // and something to stand on
+      const under = bot.blockAt(new Vec3(Math.floor(cx), y - 1, Math.floor(cz)), false)
+      if (!under || under.boundingBox === 'empty') return false
+    }
+  }
+  return true
+}
+const CARPET_RE = /_carpet$/
+
 /** The closed hand-opened door (block) at feet or head height just ahead, or null. */
 function doorAhead (bot, ux, uz) {
   if (typeof bot.blockAt !== 'function') return null
@@ -235,4 +322,4 @@ function openDoorAhead (bot, ux, uz) {
   return true
 }
 
-module.exports = { StraightWalker, WalkStopped, yawToward, turnStep, angleTo, doorAhead, HAND_DOOR_RE }
+module.exports = { StraightWalker, WalkStopped, yawToward, turnStep, angleTo, doorAhead, clearWay, townMovements, HAND_DOOR_RE }

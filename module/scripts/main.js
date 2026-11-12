@@ -72,6 +72,45 @@ class Bridge {
 
 const bridge = new Bridge();
 
+// Whether Alt is held (for the GM's Alt+drag teleport).
+let altDown = false;
+window.addEventListener("keydown", (ev) => { if (ev.key === "Alt") altDown = true; });
+window.addEventListener("keyup", (ev) => { if (ev.key === "Alt") altDown = false; });
+window.addEventListener("blur", () => { altDown = false; });
+
+/**
+ * GM Alt+drag of a character's token: teleport the Minecraft character there (to the middle of
+ * the block, standing on what the map shows: the ground, or the floor of the floor plan). The
+ * token then follows the character as always. Without Alt nothing changes (Minecraft owns it).
+ */
+Hooks.on("preUpdateToken", (doc, change, options, userId) => {
+  if (!altDown || !game.user.isGM || userId !== game.user.id || options?.method === "api") return;
+  if (!("x" in change) && !("y" in change)) return;
+  const key = doc.getFlag(MODULE_ID, "botKey");
+  const scene = doc.parent;
+  const map = scene?.getFlag(MODULE_ID, "map");
+  const hub = bridge.hub;
+  if (!key || !map || !hub.isRelayHost || !hub.relay) return;
+  const bot = hub.bots.find((b) => b.key === key);
+  const walls = bridge.mapView?.walls;
+  if (!bot?.online || !walls) { ui.notifications.warn(L("Teleport.Offline")); return false; }
+  const grid = scene.grid.size;
+  const d = scene.dimensions ?? canvas.dimensions;
+  const x = (change.x ?? doc.x) + (doc.width * grid) / 2;
+  const y = (change.y ?? doc.y) + (doc.height * grid) / 2;
+  const mc = sceneToMc({ x, y }, map, { grid, sceneX: d.sceneX ?? 0, sceneY: d.sceneY ?? 0 });
+  const bx = Math.floor(mc.x); const bz = Math.floor(mc.z);
+  const dim = map.dim ?? "overworld";
+  const kind = walls.kindAt(dim, bx, bz);
+  const h = walls.heightAt(dim, bx, bz);
+  // Only onto ground or a floor: not into a wall, a window, a door or furniture.
+  if (h === null || (kind !== 0 && kind !== 1)) { ui.notifications.warn(L("Teleport.NotThere")); return false; }
+  hub.relay.call("stop", { key }).catch(() => {});
+  hub.relay.call("gm", { action: "tp", args: { target: bot.username, x: bx, y: h + 1, z: bz, center: true } })
+    .catch((err) => ui.notifications.warn(`${L("Teleport.Failed")}: ${err.message ?? err}`));
+  return false; // the token follows the character
+});
+
 Hooks.once("init", () => {
   const S = (key, data) => game.settings.register(MODULE_ID, key, data);
   S("relayUrl", {

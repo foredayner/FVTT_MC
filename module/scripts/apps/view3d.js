@@ -156,7 +156,7 @@ export class View3D extends ApplicationV2 {
     if (me) {
       this.r3d.setTarget(me);
       const locked = document.pointerLockElement === this.element?.querySelector(".bwb-overlay");
-      if (!locked || this.yaw === null) this.r3d.setLook(me.yaw, me.pitch);
+      if (!locked || this.yaw === null) this.r3d.setLook(me.yaw, me.pitch, true); // eased between updates
     }
     const others = [...hub.positions.values()]
       .filter((p) => p.key !== this.key && p.dim === me?.dim)

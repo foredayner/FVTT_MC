@@ -34,6 +34,7 @@ test('gm: target names and numbers are validated', () => {
 
 test('gm: tp / spawnpoint / worldspawn take whole-block coordinates only', () => {
   assert.deepStrictEqual(buildGmCommand({ action: 'tp', args: { target: '@a', x: 10, y: 64, z: -20 } }), ['tp @a 10 64 -20'])
+  assert.deepStrictEqual(buildGmCommand({ action: 'tp', args: { target: 'Jo_1', x: 10, y: 64, z: -20, center: true } }), ['tp Jo_1 10.5 64 -19.5'])
   assert.deepStrictEqual(buildGmCommand({ action: 'spawnpoint', args: { target: 'Jo_1', x: '5', y: '-60', z: '7' } }), ['spawnpoint Jo_1 5 -60 7'])
   assert.deepStrictEqual(buildGmCommand({ action: 'worldspawn', args: { x: 0, y: 70, z: 0 } }), ['setworldspawn 0 70 0', 'gamerule spawnRadius 0'])
   assert.throws(() => buildGmCommand({ action: 'spawnpoint', args: { target: 'Jo', x: 0, y: 320, z: 0 } }))
@@ -135,6 +136,32 @@ test('walker: turning is gradual and takes the short way round', () => {
   assert.strictEqual(turnStep(1, 1.1), 1.1, 'a small turn is done at once')
   assert.ok(turnStep(3.0, -3.0, 0.1) > 3.0, 'from just under +pi to just over -pi it goes through pi, not round the long way')
   assert.ok(Math.abs(angleTo(3.0, -3.0) - (2 * Math.PI - 6)) < 1e-9)
+})
+
+test('walker: town moves hop a fence and never clip a corner diagonally', () => {
+  const { townMovements } = require('../src/walker')
+  // A fake grid: blocks by "x,y,z" -> name; everything else is air on a floor at y -1.
+  const grid = new Map([['1,0,0', 'oak_fence'], ['0,0,-1', 'stone'], ['0,1,-1', 'stone']])
+  class Base {
+    getBlock (node, dx, dy, dz) {
+      const x = node.x + dx; const y = node.y + dy; const z = node.z + dz
+      const name = grid.get(`${x},${y},${z}`) ?? (y < 0 ? 'stone' : 'air')
+      const solid = name !== 'air'
+      return { name, safe: !solid, physical: solid && !name.endsWith('_fence'), openable: false }
+    }
+
+    getNeighbors () { return [] }
+    getMoveDiagonal (node, dir, neighbors) { neighbors.push({ diag: [dir.x, dir.z] }) }
+  }
+  const M = townMovements(Base)
+  const m = new M()
+  const hops = m.getNeighbors({ x: 0, y: 0, z: 0, remainingBlocks: 0 }).filter((n) => n.hop)
+  assert.deepStrictEqual(hops.map((n) => [n.x, n.y, n.z]), [[2, 0, 0]], 'over the fence to the far side')
+  const out = []
+  m.getMoveDiagonal({ x: 0, y: 0, z: 0 }, { x: 1, z: -1 }, out)
+  assert.strictEqual(out.length, 0, 'a stone beside the diagonal (and the fence) blocks it')
+  m.getMoveDiagonal({ x: 0, y: 0, z: 0 }, { x: -1, z: 1 }, out)
+  assert.strictEqual(out.length, 1, 'open on both sides: allowed')
 })
 
 test('walker: yawToward faces the target in mineflayer convention', () => {
@@ -246,6 +273,8 @@ test('mapScanner: floor plan under a roof (auto), normal ground outside, back to
   assert.deepStrictEqual(px(0, 0), [43, 43, 48], 'walls are dark')
   assert.ok(px(3, 3).reduce((a, b) => a + b) > px(10, 10).reduce((a, b) => a + b), 'floors are drawn light')
   assert.notDeepStrictEqual(px(1, 4), [43, 43, 48], 'furniture is not drawn as wall')
+  assert.deepStrictEqual(px(3, 0), [28, 72, 214], 'a door to the outside: deep blue')
+  assert.deepStrictEqual(px(2, 5), [236, 190, 24], 'a door inside: yellow')
 
   // Walk outside: the cut goes away and the chunk is listed for redrawing.
   bot.entity.position.set(12.5, -60, 12.5)
@@ -258,8 +287,8 @@ test('mapScanner: floor plan under a roof (auto), normal ground outside, back to
   // From outside, the doors to the outside show blue on the roof; the one inside does not.
   const roof = Buffer.from(house.rgb, 'base64')
   const rp = (x, z) => [...roof.subarray((z * 16 + x) * 3, (z * 16 + x) * 3 + 3)]
-  assert.deepStrictEqual(rp(3, 0), [28, 72, 214], 'closed outer door: blue')
-  assert.deepStrictEqual(rp(6, 3), [96, 150, 255], 'open outer door: light blue')
+  assert.deepStrictEqual(rp(3, 0), [28, 72, 214], 'closed outer door: deep blue')
+  assert.deepStrictEqual(rp(6, 3), [28, 72, 214], 'open outer door: the same deep blue')
   assert.notDeepStrictEqual(rp(2, 5), [28, 72, 214], 'a door inside stays hidden under the roof')
 })
 
@@ -273,6 +302,13 @@ test('mapScanner: fixed and off view modes', () => {
   scanner.setCharacters([bot])
   scanner.scanChunk(bot, 'overworld', 0, 0)
   assert.strictEqual(Buffer.from(sent.at(-1).kinds, 'base64')[3 * 16 + 3], KIND.FLOOR, 'fixed cut shows the inside even from outside')
+  // Standing a block up (on a step): the cut runs over the doors, which still show as doors.
+  scanner.setView({ mode: 'fixed', y: -59 })
+  scanner.setCharacters([bot])
+  scanner.scanChunk(bot, 'overworld', 0, 0)
+  const raised = Buffer.from(sent.at(-1).kinds, 'base64')
+  assert.strictEqual(raised[0 * 16 + 3], KIND.DOOR, 'door under a raised cut')
+  assert.strictEqual(raised[3 * 16 + 6], KIND.DOOR_OPEN)
   scanner.setView({ mode: 'off' })
   scanner.setCharacters([bot])
   scanner.scanChunk(bot, 'overworld', 0, 0)
