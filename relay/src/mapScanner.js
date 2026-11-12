@@ -18,7 +18,13 @@ const ROOF_SCAN = 24 // how far above the cut a "roof" may be
 const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, FURNITURE: 6 }
 
 // Floor-plan palette: light floors, dark walls, so rooms read at a glance.
-const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR: [181, 101, 29], DOOR_OPEN: [224, 176, 112] }
+// Doors are blue everywhere (floor plan and top view) so entrances stand out from wood floors.
+const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR: [28, 72, 214], DOOR_OPEN: [96, 150, 255] }
+/** How far under a roof a door is looked for, and how far out from it the open sky. */
+const DOOR_UNDER_ROOF = 12
+const DOOR_SKY_REACH = 4
+/** Tops of columns that are open ground, not a roof: nothing to look under. */
+const OPEN_GROUND_RE = /^(grass_block|dirt|coarse_dirt|rooted_dirt|podzol|mycelium|sand|red_sand|gravel|stone|deepslate|snow_block|snow|water|lava|ice|dirt_path|farmland|mud|clay|short_grass|tall_grass|fern)$/
 const WINDOW_RE = /(^|_)glass(_pane)?$|^iron_bars$/
 const DOOR_RE = /_door$|_fence_gate$/
 const WALL_RE = /_wall$/ // cobblestone walls and the like: thin, but a wall all the same
@@ -251,7 +257,8 @@ class MapScanner {
         row.push(s)
         if (!s) continue
         const shade = s.id === ID.WATER ? waterShade(s.depth, x, z) : landShade(s.y, northRow[dx]?.y ?? null)
-        const [r, g, b] = shadeRgb(s.id, shade)
+        const door = this.outerDoor(bot, x, z, s.y, bottom, nameAt, surface)
+        const [r, g, b] = door ? PLAN[door] : shadeRgb(s.id, shade)
         rgb[i * 3] = r; rgb[i * 3 + 1] = g; rgb[i * 3 + 2] = b
         heights[i] = s.y
         found++
@@ -266,6 +273,44 @@ class MapScanner {
     this.chunks.set(k, entry)
     this.onChunk(MapScanner.encode(entry))
     return true
+  }
+
+  /**
+   * On the top view: a door at the top of this column, or under its roof when the door leads
+   * outside (open sky within a few blocks of it, so a door under eaves or a porch counts but the
+   * doors inside a building do not; those show in the floor plan once a character is inside).
+   * Returns 'DOOR', 'DOOR_OPEN' or null.
+   */
+  outerDoor (bot, x, z, topY, bottom, nameAt, surface) {
+    const p = new Vec3(x, topY, z)
+    if (OPEN_GROUND_RE.test(nameAt(p) ?? '')) return null // bare ground or water: no roof to look under
+    for (let y = topY; y >= Math.max(bottom, topY - DOOR_UNDER_ROOF); y--) {
+      p.set(x, y, z)
+      const name = nameAt(p)
+      if (name === null) return null
+      if (DOOR_RE.test(name)) {
+        const open = isOpen(bot, p)
+        if (y === topY) return open ? 'DOOR_OPEN' : 'DOOR'
+        // The door's foot: walk down to its lowest block.
+        let foot = y
+        p.set(x, y - 1, z)
+        while (foot - 1 >= bottom && DOOR_RE.test(nameAt(p) ?? '')) { foot--; p.set(x, foot - 1, z) }
+        // Walk out from the door on each side at head height (through a room, a wall stops it).
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          for (let step = 1; step <= DOOR_SKY_REACH; step++) {
+            const ax = x + dx * step; const az = z + dz * step
+            p.set(ax, foot + 1, az)
+            const head = nameAt(p)
+            if (head === null || (head !== 'air' && head !== 'cave_air')) break
+            let s
+            try { s = surface(ax, az) } catch { s = null }
+            if (s && s.y < foot + 1) return open ? 'DOOR_OPEN' : 'DOOR'
+          }
+        }
+        return null
+      }
+    }
+    return null
   }
 
   /** Surface of the column north of a chunk edge, if that chunk is loaded. */

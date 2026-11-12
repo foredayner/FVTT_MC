@@ -4,7 +4,7 @@ const EventEmitter = require('events')
 const mineflayer = require('mineflayer')
 const { Vec3 } = require('vec3')
 const { NAME_RE } = require('./gmCommands')
-const { StraightWalker, WalkStopped } = require('./walker')
+const { StraightWalker, WalkStopped, HAND_DOOR_RE } = require('./walker')
 const { attachHud } = require('./hud')
 
 const CONTROLS = new Set(['forward', 'back', 'left', 'right', 'jump', 'sprint', 'sneak'])
@@ -112,7 +112,31 @@ class BotManager extends EventEmitter {
   moveTo (key, x, z) {
     const e = this.get(key)
     e.bot.clearControlStates()
+    const door = this.doorAt(e.bot, x, z)
+    if (door) {
+      // Clicked a door: go to it and open (or close) it.
+      this.exclusive(e, async () => {
+        const c = door.position.offset(0.5, 0.5, 0.5)
+        if (e.bot.entity.position.distanceTo(c) > 2.5) {
+          await e.walker.walkTo(c.x, c.z, 1.8).catch((err) => this.walkFailed(err))
+        }
+        if (e.bot.entity.position.distanceTo(c) > REACH) throw new Error('문까지 닿지 않습니다')
+        await e.bot.activateBlock(door)
+      }).catch((err) => this.reportWalk(e, err))
+      return
+    }
     e.walker.walkTo(x, z, 0.5).catch((err) => this.reportWalk(e, err))
+  }
+
+  /** A door a hand can open in column x,z, near the character's height. */
+  doorAt (bot, x, z) {
+    if (!bot.entity || typeof bot.blockAt !== 'function') return null
+    const y0 = Math.floor(bot.entity.position.y)
+    for (let y = y0 + 3; y >= y0 - 3; y--) {
+      const b = bot.blockAt(new Vec3(Math.floor(x), y, Math.floor(z)), false)
+      if (b && HAND_DOOR_RE.test(b.name)) return b
+    }
+    return null
   }
 
   stop (key) {

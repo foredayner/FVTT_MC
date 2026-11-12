@@ -116,6 +116,19 @@ test('mapScanner: uses state ids + registry when the bot has them', () => {
   assert.strictEqual(s.scanChunk(bot, 'overworld', 5, 0), false, 'unloaded column is skipped')
 })
 
+test('walker: a closed wooden door ahead is found (iron doors and open doors are not)', () => {
+  const { doorAhead } = require('../src/walker')
+  const { Vec3 } = require('vec3')
+  const blocks = new Map([['1,0,0', { name: 'oak_door', open: false }], ['0,0,3', { name: 'iron_door', open: false }], ['3,0,0', { name: 'oak_door', open: true }]])
+  const bot = (x, z) => ({
+    entity: { position: new Vec3(x, 0, z) },
+    blockAt: (p) => { const b = blocks.get(`${p.x},${p.y},${p.z}`); return b ? { name: b.name, getProperties: () => ({ open: b.open }) } : { name: 'air', getProperties: () => ({}) } }
+  })
+  assert.strictEqual(doorAhead(bot(0.5, 0.5), 1, 0)?.name, 'oak_door')
+  assert.strictEqual(doorAhead(bot(0.5, 2.5), 0, 1), null, 'iron doors need redstone')
+  assert.strictEqual(doorAhead(bot(2.5, 0.5), 1, 0), null, 'already open')
+})
+
 test('walker: yawToward faces the target in mineflayer convention', () => {
   const { yawToward } = require('../src/walker')
   assert.ok(Math.abs(yawToward(0, -1)) < 1e-9)               // north
@@ -184,6 +197,7 @@ function houseBot () {
   put(5, -60, 5, 'bookshelf'); put(5, -59, 5, 'bookshelf') // a tall bookcase reads as wall
   put(1, -59, 4, 'lantern') // a lantern at head height: furniture, not a wall
   put(4, -59, 1, 'oak_fence') // a fence post at head height: furniture
+  put(2, -60, 5, 'spruce_door', { open: false }); put(2, -59, 5, 'spruce_door', { open: false }) // a door inside
   const state = (b) => (b ? mcData.blocksByName[b.name].defaultState : mcData.blocksByName.air.defaultState)
   const at = (p) => blocks.get(`${Math.floor(p.x)},${Math.floor(p.y)},${Math.floor(p.z)}`)
   return {
@@ -233,6 +247,12 @@ test('mapScanner: floor plan under a roof (auto), normal ground outside, back to
   assert.strictEqual(scanner.rescan([bot], gone) >= 1, true)
   const house = sent.filter((c) => c.cx === 0 && c.cz === 0).at(-1)
   assert.ok(Buffer.from(house.kinds, 'base64').every((v) => v === KIND.SURFACE), 'house chunk redrawn with its roof')
+  // From outside, the doors to the outside show blue on the roof; the one inside does not.
+  const roof = Buffer.from(house.rgb, 'base64')
+  const rp = (x, z) => [...roof.subarray((z * 16 + x) * 3, (z * 16 + x) * 3 + 3)]
+  assert.deepStrictEqual(rp(3, 0), [28, 72, 214], 'closed outer door: blue')
+  assert.deepStrictEqual(rp(6, 3), [96, 150, 255], 'open outer door: light blue')
+  assert.notDeepStrictEqual(rp(2, 5), [28, 72, 214], 'a door inside stays hidden under the roof')
 })
 
 test('mapScanner: fixed and off view modes', () => {

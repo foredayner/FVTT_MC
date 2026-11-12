@@ -43,6 +43,17 @@ async function startRelay (cfg, log = console) {
     }
   }
 
+  // No mobs of their own: only what the GM summons (difficulty stays as it is, so summoned
+  // monsters are not removed the way peaceful would). Sent once RCON or an op character is there.
+  let calm = false
+  const keepCalm = () => {
+    if (calm || (!bots.rcon && !bots.onlineBots().length)) return
+    calm = true
+    bots.runCommand('gamerule doMobSpawning false').catch((err) => { calm = false; log.warn(`몹 스폰 끄기 실패: ${err.message}`) })
+  }
+  bots.on('bots', keepCalm)
+  keepCalm()
+
   // Intentions the GM client may relay. Each returns a value (or a promise) for the ack.
   const handlers = {
     spawnBot: (m) => { bots.spawn(m.key, m.username); return true },

@@ -106,7 +106,7 @@ export class BridgePanel extends ApplicationV2 {
         <p class="bwb-hint">${mapCfg ? L("GM.MapBound", { x: mapCfg.originX, z: mapCfg.originZ + mapCfg.size - 1, size: mapCfg.size }) : L("GM.MapUnbound")}</p>
         <div class="bwb-row">
           <select name="mapCenter">${botOptions}</select>
-          <select name="mapSize">${[64, 96, 128, 192, 256].map((s) => `<option ${s === 128 ? "selected" : ""}>${s}</option>`).join("")}</select>
+          <select name="mapSize">${[64, 96, 128, 192, 256, 320].map((s) => `<option ${s === (mapCfg?.size ?? this.lastMapSize ?? 128) ? "selected" : ""}>${s}</option>`).join("")}</select>
           <button type="button" data-action="setupMap" ${online.length ? "" : "disabled"}>${L("GM.SetupMap")}</button>
           ${mapCfg ? `<button type="button" data-action="clearMap">${L("GM.ClearMap")}</button>` : ""}
         </div>
@@ -284,7 +284,8 @@ export class BridgePanel extends ApplicationV2 {
   }
 
   static async #setupMap() {
-    await setupMapScene(this.bridge.hub, { centerKey: this.field("mapCenter"), size: Number(this.field("mapSize")) });
+    this.lastMapSize = Number(this.field("mapSize"));
+    await setupMapScene(this.bridge.hub, { centerKey: this.field("mapCenter"), size: this.lastMapSize });
     this.render();
   }
 
@@ -310,7 +311,8 @@ export class BridgePanel extends ApplicationV2 {
     const x = Number.parseInt(this.field("cornerX"), 10);
     const z = Number.parseInt(this.field("cornerZ"), 10);
     if (!Number.isInteger(x) || !Number.isInteger(z)) return ui.notifications.warn(L("Notify.NeedCorner"));
-    await setupMapScene(this.bridge.hub, { centerKey: this.field("mapCenter"), size: Number(this.field("mapSize")), corner: { x, z } });
+    this.lastMapSize = Number(this.field("mapSize"));
+    await setupMapScene(this.bridge.hub, { centerKey: this.field("mapCenter"), size: this.lastMapSize, corner: { x, z } });
     this.render();
   }
 

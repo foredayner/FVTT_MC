@@ -20,7 +20,7 @@
       "MapModeOn": "지도 조작 켜짐",
       "MapModeOff": "지도 조작 꺼짐",
       "Stop": "멈춤",
-      "MapHint": "지도 조작 중: 클릭 = 이동 · Shift+클릭 = 채굴 · Alt+클릭 = 공격 (Shift+N으로 켜고 끄기) · GM: Ctrl+클릭 = 벽을 비밀문으로 지정/해제",
+      "MapHint": "지도 조작 중: 클릭 = 이동(문을 클릭하면 열고 닫기, 가는 길의 문은 저절로 열기) · Shift+클릭 = 채굴 · Alt+클릭 = 공격 (Shift+N으로 켜고 끄기) · GM: Ctrl+클릭 = 벽을 비밀문으로 지정/해제",
       "ChatPlaceholder": "마크 채팅에 보낼 말",
       "Avatar": "3D 모습"
     },

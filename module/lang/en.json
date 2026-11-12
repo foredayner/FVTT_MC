@@ -20,7 +20,7 @@
       "MapModeOn": "Map control on",
       "MapModeOff": "Map control off",
       "Stop": "Stop",
-      "MapHint": "Map control: click = walk · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · GM: Ctrl+click = make a wall a secret door / a wall again",
+      "MapHint": "Map control: click = walk (click a door to open/close it; doors on the way open by themselves) · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · GM: Ctrl+click = make a wall a secret door / a wall again",
       "ChatPlaceholder": "Say something in Minecraft chat",
       "Avatar": "3D look"
     },
