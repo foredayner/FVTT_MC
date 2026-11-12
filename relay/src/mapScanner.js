@@ -25,6 +25,11 @@ const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR_OUT: [28, 72, 2
 /** How far under a roof a door is looked for, and how far out from it the open sky. */
 const DOOR_UNDER_ROOF = 12
 const DOOR_SKY_REACH = 4
+/** How far out from a roofed spot open sky may be for it to count as open (a porch, a pavilion). */
+const OPEN_ROOF_REACH = 6
+/** How much of the roof's colour shows over the floor plan of an open roof (and over its posts). */
+const ROOF_OVER = 0.3
+const ROOF_OVER_WALL = 0.1
 /** Tops of columns that are open ground, not a roof: nothing to look under. */
 const OPEN_GROUND_RE = /^(grass_block|dirt|coarse_dirt|rooted_dirt|podzol|mycelium|sand|red_sand|gravel|stone|deepslate|snow_block|snow|water|lava|ice|dirt_path|farmland|mud|clay|short_grass|tall_grass|fern)$/
 const WINDOW_RE = /(^|_)glass(_pane)?$|^iron_bars$/
@@ -35,6 +40,15 @@ const WALL_RE = /_wall$/ // cobblestone walls and the like: thin, but a wall all
 // room and not as a wall. It does not block sight.
 const FURNITURE_FALLBACK = [120, 104, 88]
 const furnish = ([r, g, b]) => [r * 0.8 + 235 * 0.2, g * 0.8 + 235 * 0.2, b * 0.8 + 235 * 0.2].map(Math.round)
+const blend = (a, b, t) => a.map((v, i) => Math.round(v * (1 - t) + b[i] * t))
+/** Colour of a floor-plan cell. */
+function planColour (cell) {
+  if (cell.kind === KIND.FLOOR) return lighten(shadeRgb(cell.id, SHADE.NORMAL))
+  if (cell.kind === KIND.WALL) return PLAN.WALL
+  if (cell.kind === KIND.FURNITURE) return cell.id === ID.NONE ? FURNITURE_FALLBACK : furnish(shadeRgb(cell.id, SHADE.NORMAL))
+  if (cell.kind === KIND.WINDOW) return PLAN.WINDOW
+  return cell.outer ? PLAN.DOOR_OUT : PLAN.DOOR_IN
+}
 const lighten = ([r, g, b]) => [r * 0.55 + 235 * 0.45, g * 0.55 + 235 * 0.45, b * 0.55 + 235 * 0.45].map(Math.round)
 
 const NO_HEIGHT = -32768
@@ -233,6 +247,27 @@ class MapScanner {
       return null
     }
 
+    // Open roofs: the feet height under the roof of a column that is open to the sky at the
+    // sides, else null. A post or wall under such a roof counts when a neighbour is open.
+    const roofMemo = new Map()
+    const openSpace = (x, z) => {
+      const k = `${x},${z}`
+      if (roofMemo.has(k)) return roofMemo.get(k)
+      let feet = null
+      try { feet = this.openRoofSpace(x, z, bottom, nameAt, surface) } catch { feet = null }
+      roofMemo.set(k, feet)
+      return feet
+    }
+    const openRoof = (x, z) => {
+      const feet = openSpace(x, z)
+      if (feet !== null) return feet === false ? null : feet
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const f = openSpace(x + dx, z + dz)
+        if (f !== null && f !== false) return f
+      }
+      return null
+    }
+
     const rgb = new Uint8Array(16 * 16 * 3)
     const heights = new Int16Array(16 * 16).fill(NO_HEIGHT)
     const kinds = new Uint8Array(16 * 16)
@@ -249,12 +284,7 @@ class MapScanner {
         const floorY = this.floorAt(dim, x, z)
         const cell = floorY === null ? null : plan(x, z, floorY)
         if (cell) {
-          let c
-          if (cell.kind === KIND.FLOOR) c = lighten(shadeRgb(cell.id, SHADE.NORMAL))
-          else if (cell.kind === KIND.WALL) c = PLAN.WALL
-          else if (cell.kind === KIND.FURNITURE) c = cell.id === ID.NONE ? FURNITURE_FALLBACK : furnish(shadeRgb(cell.id, SHADE.NORMAL))
-          else if (cell.kind === KIND.WINDOW) c = PLAN.WINDOW
-          else c = cell.outer ? PLAN.DOOR_OUT : PLAN.DOOR_IN
+          const c = planColour(cell)
           rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2]
           heights[i] = cell.y
           kinds[i] = cell.kind
@@ -266,6 +296,19 @@ class MapScanner {
         row.push(s)
         if (!s) continue
         const shade = s.id === ID.WATER ? waterShade(s.depth, x, z) : landShade(s.y, northRow[dx]?.y ?? null)
+        // Under a roof that is open to the sky at the sides (a porch, a pavilion, eaves, a market
+        // roof): the floor plan, with the roof showing faintly over it.
+        const openFeet = openRoof(x, z)
+        const under = openFeet === null ? null : plan(x, z, openFeet)
+        if (under) {
+          const roof = shadeRgb(s.id, shade)
+          const c = blend(planColour(under), roof, under.kind === KIND.WALL ? ROOF_OVER_WALL : under.kind === KIND.DOOR || under.kind === KIND.DOOR_OPEN ? 0 : ROOF_OVER)
+          rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2]
+          heights[i] = under.y
+          kinds[i] = under.kind
+          found++
+          continue
+        }
         const [r, g, b] = this.outerDoor(x, z, s.y, bottom, nameAt, surface) ? PLAN.DOOR_OUT : shadeRgb(s.id, shade)
         rgb[i * 3] = r; rgb[i * 3 + 1] = g; rgb[i * 3 + 2] = b
         heights[i] = s.y
@@ -281,6 +324,42 @@ class MapScanner {
     this.chunks.set(k, entry)
     this.onChunk(MapScanner.encode(entry))
     return true
+  }
+
+  /**
+   * Under the roof of column x,z: the feet height of the space there if it is open to the sky at
+   * the sides (walking out at head height, open sky comes within OPEN_ROOF_REACH blocks before a
+   * wall or a door does); false if there is a roof but the space under it is closed in; null if
+   * there is no roofed space to walk in (open ground, or a post or wall all the way up).
+   */
+  openRoofSpace (x, z, bottom, nameAt, surface) {
+    const s = surface(x, z)
+    if (!s) return null
+    const p = new Vec3(x, s.y, z)
+    if (OPEN_GROUND_RE.test(nameAt(p) ?? '')) return null
+    // Down from the roof: through the air under it to the floor.
+    let y = s.y - 1
+    const lowest = Math.max(bottom, s.y - DOOR_UNDER_ROOF)
+    const isAir = (yy) => { p.set(x, yy, z); const n = nameAt(p); return n === 'air' || n === 'cave_air' }
+    while (y >= lowest && !isAir(y)) y--
+    if (y < lowest) return null
+    while (y >= lowest && isAir(y)) y--
+    if (y < lowest) return null
+    const feet = y + 1
+    const head = feet + 1
+    if (!isAir(head)) return null
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (let step = 1; step <= OPEN_ROOF_REACH; step++) {
+        const ax = x + dx * step; const az = z + dz * step
+        p.set(ax, head, az)
+        const n = nameAt(p)
+        if (n === null || (n !== 'air' && n !== 'cave_air')) break
+        let o
+        try { o = surface(ax, az) } catch { o = null }
+        if (o && o.y < head) return feet
+      }
+    }
+    return false
   }
 
   /**

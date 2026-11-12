@@ -233,6 +233,9 @@ function houseBot () {
   put(1, -59, 4, 'lantern') // a lantern at head height: furniture, not a wall
   put(4, -59, 1, 'oak_fence') // a fence post at head height: furniture
   put(2, -60, 5, 'spruce_door', { open: false }); put(2, -59, 5, 'spruce_door', { open: false }) // a door inside
+  // A pavilion at x,z 20..24: four posts, a roof two blocks over the ground, open at the sides.
+  for (let x = 20; x <= 24; x++) for (let z = 20; z <= 24; z++) put(x, -58, z, 'spruce_planks')
+  for (const [x, z] of [[20, 20], [24, 20], [20, 24], [24, 24]]) { put(x, -60, z, 'oak_log'); put(x, -59, z, 'oak_log') }
   const state = (b) => (b ? mcData.blocksByName[b.name].defaultState : mcData.blocksByName.air.defaultState)
   const at = (p) => blocks.get(`${Math.floor(p.x)},${Math.floor(p.y)},${Math.floor(p.z)}`)
   return {
@@ -290,6 +293,29 @@ test('mapScanner: floor plan under a roof (auto), normal ground outside, back to
   assert.deepStrictEqual(rp(3, 0), [28, 72, 214], 'closed outer door: deep blue')
   assert.deepStrictEqual(rp(6, 3), [28, 72, 214], 'open outer door: the same deep blue')
   assert.notDeepStrictEqual(rp(2, 5), [28, 72, 214], 'a door inside stays hidden under the roof')
+})
+
+test('mapScanner: an open roof (a pavilion) shows its ground and posts from outside, the roof faintly over them', () => {
+  const { KIND } = require('../src/mapScanner')
+  const sent = []
+  const scanner = new MapScanner({ scanAbove: 24, scanBelow: 48, indoorRadius: 12 }, (c) => sent.push(c))
+  const bot = houseBot()
+  bot.entity.position.set(12.5, -60, 12.5) // outside everything
+  scanner.setCharacters([bot])
+  scanner.scanChunk(bot, 'overworld', 1, 1)
+  const c = sent.at(-1)
+  const kinds = Buffer.from(c.kinds, 'base64')
+  const k = (x, z) => kinds[(z - 16) * 16 + (x - 16)]
+  assert.strictEqual(k(22, 22), KIND.FLOOR, 'the ground under the pavilion')
+  assert.strictEqual(k(20, 20), KIND.WALL, 'a post')
+  assert.strictEqual(k(28, 28), KIND.SURFACE, 'open ground stays as it is')
+  const rgb = Buffer.from(c.rgb, 'base64')
+  const px = (x, z) => [...rgb.subarray(((z - 16) * 16 + (x - 16)) * 3, ((z - 16) * 16 + (x - 16)) * 3 + 3)]
+  assert.notDeepStrictEqual(px(22, 22), px(28, 28), 'the roof tints it')
+  // The closed house keeps its roof.
+  scanner.scanChunk(bot, 'overworld', 0, 0)
+  const house = Buffer.from(sent.filter((m) => m.cx === 0 && m.cz === 0).at(-1).kinds, 'base64')
+  assert.strictEqual(house[3 * 16 + 3], KIND.SURFACE, 'inside a closed house: still the roof')
 })
 
 test('mapScanner: fixed and off view modes', () => {
