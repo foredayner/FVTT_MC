@@ -1,0 +1,58 @@
+name: live-server
+
+# The relay against a real Paper 1.21.4 server: clues placed, items given (1.21.4 component
+# syntax), the hotbar read, items thrown. Results (report + server log) go to the live-results branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["relay/**", ".github/workflows/live-server.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Paper 1.21.4
+        run: |
+          url=$(curl -sf https://fill.papermc.io/v3/projects/paper/versions/1.21.4/builds | jq -r '([.[] | select(.channel=="STABLE")][0] // .[0]).downloads."server:default".url')
+          echo "paper: $url"
+          curl -sfL -o "$RUNNER_TEMP/paper.jar" "$url"
+          ls -la "$RUNNER_TEMP/paper.jar"
+      - name: Relay against the server
+        id: live
+        continue-on-error: true
+        env:
+          BWB_LIVE_JAR: ${{ runner.temp }}/paper.jar
+          BWB_LIVE_OUT: ${{ runner.temp }}/live-out
+        run: |
+          npm --prefix relay ci
+          cd relay && node --test --test-force-exit test/live-server.test.js 2>&1 | tee "$RUNNER_TEMP/live-test.txt"
+          exit ${PIPESTATUS[0]}
+      - name: Publish results to the live-results branch
+        if: always()
+        run: |
+          out=$(mktemp -d)
+          cp -r "$RUNNER_TEMP/live-out/." "$out/" 2>/dev/null || true
+          cp "$RUNNER_TEMP/live-test.txt" "$out/" 2>/dev/null || true
+          echo "${GITHUB_SHA} live=${{ steps.live.outcome }}" > "$out/RUN.txt"
+          cd "$out"
+          git init -q
+          git checkout -q -b live-results
+          git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "live server test for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" live-results
+      - name: Fail when the test failed
+        if: steps.live.outcome != 'success'
+        run: exit 1
