@@ -272,6 +272,13 @@
     },
     "Hotbar": {
       "Book": "{name} (a book)"
+    },
+    "Stairs": {
+      "Up": "Upstairs",
+      "Down": "Downstairs",
+      "Hint": "Right-click: take the stairs to {floor}",
+      "Floor": "floor {n}",
+      "ImportedN": "{n} flights of stairs"
     }
   }
 }

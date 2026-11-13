@@ -272,6 +272,13 @@
     },
     "Hotbar": {
       "Book": "{name} (책)"
+    },
+    "Stairs": {
+      "Up": "위층으로",
+      "Down": "아래층으로",
+      "Hint": "우클릭: 계단으로 {floor}에 갑니다",
+      "Floor": "{n}층",
+      "ImportedN": "계단 {n}곳"
     }
   }
 }

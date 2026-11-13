@@ -9,6 +9,7 @@ import { mcToScene } from "../coords.js";
 import { rules } from "./rules.js";
 import { clueSettings, newPlaced, visibleTo, audience, within, plainText, readClueFile, DEFAULT_CLUE, esc } from "./store.js";
 import { ClueLayer } from "./clue-layer.js";
+import { StairsLayer, readStairs } from "./stairs-layer.js";
 import { ClueView } from "./clue-view.js";
 import { ClueConfig } from "./clue-config.js";
 import { ClueBoard } from "./clue-board.js";
@@ -24,6 +25,7 @@ export class ClueSystem {
     this.bridge = bridge;
     this.hub = bridge.hub;
     this.layer = new ClueLayer(this);
+    this.stairs = new StairsLayer(this);
     this.views = new Map();      // placeId -> ClueView (mine)
     this.rolling = new Set();    // "placeId:userId" spot checks in progress
     this.gmPages = new Map();    // journal uuid -> lines about its later pages (GM tooltip)
@@ -151,7 +153,11 @@ export class ClueSystem {
   /** The scenario builder's clues file: a journal per clue (in a folder), each placed where it was built. */
   async importFile(data, scene = this.scene) {
     const { scenario, clues } = readClueFile(data);
-    if (!clues.length) throw new Error(L("Clue.ImportEmpty"));
+    const stairs = readStairs(data);
+    if (!clues.length && !stairs.length) throw new Error(L("Clue.ImportEmpty"));
+    // The flights of stairs replace any from an earlier file.
+    if (stairs.length) await scene.setFlag(MODULE_ID, "stairs", stairs);
+    if (!clues.length) return 0;
     const folder = await Folder.create({ name: `${L("Clue.Folder")}: ${scenario || L("Clue.Imported")}`, type: "JournalEntry" });
     const ruleSet = rules();
     let n = 0;

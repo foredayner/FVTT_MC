@@ -4,6 +4,7 @@
 
 import { MODULE_ID, L } from "../constants.js";
 import { esc } from "./store.js";
+import { readStairs } from "./stairs-layer.js";
 
 const { ApplicationV2 } = foundry.applications.api;
 
@@ -72,8 +73,10 @@ export class ClueBoard extends ApplicationV2 {
       const file = input.files?.[0];
       if (!file) return;
       try {
-        const n = await this.system.importFile(JSON.parse(await file.text()));
-        ui.notifications.info(L("Clue.ImportedN", { n }));
+        const data = JSON.parse(await file.text());
+        const n = await this.system.importFile(data);
+        const k = readStairs(data).length;
+        ui.notifications.info(L("Clue.ImportedN", { n }) + (k ? ` · ${L("Stairs.ImportedN", { n: k })}` : ""));
       } catch (err) {
         ui.notifications.error(`${L("Clue.ImportFailed")}: ${err.message}`);
       }
