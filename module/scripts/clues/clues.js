@@ -129,11 +129,11 @@ export class ClueSystem {
 
   async relayPlace(c) {
     if (!this.hub.relay) return;
-    try { await this.hub.relay.call("cluePlace", { id: c.id, x: c.x, y: c.y, z: c.z, item: c.item }); } catch (err) { ui.notifications.warn(`${L("Clue.PlaceFailed")}: ${err.message}`); }
+    try { await this.hub.relay.call("cluePlace", { clue: c.id, x: c.x, y: c.y, z: c.z, item: c.item }); } catch (err) { ui.notifications.warn(`${L("Clue.PlaceFailed")}: ${err.message}`); }
   }
 
   async remove(id, scene = this.scene) {
-    try { await this.hub.relay?.call("clueRemove", { id }); } catch { /* the object may be gone already */ }
+    try { await this.hub.relay?.call("clueRemove", { clue: id }); } catch { /* the object may be gone already */ }
     await scene.update({ [`flags.${MODULE_ID}.clues.-=${id}`]: null });
   }
 
@@ -143,7 +143,7 @@ export class ClueSystem {
     const list = [];
     for (const scene of game.scenes) {
       if (!scene.getFlag(MODULE_ID, "map")) continue;
-      for (const c of Object.values(this.placed(scene))) if (c.revealed) list.push({ id: c.id, x: c.x, y: c.y, z: c.z, item: c.item });
+      for (const c of Object.values(this.placed(scene))) if (c.revealed) list.push({ clue: c.id, x: c.x, y: c.y, z: c.z, item: c.item });
     }
     try { await this.hub.relay.call("clueKnown", { list }); } catch { /* older relay */ }
   }
@@ -332,7 +332,7 @@ export class ClueSystem {
     } else if (op === "take") {
       if (c.kind !== "item") throw new Error(L("Clue.NotItem"));
       if (c.takenBy) throw new Error(L("Clue.Taken", { who: c.takerName }));
-      await this.hub.relay.call("clueGive", { key: userId, id: c.id, title: c.name, text: c.surface, item: c.item });
+      await this.hub.relay.call("clueGive", { key: userId, clue: c.id, title: c.name, text: c.surface, item: c.item });
       await this.grant(journal, userId);
       await this.save(id, { takenBy: userId, takerName: this.userName(userId), found: { [userId]: true } }, scene);
       this.announce(userId, L("Clue.TookIt", { who: this.userName(userId), name: c.name }));

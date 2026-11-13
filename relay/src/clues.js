@@ -1,5 +1,7 @@
 'use strict'
-// Clues in the Minecraft world, driven from Foundry (where the clue itself lives, as a journal).
+// Clues in the Minecraft world, driven from Foundry. A clue's id travels as "clue" (a message's
+// "id" is its request id).
+// (where the clue itself lives, as a journal).
 //
 // A placed clue is an invisible, clickable box (minecraft:interaction) with an item floating in its
 // middle (minecraft:item_display: a sheet of paper, a book, a key...). Both carry the tags
@@ -63,10 +65,10 @@ function pages (text) {
 }
 
 /** The command that gives a clue to a character (a book, or the item itself, named). */
-function giveCommand (username, { id, title, text, item }) {
+function giveCommand (username, { clue, title, text, item }) {
   const name = String(username ?? '')
   if (!/^[A-Za-z0-9_]{1,16}$/.test(name)) throw new ClueError('캐릭터 이름이 잘못되었습니다')
-  const cid = clueId(id)
+  const cid = clueId(clue)
   const it = itemName(item)
   const t = String(title ?? '단서').slice(0, 32) || '단서'
   const data = `minecraft:custom_data={bwb_clue:${snbtString(cid)}}`
@@ -86,10 +88,10 @@ class ClueSpots {
 
   /** Put (or move) a clue's object at block x,y,z (y: the block it floats in). */
   async place (m) {
-    const id = clueId(m.id)
+    const id = clueId(m.clue)
     const x = int(m.x, 'x'); const y = int(m.y, 'y', -64, 319); const z = int(m.z, 'z')
     const item = itemName(m.item)
-    await this.remove({ id }).catch(() => {})
+    await this.remove({ clue: id }).catch(() => {})
     const tags = `Tags:["bwb_clue","bwb_c_${id}"]`
     const cx = x + 0.5; const cz = z + 0.5
     await this.bots.runCommand(`summon minecraft:interaction ${cx} ${y} ${cz} {width:0.8f,height:0.9f,response:1b,${tags}}`)
@@ -100,7 +102,7 @@ class ClueSpots {
   }
 
   async remove (m) {
-    const id = clueId(m.id)
+    const id = clueId(m.clue)
     this.spots.delete(id)
     await this.bots.runCommand(`kill @e[tag=bwb_c_${id}]`)
     return true
@@ -111,7 +113,7 @@ class ClueSpots {
     if (!Array.isArray(list)) return false
     this.spots.clear()
     for (const c of list.slice(0, 2000)) {
-      try { this.spots.set(clueId(c.id), { x: int(c.x, 'x'), y: int(c.y, 'y', -64, 319), z: int(c.z, 'z'), item: itemName(c.item) }) } catch { /* skip */ }
+      try { this.spots.set(clueId(c.clue ?? c.id), { x: int(c.x, 'x'), y: int(c.y, 'y', -64, 319), z: int(c.z, 'z'), item: itemName(c.item) }) } catch { /* skip */ }
     }
     return true
   }

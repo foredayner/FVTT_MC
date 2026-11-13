@@ -116,7 +116,7 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
 
   // 1. A clue in the world: an interaction box and a floating paper, both tagged.
   note('placing a clue...')
-  const placed = await c.call('cluePlace', { id: 'live1', x: bx, y: by, z: bz, item: 'paper' })
+  const placed = await c.call('cluePlace', { clue: 'live1', x: bx, y: by, z: bz, item: 'paper' })
   note(`cluePlace: ${JSON.stringify(placed)}`)
   assert.ok(placed.ok, placed.error)
   const count = await relay.bots.rcon.send('execute if entity @e[tag=bwb_c_live1]')
@@ -126,10 +126,10 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   assert.match(String(kinds), /count: 1/)
 
   // 2. Items given with 1.21.4 components: a written book, a named key.
-  const book = await c.call('clueGive', { key: 'u1', id: 'live1', title: '서진의 일기장', text: "10월 27일. 관리실에서 보일러실 열쇠를 빌렸다. '누가' 부른다.\n내일 다시 간다.", item: 'written_book' })
+  const book = await c.call('clueGive', { key: 'u1', clue: 'live1', title: '서진의 일기장', text: "10월 27일. 관리실에서 보일러실 열쇠를 빌렸다. '누가' 부른다.\n내일 다시 간다.", item: 'written_book' })
   note(`clueGive book: ${JSON.stringify(book)}`)
   assert.ok(book.ok, book.error)
-  const key = await c.call('clueGive', { key: 'u1', id: 'live2', title: '녹슨 열쇠', text: 'B1 이라고 적힌 꼬리표', item: 'tripwire_hook' })
+  const key = await c.call('clueGive', { key: 'u1', clue: 'live2', title: '녹슨 열쇠', text: 'B1 이라고 적힌 꼬리표', item: 'tripwire_hook' })
   note(`clueGive key: ${JSON.stringify(key)}`)
   assert.ok(key.ok, key.error)
   const books = await relay.bots.rcon.send('clear Live_Jo minecraft:written_book 0')
@@ -160,7 +160,7 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   note('the key left the hotbar')
 
   // 5. Removing the clue removes both entities.
-  assert.ok((await c.call('clueRemove', { id: 'live1' })).ok)
+  assert.ok((await c.call('clueRemove', { clue: 'live1' })).ok)
   const after = await relay.bots.rcon.send('execute if entity @e[tag=bwb_c_live1]')
   note(`after removing: ${after}`)
   assert.doesNotMatch(String(after), /Test passed/)

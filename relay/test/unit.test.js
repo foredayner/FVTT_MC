@@ -435,20 +435,20 @@ test('clues: objects summoned with tags, items given with their text, the clue u
   const { ClueSpots, giveCommand, pages } = require('../src/clues')
   const cmds = []
   const spots = new ClueSpots({ runCommand: async (c) => { cmds.push(c); return '' } })
-  await spots.place({ id: 'abc_1', x: 10, y: 64, z: -3, item: 'paper' })
+  await spots.place({ clue: 'abc_1', x: 10, y: 64, z: -3, item: 'paper' })
   assert.strictEqual(cmds[0], 'kill @e[tag=bwb_c_abc_1]', 'an old one there goes first')
   assert.ok(cmds[1].startsWith('summon minecraft:interaction 10.5 64 -2.5 {'))
   assert.ok(cmds[2].includes('item_display 10.5 64.5 -2.5') && cmds[2].includes('id:"minecraft:paper"') && cmds[2].includes('"bwb_c_abc_1"'))
-  await assert.rejects(() => spots.place({ id: 'x; kill', x: 0, y: 64, z: 0 }))
-  await assert.rejects(() => spots.place({ id: 'ok', x: 0, y: 64, z: 0, item: 'paper"}]' }))
+  await assert.rejects(() => spots.place({ clue: 'x; kill', x: 0, y: 64, z: 0 }))
+  await assert.rejects(() => spots.place({ clue: 'ok', x: 0, y: 64, z: 0, item: 'paper"}]' }))
 
-  const book = giveCommand('Jo_1', { id: 'abc_1', title: 'XX의 "편지"', text: "그날 밤 'O' 에게", item: 'paper' })
+  const book = giveCommand('Jo_1', { clue: 'abc_1', title: 'XX의 "편지"', text: "그날 밤 'O' 에게", item: 'paper' })
   assert.ok(book.startsWith('give Jo_1 minecraft:written_book[minecraft:written_book_content={title:"XX의 \\"편지\\"",author:"",pages:['))
   assert.ok(book.includes("\\'O\\'"), 'single quotes escaped inside the page')
   assert.ok(book.includes('minecraft:custom_data={bwb_clue:"abc_1"}'))
-  const key = giveCommand('Jo_1', { id: 'k', title: '피 묻은 열쇠', text: '녹슨 열쇠', item: 'tripwire_hook' })
+  const key = giveCommand('Jo_1', { clue: 'k', title: '피 묻은 열쇠', text: '녹슨 열쇠', item: 'tripwire_hook' })
   assert.ok(key.startsWith('give Jo_1 minecraft:tripwire_hook[minecraft:custom_name=') && key.includes('minecraft:lore=['))
-  assert.throws(() => giveCommand('bad name!', { id: 'k', item: 'paper' }))
+  assert.throws(() => giveCommand('bad name!', { clue: 'k', item: 'paper' }))
   assert.strictEqual(pages('a'.repeat(500)).length, 3)
 
   // Looking straight north from (10.5, 64, 0.5) with the clue 3 blocks ahead.
