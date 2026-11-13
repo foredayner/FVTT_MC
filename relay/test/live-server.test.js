@@ -166,7 +166,12 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   await c.wait((m) => m.type === 'state' && !(m.bots.find((b) => b.key === 'u1')?.hotbar ?? []).some((it) => it && it.n === 'tripwire_hook'), 10000)
   note('the key left the hotbar')
 
-  // 5. Removing the clue removes both entities.
+  // 5. Stairs: an open flight of five steps (no rail, the last set in the floor above) with the hole
+  // over it, like the scenario builder makes. Walk up and down three times: never off the side,
+  // never through the hole, no damage.
+  await stairsTest(c, relay, note, bx + 4, by, bz)
+
+  // 6. Removing the clue removes both entities.
   assert.ok((await c.call('clueRemove', { clue: 'live1' })).ok)
   const after = await relay.bots.rcon.send('execute if entity @e[tag=bwb_c_live1]')
   note(`after removing: ${after}`)
@@ -174,3 +179,67 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   c.close()
   note('ALL OK')
 })
+
+/** Build a flight of stairs east from (x0, G, z0) to a floor 5 above, then walk it up and down. */
+async function stairsTest (c, relay, note, x0, G, z0) {
+  const rcon = (cmd) => relay.bots.rcon.send(cmd)
+  const top = G + 4 // the floor block above
+  await rcon(`fill ${x0 - 4} ${G} ${z0 - 4} ${x0 + 9} ${G + 8} ${z0 + 4} air`)
+  await rcon(`fill ${x0 - 2} ${top} ${z0 - 2} ${x0 + 8} ${top} ${z0 + 2} stone`)
+  for (let i = 1; i <= 3; i++) await rcon(`setblock ${x0 + i} ${top} ${z0} air`)
+  for (let i = 0; i <= 4; i++) {
+    if (i >= 1 && i <= 3) await rcon(`fill ${x0 + i} ${G} ${z0} ${x0 + i} ${G + i - 1} ${z0} stone`)
+    await rcon(`setblock ${x0 + i} ${G + i} ${z0} minecraft:oak_stairs[facing=east]`)
+  }
+  const bot = relay.bots.entries.get('u1').bot
+  await rcon('gamemode survival Live_Jo')
+  await rcon(`tp Live_Jo ${x0 - 2}.5 ${G} ${z0 + 2}.5`)
+  await new Promise((r) => setTimeout(r, 1500))
+  const health0 = bot.health
+  let lowest = Infinity
+  let sideways = 0
+  let weakest = health0 // peaceful heals quickly: watch the lowest health, not the last
+  const watch = setInterval(() => {
+    const p = bot.entity?.position
+    if (!p) return
+    weakest = Math.min(weakest, bot.health)
+    // Between the floors the only footing is the flight, one block wide: the body must stay over it.
+    if (p.y > G + 0.6 && p.y < top + 0.6) sideways = Math.max(sideways, Math.abs(p.z - (z0 + 0.5)))
+    // Under the upper floor and beside the flight: the ground; nothing lower is allowed.
+    lowest = Math.min(lowest, p.y)
+  }, 50)
+  const arrive = async (x, y, z, label) => {
+    const t0 = Date.now()
+    await c.call('moveTo', { key: 'u1', x: x + 0.5, z: z + 0.5, y })
+    while (Date.now() - t0 < 40000) {
+      const p = bot.entity.position
+      if (Math.hypot(p.x - x - 0.5, p.z - z - 0.5) < 0.7 && Math.abs(p.y - y) < 0.7) {
+        note(`${label}: there in ${((Date.now() - t0) / 1000).toFixed(1)} s at ${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)}`)
+        return
+      }
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    const p = bot.entity.position
+    throw new Error(`${label}: not there after 40 s (at ${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)})`)
+  }
+  try {
+    for (let round = 1; round <= 3; round++) {
+      // Up: to the last step, in the floor above.
+      await arrive(x0 + 4, top + 1, z0, `round ${round} up`)
+      // Along the upper floor, round the hole, to its far side.
+      await arrive(x0 + 2, top + 1, z0 + 2, `round ${round} upstairs, beside the hole`)
+      // Down: to the first step.
+      await arrive(x0, G + 1, z0, `round ${round} down`)
+      // Back out on the ground floor, under the upper floor.
+      await arrive(x0 + 2, G, z0 - 1, `round ${round} under the floor`)
+    }
+  } finally {
+    clearInterval(watch)
+  }
+  note(`stairs: lowest ${lowest.toFixed(2)} (ground ${G}), health ${health0}, lowest health ${weakest}`)
+  note(`stairs: off the flight's middle by at most ${sideways.toFixed(2)} between the floors`)
+  assert.ok(lowest > G - 0.1, 'never below the ground')
+  assert.ok(sideways < 0.8, 'never over the side of the flight')
+  assert.ok(weakest >= health0, 'no fall damage')
+  await rcon('gamemode creative Live_Jo')
+}

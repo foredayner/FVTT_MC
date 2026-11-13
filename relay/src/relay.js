@@ -61,7 +61,7 @@ async function startRelay (cfg, log = console) {
   const handlers = {
     spawnBot: (m) => { bots.spawn(m.key, m.username); return true },
     despawnBot: (m) => { bots.despawn(m.key); return true },
-    moveTo: (m) => bots.moveTo(m.key, num(m.x), num(m.z)),
+    moveTo: (m) => bots.moveTo(m.key, num(m.x), num(m.z), m.y === undefined || m.y === null ? null : num(m.y)),
     stop: (m) => bots.stop(m.key),
     dig: (m) => bots.dig(m.key, num(m.x), num(m.z), m.y),
     attackAt: (m) => bots.attackAt(m.key, num(m.x), num(m.z)),

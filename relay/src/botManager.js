@@ -120,11 +120,14 @@ class BotManager extends EventEmitter {
 
   // ---------- intentions from Foundry ----------
 
-  /** Walk in a straight line to x,z. Returns at once; problems are reported as events. */
-  moveTo (key, x, z) {
+  /**
+   * Walk to x,z (and to height y when given: up or down a flight of stairs to another floor).
+   * Returns at once; problems are reported as events.
+   */
+  moveTo (key, x, z, y = null) {
     const e = this.get(key)
     e.bot.clearControlStates()
-    const door = this.doorAt(e.bot, x, z)
+    const door = y === null ? this.doorAt(e.bot, x, z) : null
     if (door) {
       // Clicked a door: go to it and open (or close) it.
       this.exclusive(e, async () => {
@@ -137,7 +140,7 @@ class BotManager extends EventEmitter {
       }).catch((err) => this.reportWalk(e, err))
       return
     }
-    e.walker.walkTo(x, z, 0.5).catch((err) => this.reportWalk(e, err))
+    e.walker.walkTo(x, z, y === null ? 0.5 : 0.3, y).catch((err) => this.reportWalk(e, err))
   }
 
   /** A door a hand can open in column x,z, near the character's height. */

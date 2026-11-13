@@ -29,6 +29,12 @@ const LOOK_AHEAD = 4
 const HALF_WIDTH = 0.38
 /** Fences (not walls or gates) a character hops over, with its jump boost. */
 const FENCE_RE = /_fence$/
+const STAIRS_RE = /_stairs$/
+/** On stairs: walk only when facing within this (about 7 degrees), and reach each step's middle closer. */
+const STAIR_WALK_WHILE_OFF = 0.12
+const STAIR_WAYPOINT_REACH = 0.22
+/** The most a planned path may drop: one block (a step), never off a stair's side or into the hole above it. */
+const MAX_DROP = 1
 
 class WalkStopped extends Error {
   /** @param {'replaced'|'cancelled'|'stuck'|'offline'|'nopath'} reason */
@@ -77,7 +83,7 @@ class StraightWalker {
       m.allowParkour = false
       m.allowSprinting = true
       m.canOpenDoors = true
-      m.maxDropDown = 3
+      m.maxDropDown = MAX_DROP
       m.allowEntityDetection = false
       this._movements = m
       bot.pathfinder.setMovements?.(m)
@@ -96,8 +102,9 @@ class StraightWalker {
    * @param {number} x target block x (fractional ok)
    * @param {number} z target block z
    * @param {number} stopDist arrive when this close (horizontal)
+   * @param {number|null} y the height to arrive at (feet), e.g. the floor above up a flight of stairs; null = any
    */
-  walkTo (x, z, stopDist = 0.5) {
+  walkTo (x, z, stopDist = 0.5, y = null) {
     this.cancel('replaced')
     const bot = this.bot
     return new Promise((resolve, reject) => {
@@ -124,7 +131,9 @@ class StraightWalker {
       const plan = () => {
         const movements = this.movements()
         if (!movements) { planner = null; route = null; return }
-        const goal = stopDist < 1 ? new this.goals.GoalXZ(x, z) : new this.goals.GoalNearXZ(x, z, stopDist)
+        const goal = y !== null && this.goals.GoalBlock
+          ? new this.goals.GoalBlock(Math.floor(x), Math.round(y), Math.floor(z))
+          : stopDist < 1 ? new this.goals.GoalXZ(x, z) : new this.goals.GoalNearXZ(x, z, stopDist)
         try {
           // Every block of the way (not merged into long straight runs, which cut corners).
           planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout: PATH_TIMEOUT_MS, tickTimeout: PATH_TICK_MS, optimizePath: false })
@@ -155,7 +164,7 @@ class StraightWalker {
         const fdx = x - p.x
         const fdz = z - p.z
         const left = Math.hypot(fdx, fdz)
-        if (left <= stopDist) return finish()
+        if (left <= stopDist && (y === null || Math.abs(p.y - y) < 0.7)) return finish()
         if (planner) {
           think()
           if (planner) { bot.setControlState('forward', false); return } // still thinking
@@ -173,10 +182,12 @@ class StraightWalker {
           if (bd > 3 && replans < MAX_REPLANS) { replans++; plan(); return }
         }
         // Where to head now: the next waypoint, or the target itself.
-        while (route && route.length && Math.hypot(route[0].x - p.x, route[0].z - p.z) <= WAYPOINT_REACH) route.shift()
+        const stairs = onStairs(bot, p, route?.[0])
+        const reach = stairs ? STAIR_WAYPOINT_REACH : WAYPOINT_REACH
+        while (route && route.length && Math.hypot(route[0].x - p.x, route[0].z - p.z) <= reach && (!stairs || Math.abs(route[0].y - p.y) < 0.8)) route.shift()
         if (route && !route.length) route = null
         // Cut straight to a waypoint further on when nothing is in the way of the whole body.
-        if (route && route.length > 1 && !route[0].hop) {
+        if (route && route.length > 1 && !route[0].hop && !stairs) {
           let far = 0
           for (let i = 1; i < Math.min(route.length, LOOK_AHEAD + 1); i++) {
             if (route[i].y !== route[0].y || route[i].hop || route[i - 1].hop) break
@@ -193,17 +204,20 @@ class StraightWalker {
         yaw = turnStep(yaw, want)
         bot.look(yaw, 0, true)?.catch?.(() => {})
         const off = Math.abs(angleTo(yaw, want))
-        bot.setControlState('forward', off < WALK_WHILE_OFF)
-        bot.setControlState('sprint', off < 0.2 && left > 6)
+        const walkWhileOff = stairs ? STAIR_WALK_WHILE_OFF : WALK_WHILE_OFF
+        bot.setControlState('forward', off < walkWhileOff)
+        bot.setControlState('sprint', !stairs && off < 0.2 && left > 6)
         const now = Date.now()
         // A closed door right ahead: open it and walk on.
         if (now - lastDoor > DOOR_RETRY_MS && openDoorAhead(bot, dx / dist, dz / dist)) {
           lastDoor = now
           lastCheck = now // opening is not being stuck
         }
-        const up = aim.y !== null && (aim.y > p.y + 0.5 || (aim.hop && dist < 1.6))
+        // Up a step of stairs the feet step up by themselves: a jump there could carry over the side.
+        const stairUp = aim.y !== null && isStairs(bot, aim.x, aim.y - 1, aim.z)
+        const up = aim.y !== null && ((aim.y > p.y + 0.5 && !stairUp) || (aim.hop && dist < 1.6))
         bot.setControlState('jump', (up || !!(bot.entity.isCollidedHorizontally || bot.entity.isInWater)) && !doorAhead(bot, dx / dist, dz / dist))
-        if (off >= WALK_WHILE_OFF) { lastCheck = now; lastPos = p.clone(); return } // turning on the spot
+        if (off >= walkWhileOff) { lastCheck = now; lastPos = p.clone(); return } // turning on the spot
         if (now - lastCheck >= STUCK_WINDOW_MS) {
           if (p.distanceTo(lastPos) < STUCK_MIN_PROGRESS) {
             if (replans < MAX_REPLANS && this.movements()) {
@@ -275,6 +289,18 @@ function townMovements (Movements) {
   return TownMovements
 }
 
+function isStairs (bot, x, y, z) {
+  if (typeof bot.blockAt !== 'function' || y === null || y === undefined) return false
+  const b = bot.blockAt(new Vec3(Math.floor(x), Math.floor(y), Math.floor(z)), false)
+  return !!(b && STAIRS_RE.test(b.name))
+}
+
+/** Standing on stairs, or about to step onto them (the next waypoint is over a stair). */
+function onStairs (bot, p, next) {
+  if (isStairs(bot, p.x, p.y - 0.6, p.z) || isStairs(bot, p.x, p.y, p.z)) return true
+  return !!(next && next.y !== null && next.y !== undefined && (isStairs(bot, next.x, next.y - 1, next.z) || isStairs(bot, next.x, next.y, next.z)))
+}
+
 /** Can the whole body go straight from p to the waypoint (feet and head level, both edges)? */
 function clearWay (bot, p, to) {
   if (typeof bot.blockAt !== 'function') return false
@@ -322,4 +348,4 @@ function openDoorAhead (bot, ux, uz) {
   return true
 }
 
-module.exports = { StraightWalker, WalkStopped, yawToward, turnStep, angleTo, doorAhead, clearWay, townMovements, HAND_DOOR_RE }
+module.exports = { StraightWalker, WalkStopped, yawToward, turnStep, angleTo, doorAhead, clearWay, townMovements, onStairs, HAND_DOOR_RE }
