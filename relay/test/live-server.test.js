@@ -100,6 +100,10 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   const relay = await startRelay(cfg, { log () {}, warn (s) { console.log('relay warn:', s) } })
   t.after(() => relay.close())
   const c = client(relay.port, cfg.token)
+  t.after(() => {
+    const quiet = new Set(['state', 'chunk', 'disp', 'col3d'])
+    fs.writeFileSync(path.join(OUT, 'messages.txt'), c.msgs.filter((m) => !quiet.has(m.type)).map((m) => JSON.stringify(m).slice(0, 400)).join('\n'))
+  })
   await c.open()
   await c.wait((m) => m.type === 'welcome')
 
@@ -111,6 +115,7 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   const bx = Math.floor(me.x) + 2; const by = Math.floor(me.y); const bz = Math.floor(me.z)
 
   // 1. A clue in the world: an interaction box and a floating paper, both tagged.
+  note('placing a clue...')
   const placed = await c.call('cluePlace', { id: 'live1', x: bx, y: by, z: bz, item: 'paper' })
   note(`cluePlace: ${JSON.stringify(placed)}`)
   assert.ok(placed.ok, placed.error)
