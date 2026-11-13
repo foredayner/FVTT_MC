@@ -33,8 +33,8 @@ const STAIRS_RE = /_stairs$/
 /** On stairs: walk only when facing within this (about 7 degrees), and reach each step's middle closer. */
 const STAIR_WALK_WHILE_OFF = 0.12
 const STAIR_WAYPOINT_REACH = 0.22
-/** The most a planned path may drop: one block (a step), never off a stair's side or into the hole above it. */
-const MAX_DROP = 1
+/** The most a planned path may drop, as the path finder counts it (from the feet to the block landed on). */
+const MAX_DROP = 3
 
 class WalkStopped extends Error {
   /** @param {'replaced'|'cancelled'|'stuck'|'offline'|'nopath'} reason */
@@ -266,6 +266,25 @@ function townMovements (Movements) {
         }
       }
       return super.getMoveDiagonal(node, dir, neighbors)
+    }
+
+    /**
+     * Stairs are walked along, never jumped off: down onto a stair only the way it goes down (not
+     * from its side, e.g. into the hole over a flight), and off a stair's side at most one block.
+     */
+    getMoveDropDown (node, dir, neighbors) {
+      const before = neighbors.length
+      super.getMoveDropDown(node, dir, neighbors)
+      if (neighbors.length === before) return
+      const m = neighbors[neighbors.length - 1]
+      const along = (b) => {
+        const f = { north: [0, -1], south: [0, 1], east: [1, 0], west: [-1, 0] }[b.getProperties?.().facing]
+        return !!f && f[0] === -dir.x && f[1] === -dir.z
+      }
+      const onto = this.getBlock(m, 0, -1, 0)
+      if (onto.name && STAIRS_RE.test(onto.name) && !along(onto)) { neighbors.pop(); return }
+      const from = this.getBlock(node, 0, -1, 0)
+      if (from.name && STAIRS_RE.test(from.name) && node.y - m.y > 1 && !along(from)) neighbors.pop()
     }
 
     getNeighbors (node) {

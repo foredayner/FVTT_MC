@@ -204,7 +204,8 @@ async function stairsTest (c, relay, note, x0, G, z0) {
     if (!p) return
     weakest = Math.min(weakest, bot.health)
     // Between the floors the only footing is the flight, one block wide: the body must stay over it.
-    if (p.y > G + 0.6 && p.y < top + 0.6) sideways = Math.max(sideways, Math.abs(p.z - (z0 + 0.5)))
+    // (Off the first step's side is a step down, fine.)
+    if (p.y > G + 1.6 && p.y < top + 0.6) sideways = Math.max(sideways, Math.abs(p.z - (z0 + 0.5)))
     // Under the upper floor and beside the flight: the ground; nothing lower is allowed.
     lowest = Math.min(lowest, p.y)
   }, 50)
