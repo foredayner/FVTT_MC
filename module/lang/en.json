@@ -134,6 +134,19 @@
       "VisionRadius": {
         "Name": "Character vision radius (blocks)",
         "Hint": "How far each character sees on a map scene. Everything beyond is grey fog."
+      },
+      "ClueMode": {
+        "Name": "Clue sharing",
+        "Hint": "Shared: whoever finds it, everyone's journal. Private: only who found it (and who is handed the item).",
+        "Party": "Shared (party)",
+        "Private": "Private"
+      },
+      "ClueRules": {
+        "Name": "Check rules",
+        "Hint": "Rules for clue checks. Auto: CoC7 when the system is CoC7.",
+        "Auto": "Auto",
+        "Coc7": "Call of Cthulhu 7e",
+        "Generic": "Generic (d100)"
       }
     },
     "Keybind": {
@@ -179,6 +192,86 @@
       "Offline": "That character is not online",
       "NotThere": "Cannot teleport there (a wall, window, door or furniture, or not mapped yet)",
       "Failed": "Teleport failed"
+    },
+    "Clue": {
+      "Title": "Clue",
+      "NoMapScene": "This is not a map scene",
+      "PlaceFailed": "Could not place the clue in Minecraft",
+      "ImportEmpty": "No clues to import",
+      "Folder": "Clues",
+      "Imported": "Imported scenario",
+      "ImportedN": "Imported and placed {n} clues",
+      "ImportFailed": "Could not import the clues file",
+      "SurfacePage": "At a glance",
+      "SpotFlavor": "{who}: spotting ({name})",
+      "Gone": "This clue is gone",
+      "NotSeen": "You have not seen this clue yet",
+      "NoJournal": "The clue's journal is missing",
+      "TooFar": "Could not get to the clue",
+      "Found": "{who} looks at a clue: {name}",
+      "NotItem": "This clue cannot be taken",
+      "Taken": "Taken by {who}",
+      "TookIt": "{who} took {name}",
+      "NoCheck": "Nothing to check here",
+      "Tried": "Already tried",
+      "MoreFound": "{who} found out more: {name}",
+      "Alias": "Clue",
+      "JustAnItem": "{name}: not a clue",
+      "Noticed": "Something catches the eye… ({name})",
+      "CannotRead": "You cannot read this yet",
+      "Placed": "Clue placed: {name}",
+      "Kind": {
+        "normal": "Plain clue",
+        "hidden": "Hidden clue",
+        "item": "Clue to take"
+      },
+      "NotRevealed": "hidden",
+      "SpotFailed": "Missed by: {who} (the GM must show it)",
+      "GmOnly": "GM shows it",
+      "Difficulty": {
+        "regular": "Regular",
+        "hard": "Hard",
+        "extreme": "Extreme"
+      },
+      "Level": {
+        "critical": "Critical",
+        "extreme": "Extreme success",
+        "hard": "Hard success",
+        "regular": "Success",
+        "failure": "Failure",
+        "fumble": "Fumble"
+      },
+      "ShowPage": "Show to everyone",
+      "MoreCheck": "Look closer",
+      "CheckFailed": "Nothing found",
+      "Take": "Take it",
+      "OpenJournal": "Open journal",
+      "Reveal": "Show",
+      "Config": "Clue settings",
+      "Remove": "Remove clue",
+      "RemoveAsk": "Remove this clue from the map and from Minecraft? (The journal stays.)",
+      "ConfigHint": "The first page is what anyone sees up close; later pages are revealed by checks or by the GM.",
+      "KindLabel": "Kind",
+      "ItemLabel": "Item shown in Minecraft",
+      "RadiusLabel": "Noticed within (blocks)",
+      "SpotLabel": "Spotting difficulty (hidden)",
+      "IconLabel": "Map icon",
+      "PagesLabel": "More to find out (a check per page)",
+      "Page": "Page",
+      "Skill": "Skill",
+      "DifficultyLabel": "Difficulty",
+      "CheckName": "Check name",
+      "NoMorePages": "Add pages to the journal to have more to find out by checks.",
+      "Save": "Save",
+      "Board": "Clues",
+      "Seen": "seen",
+      "Unseen": "not seen yet",
+      "BoardHint": "Drop a journal on the map to make it a clue. Red ones are hidden.",
+      "NoneYet": "No clues on this map yet",
+      "Import": "Import scenario builder clues"
+    },
+    "Hotbar": {
+      "Book": "{name} (a book)"
     }
   }
 }

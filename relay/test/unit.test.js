@@ -430,3 +430,30 @@ test('doors: a door is opened by its lower half; a secret passage is lifted out 
   await assert.rejects(() => setSecret(bots, { x: 0, y: -59, z: 3, open: false, blocks: [[-60, 'stone; op @a']] }))
   await assert.rejects(() => setDoor(bots, { x: 9, y: -59, z: 9, open: true }), /문을 찾지 못했습니다/)
 })
+
+test('clues: objects summoned with tags, items given with their text, the clue under the cursor', async () => {
+  const { ClueSpots, giveCommand, pages } = require('../src/clues')
+  const cmds = []
+  const spots = new ClueSpots({ runCommand: async (c) => { cmds.push(c); return '' } })
+  await spots.place({ id: 'abc_1', x: 10, y: 64, z: -3, item: 'paper' })
+  assert.strictEqual(cmds[0], 'kill @e[tag=bwb_c_abc_1]', 'an old one there goes first')
+  assert.ok(cmds[1].startsWith('summon minecraft:interaction 10.5 64 -2.5 {'))
+  assert.ok(cmds[2].includes('item_display 10.5 64.5 -2.5') && cmds[2].includes('id:"minecraft:paper"') && cmds[2].includes('"bwb_c_abc_1"'))
+  await assert.rejects(() => spots.place({ id: 'x; kill', x: 0, y: 64, z: 0 }))
+  await assert.rejects(() => spots.place({ id: 'ok', x: 0, y: 64, z: 0, item: 'paper"}]' }))
+
+  const book = giveCommand('Jo_1', { id: 'abc_1', title: 'XX의 "편지"', text: "그날 밤 'O' 에게", item: 'paper' })
+  assert.ok(book.startsWith('give Jo_1 minecraft:written_book[minecraft:written_book_content={title:"XX의 \\"편지\\"",author:"",pages:['))
+  assert.ok(book.includes("\\'O\\'"), 'single quotes escaped inside the page')
+  assert.ok(book.includes('minecraft:custom_data={bwb_clue:"abc_1"}'))
+  const key = giveCommand('Jo_1', { id: 'k', title: '피 묻은 열쇠', text: '녹슨 열쇠', item: 'tripwire_hook' })
+  assert.ok(key.startsWith('give Jo_1 minecraft:tripwire_hook[minecraft:custom_name=') && key.includes('minecraft:lore=['))
+  assert.throws(() => giveCommand('bad name!', { id: 'k', item: 'paper' }))
+  assert.strictEqual(pages('a'.repeat(500)).length, 3)
+
+  // Looking straight north from (10.5, 64, 0.5) with the clue 3 blocks ahead.
+  const bot = { entity: { position: { x: 10.5, y: 63, z: 0.5 }, height: 1.62, yaw: 0, pitch: -0.05 } }
+  assert.strictEqual(spots.atCursor(bot), 'abc_1')
+  bot.entity.yaw = Math.PI // facing south: not it
+  assert.strictEqual(spots.atCursor(bot), null)
+})

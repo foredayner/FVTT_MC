@@ -10,6 +10,7 @@ const { PROTOCOL_VERSION } = require('./protocol')
 const { World3D, readAsset, assetVersion } = require('./world3d')
 const { DisplayTracker } = require('./displays')
 const { setDoor, setSecret } = require('./doors')
+const { ClueSpots } = require('./clues')
 
 function safeEqual (a, b) {
   const ba = Buffer.from(String(a)); const bb = Buffer.from(String(b))
@@ -25,6 +26,8 @@ async function startRelay (cfg, log = console) {
   const scanner = new MapScanner(cfg.map, (chunk) => send({ type: 'chunk', ...chunk }))
   const world3d = new World3D({ radius: cfg.viewer.radius }, (msg) => send(msg))
   const bots = new BotManager(cfg, scanner, cfg.viewer.enabled ? [world3d] : [])
+  const clues = new ClueSpots(bots)
+  bots.clues = clues
   const displays = new DisplayTracker(cfg.displays ?? { radius: 48 }, (msg) => send(msg), log)
   bots.on('bots', () => send({ type: 'bots', bots: bots.botList() }))
   bots.on('event', (ev) => {
@@ -79,6 +82,18 @@ async function startRelay (cfg, log = console) {
       return true
     },
     door: async (m) => { const r = await setDoor(bots, m); redraw(m); return r },
+    // Clues (GM): objects in the world, items given; players' hotbar.
+    cluePlace: (m) => clues.place(m),
+    clueRemove: (m) => clues.remove(m),
+    clueKnown: (m) => clues.known(m.list),
+    clueGive: (m) => {
+      const e = bots.entries.get(String(m.key))
+      if (!e?.online) throw new Error('그 캐릭터가 접속해 있지 않습니다')
+      return clues.give(m, e.username)
+    },
+    hotbar: (m) => bots.hotbar(m.key, m.slot),
+    dropItem: (m) => bots.dropItem(m.key),
+    giveItem: (m) => bots.giveItem(m.key, m.to),
     secret: async (m) => { const r = await setSecret(bots, m); redraw(m); return r },
     asset3d: (m) => readAsset(cfg.minecraft.version, m.name),
     mapView: (m) => {

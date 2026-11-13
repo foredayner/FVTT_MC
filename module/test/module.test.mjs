@@ -411,3 +411,44 @@ test("tokens: following uses V14 movement options (fast step, no auto-rotate, no
   assert.deepStrictEqual(calls.map(([xs, o]) => [xs[0], o.animate === false]), [[1100, false], [6100, true]]);
   delete globalThis.canvas; delete game.scenes;
 });
+
+test("clues: settings, visibility, distance and the scenario builder's file", async () => {
+  const S = await import("../scripts/clues/store.js");
+  assert.deepStrictEqual(S.clueSettings({ kind: "weird", radius: 99, item: "bad item" }).kind, "normal");
+  assert.strictEqual(S.clueSettings({ radius: 99 }).radius, 32);
+  assert.strictEqual(S.clueSettings({ item: "bad item" }).item, "paper");
+  const hidden = S.newPlaced("a1", { uuid: "JournalEntry.x", name: "들뜬 마루", surface: "바닥이 조금 들떠 있다" }, S.clueSettings({ kind: "hidden" }), { x: 10, y: 64, z: 5 });
+  assert.strictEqual(hidden.revealed, false, "a hidden clue starts unseen");
+  assert.strictEqual(S.visibleTo(hidden, "u1", false), false);
+  assert.strictEqual(S.visibleTo(hidden, "u1", true), true, "the GM sees everything");
+  const plain = S.newPlaced("a2", { uuid: "JournalEntry.y", name: "책장" }, S.clueSettings({}), { x: 0, y: 64, z: 0 });
+  assert.strictEqual(S.visibleTo(plain, "u1", false), false, "not drawn before anyone saw it");
+  plain.seen = { "*": true };
+  assert.strictEqual(S.visibleTo(plain, "u1", false), true, "seen by the party: drawn for everyone");
+  plain.seen = { u2: true };
+  assert.strictEqual(S.visibleTo(plain, "u1", false), false, "a private find: only for who found it");
+  assert.strictEqual(S.audience("private", "u1"), "u1");
+  assert.strictEqual(S.audience("party", "u1"), "*");
+  assert.ok(S.within({ x: 3.5, y: 64, z: 0.5 }, plain, 3));
+  assert.ok(!S.within({ x: 5.5, y: 64, z: 0.5 }, plain, 3));
+  assert.ok(!S.within({ x: 0.5, y: 74, z: 0.5 }, plain, 3), "a floor away");
+  assert.strictEqual(S.plainText("<p>한 줄</p><p>두 &amp; 줄</p>"), "한 줄\n두 & 줄");
+  const file = S.readClueFile({ scenario: "시험", clues: [
+    { id: "c1", name: "편지", kind: "item", item: "paper", text: "내용", x: 1.7, y: 65, z: -3.2, checks: [{ label: "필체", skill: "library", difficulty: "hard", text: "더 알아낸 것" }, { label: "빈 것" }] },
+    { name: "좌표 없음" }
+  ] });
+  assert.strictEqual(file.clues.length, 1);
+  assert.deepStrictEqual([file.clues[0].x, file.clues[0].z, file.clues[0].kind], [1, -4, "item"]);
+  assert.strictEqual(file.clues[0].checks.length, 1, "a check needs something to find");
+});
+
+test("clue checks: Call of Cthulhu levels and difficulty", async () => {
+  const { percentile } = await import("../scripts/clues/rules.js");
+  assert.deepStrictEqual(percentile(30, 50, "regular"), { target: 50, level: "regular", success: true });
+  assert.strictEqual(percentile(30, 50, "hard").success, false, "hard needs 25 or less");
+  assert.strictEqual(percentile(10, 50, "extreme").success, true);
+  assert.strictEqual(percentile(1, 5, "extreme").level, "critical");
+  assert.strictEqual(percentile(97, 40, "regular").level, "fumble", "96+ fumbles under 50");
+  assert.strictEqual(percentile(97, 60, "regular").level, "failure");
+  assert.strictEqual(percentile(100, 90, "regular").level, "fumble");
+});

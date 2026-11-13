@@ -130,7 +130,7 @@ export class Hub extends EventTarget {
         applyDisp(this.displays, msg);
         break;
       case "event":
-        if (msg.kind === "hud") break; // screen text for one 3D view, not a log line
+        if (msg.kind === "hud" || msg.kind === "clue" || msg.kind === "read") break; // not log lines (screen text, clue clicks)
         this.log.push({ ...msg, at: Date.now() });
         if (this.log.length > 50) this.log.shift();
         if ((msg.kind === "error" || msg.kind === "warn") && msg.key === game.user.id) ui.notifications.warn(msg.text);

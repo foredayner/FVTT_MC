@@ -211,6 +211,34 @@ class BotManager extends EventEmitter {
     bot.look(yaw, p, true)
   }
 
+  /** Pick a hotbar slot (0-8), like the number keys. */
+  hotbar (key, slot) {
+    const n = Number(slot)
+    if (!Number.isInteger(n) || n < 0 || n > 8) throw new Error('핫바 칸은 0~8 입니다')
+    this.get(key).bot.setQuickBarSlot(n)
+  }
+
+  /** Throw the held stack ahead (Q). */
+  async dropItem (key) {
+    const { bot } = this.get(key)
+    const item = bot.heldItem
+    if (!item) throw new Error('손에 든 것이 없습니다')
+    await bot.tossStack(item)
+  }
+
+  /** Throw the held stack to another character standing close by. */
+  async giveItem (key, to) {
+    const { bot } = this.get(key)
+    const other = this.entries.get(String(to))
+    if (!other?.online || !other.bot.entity) throw new Error('받을 캐릭터가 접속해 있지 않습니다')
+    const item = bot.heldItem
+    if (!item) throw new Error('손에 든 것이 없습니다')
+    const there = other.bot.entity.position
+    if (bot.entity.position.distanceTo(there) > 5) throw new Error('받을 캐릭터가 너무 멉니다 (5블록 안)')
+    await bot.lookAt(there.offset(0, 1, 0), true)
+    await bot.tossStack(item)
+  }
+
   /** Mouse button in the 3D window: left = hit entity or dig block under cursor, right = use block. */
   async cursor (key, button) {
     const e = this.get(key)
@@ -224,8 +252,13 @@ class BotManager extends EventEmitter {
       return this.exclusive(e, () => bot.dig(block, 'ignore'))
     }
     if (button === 'right') {
+      // As in the game: a clue (an entity) first, then a block that does something, then the item in hand.
+      const clue = this.clues?.atCursor(bot)
+      if (clue) { this.emit('event', { kind: 'clue', key, id: clue }); return }
       const block = bot.blockAtCursor(5)
-      if (block) await bot.activateBlock(block)
+      const held = bot.heldItem
+      if (block && (USABLE_BLOCK.test(block.name) || !held || !READABLE.test(held.name))) { await bot.activateBlock(block); return }
+      if (held && READABLE.test(held.name)) this.emit('event', { kind: 'read', key, name: itemLabel(held), item: held.name })
     }
   }
 
@@ -286,7 +319,16 @@ class BotManager extends EventEmitter {
     for (const e of this.onlineBots()) {
       const { bot } = e
       const p = bot.entity.position
+      const slots = bot.inventory?.slots ?? []
+      const hotbar = []
+      for (let i = 36; i <= 44; i++) {
+        const it = slots[i]
+        hotbar.push(it ? { n: it.name, c: it.count, t: itemLabel(it) } : null)
+      }
+      const named = []
+      for (const it of slots) if (it && customName(it)) named.push(customName(it))
       bots.push({
+        hotbar, sel: bot.quickBarSlot ?? 0, named,
         key: e.key,
         x: round(p.x), y: round(p.y), z: round(p.z),
         yaw: round(bot.entity.yaw, 3), pitch: round(bot.entity.pitch, 3),
@@ -313,6 +355,25 @@ class BotManager extends EventEmitter {
     entry.busy = Promise.resolve().then(fn).finally(() => { entry.busy = null })
     return entry.busy
   }
+}
+
+/** Blocks a right click does something with (so it is not the book in hand being read). */
+const USABLE_BLOCK = /door|gate|button|lever|chest|barrel|shulker|furnace|smoker|crafting|anvil|bed$|lectern|bell|jukebox|note_block|repeater|comparator|hopper|dispenser|dropper|loom|stonecutter|grindstone|cartography|smithing|enchanting|brewing|beacon|cake|candle|composter|cauldron/
+/** Things in hand that are read with a right click. */
+const READABLE = /written_book|writable_book|^book$|^paper$|filled_map|^map$/
+
+/** The name an item shows: its custom name if it has one. */
+function customName (it) {
+  const raw = it.customName
+  if (!raw) return null
+  if (typeof raw === 'string' && raw.startsWith('{')) {
+    try { const j = JSON.parse(raw); return String(j.text ?? '') + (Array.isArray(j.extra) ? j.extra.map((x) => x.text ?? x).join('') : '') } catch { return raw }
+  }
+  return typeof raw === 'string' ? raw : (raw.text ?? null)
+}
+
+function itemLabel (it) {
+  return customName(it) ?? it.displayName ?? it.name
 }
 
 function kindOf (ent) {

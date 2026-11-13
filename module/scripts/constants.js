@@ -4,10 +4,11 @@ export const PROTOCOL_VERSION = 1;
 
 /** Keys a player may send for their own bot (the GM may send any of these for any bot). */
 export const PLAYER_INTENTS = new Set([
-  "spawnBot", "despawnBot", "moveTo", "stop", "dig", "attackAt", "control", "look", "cursor", "chat"
+  "spawnBot", "despawnBot", "moveTo", "stop", "dig", "attackAt", "control", "look", "cursor", "chat",
+  "hotbar", "dropItem", "giveItem"
 ]);
 /** GM-only relay calls. */
-export const GM_INTENTS = new Set(["gm", "resync", "mapView", "door", "secret"]);
+export const GM_INTENTS = new Set(["gm", "resync", "mapView", "door", "secret", "cluePlace", "clueRemove", "clueKnown", "clueGive"]);
 
 export const ENTITY_COLORS = {
   hostile: [230, 40, 40],

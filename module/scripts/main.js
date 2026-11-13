@@ -7,6 +7,8 @@ import { sceneToMc } from "./coords.js";
 import { visionSceneData } from "./map-setup.js";
 import { BridgePanel } from "./apps/panel.js";
 import { View3D } from "./apps/view3d.js";
+import { ClueSystem } from "./clues/clues.js";
+import { Hotbar } from "./hotbar.js";
 
 /** Module singleton, exposed as game.modules.get("blockworld-bridge").api */
 class Bridge {
@@ -21,7 +23,10 @@ class Bridge {
     this.hub.init();
     this.map = new MapLayer(this.hub);
     if (game.user.isGM) { this.tokens = new TokenSync(this.hub); this.mapView = new MapView(this.hub); }
+    this.clues = new ClueSystem(this);
+    this.hotbar = new Hotbar(this);
     this.map.bindScene();
+    this.clues.layer.draw();
   }
 
   openPanel() {
@@ -138,6 +143,16 @@ Hooks.once("init", () => {
     name: "BWB.Settings.MirrorChat.Name", hint: "BWB.Settings.MirrorChat.Hint",
     scope: "world", config: true, type: Boolean, default: true
   });
+  S("clueMode", {
+    name: "BWB.Settings.ClueMode.Name", hint: "BWB.Settings.ClueMode.Hint",
+    scope: "world", config: true, type: String, default: "party",
+    choices: { party: "BWB.Settings.ClueMode.Party", private: "BWB.Settings.ClueMode.Private" }
+  });
+  S("clueRules", {
+    name: "BWB.Settings.ClueRules.Name", hint: "BWB.Settings.ClueRules.Hint",
+    scope: "world", config: true, type: String, default: "auto",
+    choices: { auto: "BWB.Settings.ClueRules.Auto", coc7: "BWB.Settings.ClueRules.Coc7", generic: "BWB.Settings.ClueRules.Generic" }
+  });
   S("lookSensitivity", {
     name: "BWB.Settings.LookSensitivity.Name", hint: "BWB.Settings.LookSensitivity.Hint",
     scope: "client", config: true, type: Number, default: 3,
@@ -171,9 +186,33 @@ Hooks.on("getSceneControlButtons", (controls) => {
     visible: true,
     onChange: () => bridge.openPanel()
   };
+  if (game.user.isGM) {
+    tokens.tools.bwbClues = {
+      name: "bwbClues",
+      title: "BWB.Clue.Board",
+      icon: "fa-solid fa-magnifying-glass",
+      order: Object.keys(tokens.tools).length,
+      button: true,
+      visible: true,
+      onChange: () => bridge.clues?.openBoard()
+    };
+  }
 });
 
 Hooks.once("ready", () => bridge.ready());
+
+// A journal dropped on a map scene (GM) becomes a clue lying there; a hotbar slot dropped on the
+// map is handed to the character under it, or dropped.
+Hooks.on("dropCanvasData", (cnv, data) => {
+  if (data?.type === "JournalEntry" && game.user.isGM && bridge.clues?.scene) { bridge.clues.dropJournal(data); return false; }
+  if (data?.type === "bwbHotbar" && bridge.hotbar) { bridge.hotbar.dropOnCanvas(data); return false; }
+});
+
+// "Clue settings" in a journal's window header (GM).
+Hooks.on("getHeaderControlsJournalEntrySheet", (app, controls) => {
+  if (!game.user.isGM) return;
+  controls.push({ icon: "fa-solid fa-magnifying-glass", label: "BWB.Clue.Config", action: "bwbClueConfig", onClick: () => bridge.clues?.configure(app.document) });
+});
 
 Hooks.on("canvasReady", async () => {
   // Map scenes made with 0.1.x had no vision settings: apply them once, from the active GM only.

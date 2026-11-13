@@ -134,6 +134,19 @@
       "VisionRadius": {
         "Name": "캐릭터 시야 반경 (블록)",
         "Hint": "지도 씬에서 각 캐릭터가 볼 수 있는 거리. 이 밖은 회색 안개로 가려집니다."
+      },
+      "ClueMode": {
+        "Name": "단서 공유 방식",
+        "Hint": "공개형: 누가 찾든 모두의 저널에. 은닉형: 찾은 사람(과 물건을 건네받은 사람)만.",
+        "Party": "공개형 (파티 공용)",
+        "Private": "은닉형 (개인)"
+      },
+      "ClueRules": {
+        "Name": "판정 규칙",
+        "Hint": "단서 판정에 쓰는 룰. 자동: CoC7 시스템이면 CoC7.",
+        "Auto": "자동",
+        "Coc7": "크툴루의 부름 7판",
+        "Generic": "범용 (d100)"
       }
     },
     "Keybind": {
@@ -179,6 +192,86 @@
       "Offline": "그 캐릭터가 접속해 있지 않습니다",
       "NotThere": "그 자리로는 순간이동할 수 없습니다 (벽·창·문·가구 위이거나 아직 모르는 곳)",
       "Failed": "순간이동하지 못했습니다"
+    },
+    "Clue": {
+      "Title": "단서",
+      "NoMapScene": "지도 씬이 아닙니다",
+      "PlaceFailed": "마인크래프트에 단서를 놓지 못했습니다",
+      "ImportEmpty": "가져올 단서가 없습니다",
+      "Folder": "단서",
+      "Imported": "가져온 시나리오",
+      "ImportedN": "단서 {n}개를 가져와 놓았습니다",
+      "ImportFailed": "단서 파일을 가져오지 못했습니다",
+      "SurfacePage": "겉보기",
+      "SpotFlavor": "{who}: 포착 판정 ({name})",
+      "Gone": "이 단서는 이제 없습니다",
+      "NotSeen": "아직 보지 못한 단서입니다",
+      "NoJournal": "단서의 저널을 찾을 수 없습니다",
+      "TooFar": "단서까지 가지 못했습니다",
+      "Found": "{who}이(가) 단서를 살펴봅니다: {name}",
+      "NotItem": "가져갈 수 있는 단서가 아닙니다",
+      "Taken": "{who}이(가) 가져감",
+      "TookIt": "{who}이(가) {name}을(를) 가져갔습니다",
+      "NoCheck": "판정이 없는 내용입니다",
+      "Tried": "이미 시도한 판정입니다",
+      "MoreFound": "{who}이(가) 더 알아냈습니다: {name}",
+      "Alias": "단서",
+      "JustAnItem": "{name}: 단서가 아닌 물건입니다",
+      "Noticed": "무언가 눈에 띕니다… ({name})",
+      "CannotRead": "아직 읽을 수 없습니다",
+      "Placed": "단서를 놓았습니다: {name}",
+      "Kind": {
+        "normal": "일반 단서",
+        "hidden": "숨겨진 단서",
+        "item": "획득 단서"
+      },
+      "NotRevealed": "숨겨짐",
+      "SpotFailed": "포착 실패: {who} (GM이 공개해야 함)",
+      "GmOnly": "GM만 공개",
+      "Difficulty": {
+        "regular": "보통",
+        "hard": "어려움",
+        "extreme": "극단적"
+      },
+      "Level": {
+        "critical": "대성공",
+        "extreme": "극단적 성공",
+        "hard": "어려운 성공",
+        "regular": "성공",
+        "failure": "실패",
+        "fumble": "대실패"
+      },
+      "ShowPage": "모두에게 공개",
+      "MoreCheck": "더 조사하기",
+      "CheckFailed": "알아내지 못했습니다",
+      "Take": "가져가기",
+      "OpenJournal": "저널 열기",
+      "Reveal": "공개",
+      "Config": "단서 설정",
+      "Remove": "단서 치우기",
+      "RemoveAsk": "이 단서를 지도와 마인크래프트에서 치울까요? (저널은 남습니다)",
+      "ConfigHint": "첫 페이지가 겉보기(가까이 가면 보이는 것)이고, 다음 페이지들은 판정이나 GM이 공개합니다.",
+      "KindLabel": "종류",
+      "ItemLabel": "마크에서 보이는 물건",
+      "RadiusLabel": "알아채는 거리(블록)",
+      "SpotLabel": "숨겨진 단서 포착 난이도",
+      "IconLabel": "지도 아이콘",
+      "PagesLabel": "더 알아낼 내용(페이지별 판정)",
+      "Page": "페이지",
+      "Skill": "기능",
+      "DifficultyLabel": "난이도",
+      "CheckName": "판정 이름",
+      "NoMorePages": "페이지를 더 만들면 판정으로 알아낼 내용을 넣을 수 있습니다.",
+      "Save": "저장",
+      "Board": "단서 목록",
+      "Seen": "발견됨",
+      "Unseen": "아직 아무도 못 봄",
+      "BoardHint": "저널을 지도에 끌어다 놓으면 단서가 됩니다. 붉은 것은 숨겨진 단서입니다.",
+      "NoneYet": "이 지도에는 아직 단서가 없습니다",
+      "Import": "시나리오 빌더 단서 가져오기"
+    },
+    "Hotbar": {
+      "Book": "{name} (책)"
     }
   }
 }

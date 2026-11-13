@@ -76,3 +76,34 @@ body.bwb-map-mode #board { cursor: crosshair; }
 .bwb-hud-actionbar { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; font-size: 16px;
   transition: opacity 0.6s linear; }
 .bwb-hud-actionbar.faded { opacity: 0; }
+
+/* ---------- clues ---------- */
+.bwb-clue-tip { position: fixed; z-index: 10000; display: none; max-width: 320px; padding: 6px 8px; pointer-events: none;
+  background: rgba(20, 20, 28, 0.94); color: #eee; border: 1px solid #c9a94c; border-radius: 4px; font-size: 13px; line-height: 1.35; }
+.bwb-clue-tip .bwb-tip-gm { margin-top: 4px; padding-top: 4px; border-top: 1px dashed #777; color: #f0b0b0; font-size: 12px; }
+.bwb-clue-tip .bwb-tip-note { color: #b8d8ff; font-size: 12px; }
+.bwb-clue-view .window-content, .bwb-clue-config .window-content, .bwb-clue-board .window-content { display: flex; flex-direction: column; gap: 6px; }
+.bwb-clue-view .bwb-clue-surface { padding: 4px 6px; background: rgba(255, 245, 220, 0.25); border-radius: 3px; }
+.bwb-clue-view .bwb-clue-more { margin: 2px 0; }
+.bwb-clue-view .bwb-row, .bwb-clue-board .bwb-row { display: flex; gap: 4px; flex-wrap: wrap; }
+.bwb-clue-config table.bwb-clue-pages { width: 100%; font-size: 12px; }
+.bwb-clue-config table.bwb-clue-pages input { width: 100%; }
+.bwb-clue-board .bwb-clue-list { list-style: none; margin: 0; padding: 0; }
+.bwb-clue-board .bwb-clue-list li { display: flex; gap: 6px; align-items: center; padding: 3px 0; border-bottom: 1px solid rgba(127, 127, 127, 0.3); }
+.bwb-clue-board .bwb-clue-list li > a { flex: 0 0 auto; cursor: pointer; }
+.bwb-clue-board .bwb-clue-list li > small { flex: 1 1 auto; opacity: 0.85; }
+.bwb-clue-board .bwb-clue-tools { display: flex; gap: 2px; }
+.bwb-clue-board .bwb-clue-tools button { width: 28px; height: 26px; padding: 0; }
+.bwb-clue-board li.bwb-clue-waiting small { color: #e88; }
+.bwb-check-ok { color: #3a3; font-weight: bold; }
+.bwb-check-fail { color: #c33; font-weight: bold; }
+
+/* ---------- my Minecraft hotbar ---------- */
+#bwb-hotbar { position: fixed; left: 50%; bottom: 92px; transform: translateX(-50%); z-index: 70; display: none; gap: 2px;
+  padding: 3px; background: rgba(0, 0, 0, 0.55); border: 2px solid #555; border-radius: 3px; }
+#bwb-hotbar .bwb-slot { position: relative; width: 48px; height: 48px; background: rgba(139, 139, 139, 0.55); border: 2px solid #373737;
+  color: #fff; font-size: 10px; line-height: 1.1; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; overflow: hidden; }
+#bwb-hotbar .bwb-slot.bwb-sel { border-color: #fff; box-shadow: 0 0 0 1px #000 inset; }
+#bwb-hotbar .bwb-slot-key { position: absolute; left: 2px; top: 1px; opacity: 0.6; font-size: 9px; }
+#bwb-hotbar .bwb-slot-count { position: absolute; right: 2px; bottom: 1px; font-weight: bold; text-shadow: 1px 1px 0 #000; }
+#bwb-hotbar .bwb-slot-name { padding: 0 2px; word-break: break-all; }

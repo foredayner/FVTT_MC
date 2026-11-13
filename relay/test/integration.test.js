@@ -105,6 +105,14 @@ test('relay end-to-end against a local server', { timeout: 180000 }, async (t) =
   // back to where it thinks it is, which would look like a detour.
   const latest = () => c.msgs.filter((m) => m.type === 'state').at(-1).bots.find((b) => b.key === 'u1')
   const pinName = c.msgs.filter((m) => m.type === 'bots').at(-1).bots.find((b) => b.key === 'u1').username
+  {
+    const st = latest()
+    assert.ok(Array.isArray(st.hotbar) && st.hotbar.length === 9 && Number.isInteger(st.sel), 'the state carries the hotbar')
+    assert.ok((await c.call('hotbar', { key: 'u1', slot: 3 })).ok)
+    await new Promise((r) => setTimeout(r, 400))
+    assert.strictEqual(latest().sel, 3, 'picking a hotbar slot')
+    await c.call('hotbar', { key: 'u1', slot: 0 })
+  }
   await new Promise((r) => setTimeout(r, 800))
   const pin = latest()
   assert.ok((await c.call('gm', { action: 'tp', args: { target: pinName, x: Math.floor(pin.x), y: Math.floor(pin.y), z: Math.floor(pin.z) } })).ok)
