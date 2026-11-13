@@ -137,9 +137,13 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   note(`in the inventory: ${books} | ${keys}`)
   assert.match(String(books), /Found 1|1 matching/i, 'the book is there')
   assert.match(String(keys), /Found 1|1 matching/i, 'the key is there')
-  const data = await relay.bots.rcon.send('data get entity Live_Jo Inventory')
-  note(`inventory data: ${String(data).slice(0, 1500)}`)
+  const data = await relay.bots.rcon.send('data get entity Live_Jo Inventory[{id:"minecraft:tripwire_hook"}].components')
+  note(`the key's components: ${String(data).slice(0, 1500)}`)
   assert.ok(String(data).includes('bwb_clue'), 'the clue id rides along')
+  assert.ok(String(data).includes('녹슨 열쇠'), 'the key has its name')
+  const pages = await relay.bots.rcon.send('data get entity Live_Jo Inventory[{id:"minecraft:written_book"}].components."minecraft:written_book_content".title')
+  note(`the book's title: ${pages}`)
+  assert.ok(String(pages).includes('서진의 일기장'))
 
   // 3. The hotbar as the relay reads it: the items by their names.
   const hb = await c.wait((m) => m.type === 'state' && (m.bots.find((b) => b.key === 'u1')?.hotbar ?? []).filter(Boolean).length >= 2, 20000)
