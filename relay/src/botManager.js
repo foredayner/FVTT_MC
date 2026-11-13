@@ -362,8 +362,43 @@ const USABLE_BLOCK = /door|gate|button|lever|chest|barrel|shulker|furnace|smoker
 /** Things in hand that are read with a right click. */
 const READABLE = /written_book|writable_book|^book$|^paper$|filled_map|^map$/
 
-/** The name an item shows: its custom name if it has one. */
+/** A text component as plain text (a string, JSON text, or NBT as prismarine-nbt gives it). */
+function plain (v) {
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'string') {
+    if (v.startsWith('{') || v.startsWith('"')) { try { return plain(JSON.parse(v)) } catch { return v } }
+    return v
+  }
+  if (Array.isArray(v)) return v.map(plain).join('')
+  if (typeof v === 'object') {
+    if ('type' in v && 'value' in v && typeof v.type === 'string' && ['compound', 'string', 'list'].includes(v.type)) {
+      try { return plain(require('prismarine-nbt').simplify(v)) } catch { return plain(v.value) }
+    }
+    return plain(v.text ?? v.raw ?? '') + (Array.isArray(v.extra) ? v.extra.map(plain).join('') : '')
+  }
+  return String(v)
+}
+
+/** An item component by name (1.20.5+ items keep them in a list), or undefined. */
+function component (it, name) {
+  const list = it.components ?? []
+  for (const c of list) {
+    const t = String(c.type ?? '')
+    if (t === name || t === `minecraft:${name}`) return c.data
+  }
+  return it.componentMap?.get?.(name)?.data
+}
+
+/** The name an item shows: its custom name, or a written book's title. */
 function customName (it) {
+  const named = component(it, 'custom_name')
+  if (named !== undefined) return plain(named) || null
+  const book = component(it, 'written_book_content')
+  if (book !== undefined) {
+    const title = book?.title ?? book?.rawTitle ?? book?.filteredTitle
+    const t = plain(title)
+    if (t) return t
+  }
   const raw = it.customName
   if (!raw) return null
   if (typeof raw === 'string' && raw.startsWith('{')) {

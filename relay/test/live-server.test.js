@@ -145,6 +145,9 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   note(`the book's title: ${pages}`)
   assert.ok(String(pages).includes('서진의 일기장'))
 
+  await new Promise((r) => setTimeout(r, 1500))
+  const inv = relay.bots.entries.get('u1').bot.inventory.slots.filter(Boolean).map((it) => ({ name: it.name, components: it.components }))
+  fs.writeFileSync(path.join(OUT, 'mineflayer-items.json'), JSON.stringify(inv, null, 2))
   // 3. The hotbar as the relay reads it: the items by their names.
   const hb = await c.wait((m) => m.type === 'state' && (m.bots.find((b) => b.key === 'u1')?.hotbar ?? []).filter(Boolean).length >= 2, 20000)
   const bar = hb.bots.find((b) => b.key === 'u1')
