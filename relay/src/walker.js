@@ -19,6 +19,8 @@ const TURN_PER_TICK = 0.32
 const WALK_WHILE_OFF = 0.5 // about 30 degrees
 /** How long a path may take to work out, and how much of each tick it may use. */
 const PATH_TIMEOUT_MS = 1500
+/** To another floor the search is longer (round by doors, along halls, up flights): give it time. */
+const PATH_TIMEOUT_FLOORS_MS = 8000
 const PATH_TICK_MS = 15
 /** Waypoint reached when this close (horizontal). */
 const WAYPOINT_REACH = 0.35
@@ -136,7 +138,8 @@ class StraightWalker {
           : stopDist < 1 ? new this.goals.GoalXZ(x, z) : new this.goals.GoalNearXZ(x, z, stopDist)
         try {
           // Every block of the way (not merged into long straight runs, which cut corners).
-          planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout: PATH_TIMEOUT_MS, tickTimeout: PATH_TICK_MS, optimizePath: false })
+          const timeout = y !== null ? PATH_TIMEOUT_FLOORS_MS : PATH_TIMEOUT_MS
+          planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout, tickTimeout: PATH_TICK_MS, optimizePath: false })
         } catch { planner = null; route = null }
       }
 
@@ -231,8 +234,10 @@ class StraightWalker {
           lastPos = p.clone()
           lastCheck = now
         }
-        // Came to the end of a part-way path but not the target: look further.
-        if (!route && aim.y === null && replans < MAX_REPLANS && this.movements() && this._hadRoute && left > 2) {
+        // Came to the end of a part-way path but not the target: look further. (Under or over the
+        // target on another floor counts as far: walking on to its column there would get nowhere.)
+        const wrongFloor = y !== null && Math.abs(p.y - y) > 0.7
+        if (!route && aim.y === null && replans < MAX_REPLANS && this.movements() && this._hadRoute && (left > 2 || wrongFloor)) {
           this._hadRoute = false
           replans++
           plan()
