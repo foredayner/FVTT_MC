@@ -1,0 +1,84 @@
+TAP version 13
+# server up; scenario "302호의 침묵", 10 clues, 4 flights of stairs, 24 rooms
+# at the entrance (-17.5, 100, -21.5)
+# [walk] plan from (-18, 100, -22) to -2.5,100,-21.5: success in 9 ms, 15 steps, 15 nodes, ends -3,100,-22
+# [walk] plan from (-14, 100, -22) to -2.5,100,-21.5: success in 52 ms, 11 steps, 11 nodes, ends -3,100,-22
+# [walk] plan from (-13, 100, -22) to -2.5,100,-21.5: success in 51 ms, 11 steps, 11 nodes, ends -3,100,-22
+# [walk] plan from (-13, 100, -22) to -2.5,100,-21.5: success in 52 ms, 10 steps, 10 nodes, ends -3,100,-22
+# walk hallway_1f: there in 3.2 s
+# [walk] plan from (-3, 100, -22) to -10.5,100,-27.5: success in 40 ms, 14 steps, 40 nodes, ends -11,100,-28
+# [walk] plan from (-3, 100, -22) to -10.5,100,-27.5: success in 4 ms, 14 steps, 40 nodes, ends -11,100,-28
+# [walk] plan from (-3, 100, -22) to -10.5,100,-27.5: success in 55 ms, 14 steps, 40 nodes, ends -11,100,-28
+# [walk] plan from (-3, 100, -22) to -10.5,100,-27.5: success in 54 ms, 14 steps, 40 nodes, ends -11,100,-28
+# walk office: there in 3.3 s
+# [walk] plan from (-11, 100, -28) to -2.5,110,-21.5: success in 74 ms, 34 steps, 505 nodes, ends -3,110,-22
+# [walk] plan from (-10, 101, -22) to -2.5,110,-21.5: success in 107 ms, 29 steps, 496 nodes, ends -3,110,-22
+# [walk] plan from (-10, 100, -22) to -2.5,110,-21.5: success in 106 ms, 28 steps, 474 nodes, ends -3,110,-22
+# [walk] plan from (-9, 100, -21) to -2.5,110,-21.5: success in 102 ms, 28 steps, 475 nodes, ends -3,110,-22
+# walk hallway_3f: there in 10.3 s
+# [walk] plan from (-3, 110, -22) to -2.5,110,-27.5: success in 51 ms, 6 steps, 22 nodes, ends -3,110,-28
+# walk unit301: there in 1.5 s
+# [walk] plan from (-3, 110, -28) to -10.5,110,-16.5: success in 58 ms, 18 steps, 166 nodes, ends -11,110,-17
+# [walk] plan from (-8, 110, -16) to -10.5,110,-16.5: success in 85 ms, 4 steps, 7 nodes, ends -11,110,-17
+# walk study302: there in 5.6 s
+# [walk] plan from (-11, 110, -17) to -2.5,110,-16.5: success in 5 ms, 10 steps, 31 nodes, ends -3,110,-17
+# [walk] plan from (-6, 110, -16) to -2.5,110,-16.5: success in 51 ms, 4 steps, 7 nodes, ends -3,110,-17
+# walk living302: there in 2.1 s
+# [walk] plan from (-4, 110, -17) to 5.5,110,-16.5: success in 4 ms, 10 steps, 25 nodes, ends 5,110,-17
+# [walk] plan from (-3, 111, -17) to 5.5,110,-16.5: success in 52 ms, 9 steps, 17 nodes, ends 5,110,-17
+# [walk] plan from (2, 110, -16) to 5.5,110,-16.5: success in 51 ms, 3 steps, 5 nodes, ends 5,110,-17
+# walk bedroom302: there in 2.3 s
+# [walk] plan from (5, 110, -17) to 1.5,95,-21.5: success in 68 ms, 38 steps, 292 nodes, ends 1,95,-22
+# [walk] plan from (0, 111, -16) to 1.5,95,-21.5: success in 76 ms, 35 steps, 304 nodes, ends 1,95,-22
+# [walk] plan from (0, 111, -16) to 1.5,95,-21.5: success in 77 ms, 35 steps, 303 nodes, ends 1,95,-22
+# [walk] plan from (-3, 110, -21) to 1.5,95,-21.5: success in 65 ms, 27 steps, 199 nodes, ends 1,95,-22
+# walk boiler_room: there in 14.9 s
+# [walk] plan from (1, 95, -22) to -9.5,95,-21.5: noPath in 5785 ms, 6 steps, 54419 nodes, ends -6,95,-22
+# [walk] plan from (1, 95, -22) to -9.5,95,-21.5: noPath in 5896 ms, 7 steps, 54437 nodes, ends -6,95,-22
+# walk hidden_space: NOT there (stopped at 1.24, 95.00, -21.53)
+# GM opens the secret door at -7, 95, -22: {"type":"ack","id":12,"ok":true,"result":[[95,"stone"],[96,"stone"]]}
+# [walk] plan from (1, 95, -22) to -9.5,95,-21.5: noPath in 5730 ms, 7 steps, 54438 nodes, ends -6,95,-22
+# [walk] plan from (1, 95, -22) to -9.5,95,-21.5: success in 51 ms, 11 steps, 11 nodes, ends -10,95,-22
+# [walk] plan from (1, 95, -22) to -9.5,95,-21.5: success in 2 ms, 11 steps, 11 nodes, ends -10,95,-22
+# [walk] plan from (1, 95, -22) to -9.5,95,-21.5: success in 51 ms, 11 steps, 11 nodes, ends -10,95,-22
+# walk hidden_space (after the secret door opened): there in 8.3 s
+# [walk] plan from (-10, 95, -22) to -17.5,100,-21.5: success in 42 ms, 27 steps, 103 nodes, ends -18,100,-22
+# [walk] plan from (-10, 95, -22) to -17.5,100,-21.5: success in 57 ms, 27 steps, 103 nodes, ends -18,100,-22
+# [walk] plan from (-10, 95, -22) to -17.5,100,-21.5: success in 57 ms, 27 steps, 103 nodes, ends -18,100,-22
+# [walk] plan from (-10, 95, -22) to -17.5,100,-21.5: success in 57 ms, 27 steps, 103 nodes, ends -18,100,-22
+# walk back out of the entrance: there in 7.6 s
+# lowest health on the walk: 20 of 20
+# clue bills (normal) at -8,100,-22: placed; Test passed, count: 2; in air: false
+# clue bookshelf (normal) at -13,110,-17: placed; Test passed, count: 2; in air: false
+# clue manuscript (normal) at -9,111,-14: placed; Test passed, count: 2; in air: true
+# clue floorboard (hidden) at 3,111,-19: placed; Test passed, count: 2; in air: true
+# clue diary (item) at 3,111,-18: placed; Test passed, count: 2; in air: true
+# clue key_rack (normal) at -9,101,-30: placed; Test passed, count: 2; in air: true
+# clue rusty_key (item) at -1,111,-15: placed; Test passed, count: 2; in air: true
+# clue new_wall (normal) at -6,95,-22: placed; Test passed, count: 2; in air: true
+# clue silver_ring (hidden) at -3,96,-18: placed; Test passed, count: 2; in air: true
+# clue altar (normal) at -12,96,-22: placed; Test passed, count: 2; in air: true
+# hotbar: [{"n":"written_book","c":1,"t":"서진의 일기장"},{"n":"tripwire_hook","c":1,"t":"녹슨 열쇠"}]
+# map map_floor_b1: 1147 of 1147 blocks drawn
+# map map_floor_1: 1147 of 1147 blocks drawn
+# map map_floor_2: 1147 of 1147 blocks drawn
+# map map_floor_3: 1147 of 1147 blocks drawn
+# map map_floor_4: 1147 of 1147 blocks drawn
+# map map_auto_upstairs: 1147 of 1147 blocks drawn
+# map map_from_above: 1147 of 1147 blocks drawn
+# ALL OK
+# Subtest: play test in a building the scenario builder made
+ok 1 - play test in a building the scenario builder made
+  ---
+  duration_ms: 132752.049153
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 132945.322873

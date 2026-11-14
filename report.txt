@@ -1,0 +1,34 @@
+server up; scenario "302호의 침묵", 10 clues, 4 flights of stairs, 24 rooms
+at the entrance (-17.5, 100, -21.5)
+walk hallway_1f: there in 3.2 s
+walk office: there in 3.3 s
+walk hallway_3f: there in 10.3 s
+walk unit301: there in 1.5 s
+walk study302: there in 5.6 s
+walk living302: there in 2.1 s
+walk bedroom302: there in 2.3 s
+walk boiler_room: there in 14.9 s
+walk hidden_space: NOT there (stopped at 1.24, 95.00, -21.53)
+GM opens the secret door at -7, 95, -22: {"type":"ack","id":12,"ok":true,"result":[[95,"stone"],[96,"stone"]]}
+walk hidden_space (after the secret door opened): there in 8.3 s
+walk back out of the entrance: there in 7.6 s
+lowest health on the walk: 20 of 20
+clue bills (normal) at -8,100,-22: placed; Test passed, count: 2; in air: false
+clue bookshelf (normal) at -13,110,-17: placed; Test passed, count: 2; in air: false
+clue manuscript (normal) at -9,111,-14: placed; Test passed, count: 2; in air: true
+clue floorboard (hidden) at 3,111,-19: placed; Test passed, count: 2; in air: true
+clue diary (item) at 3,111,-18: placed; Test passed, count: 2; in air: true
+clue key_rack (normal) at -9,101,-30: placed; Test passed, count: 2; in air: true
+clue rusty_key (item) at -1,111,-15: placed; Test passed, count: 2; in air: true
+clue new_wall (normal) at -6,95,-22: placed; Test passed, count: 2; in air: true
+clue silver_ring (hidden) at -3,96,-18: placed; Test passed, count: 2; in air: true
+clue altar (normal) at -12,96,-22: placed; Test passed, count: 2; in air: true
+hotbar: [{"n":"written_book","c":1,"t":"서진의 일기장"},{"n":"tripwire_hook","c":1,"t":"녹슨 열쇠"}]
+map map_floor_b1: 1147 of 1147 blocks drawn
+map map_floor_1: 1147 of 1147 blocks drawn
+map map_floor_2: 1147 of 1147 blocks drawn
+map map_floor_3: 1147 of 1147 blocks drawn
+map map_floor_4: 1147 of 1147 blocks drawn
+map map_auto_upstairs: 1147 of 1147 blocks drawn
+map map_from_above: 1147 of 1147 blocks drawn
+ALL OK

@@ -1,0 +1,46 @@
+{"type":"welcome","protocol":1,"mcVersion":"1.21.4","viewer":{"enabled":false,"version":"1.21.4","radius":2},"gmCommandsVia":"rcon"}
+{"type":"bots","bots":[]}
+{"type":"bots","bots":[{"key":"u1","username":"Play_Jo","online":false}]}
+{"type":"ack","id":1,"ok":true,"result":true}
+{"type":"event","kind":"info","key":"u1","text":"Play_Jo 접속"}
+{"type":"bots","bots":[{"key":"u1","username":"Play_Jo","online":true}]}
+{"type":"ack","id":2,"ok":true,"result":"Teleported Play_Jo to -17.500000, 100.000000, -21.500000"}
+{"type":"ack","id":3,"ok":true,"result":null}
+{"type":"ack","id":4,"ok":true,"result":null}
+{"type":"ack","id":5,"ok":true,"result":null}
+{"type":"ack","id":6,"ok":true,"result":null}
+{"type":"ack","id":7,"ok":true,"result":null}
+{"type":"ack","id":8,"ok":true,"result":null}
+{"type":"ack","id":9,"ok":true,"result":null}
+{"type":"ack","id":10,"ok":true,"result":null}
+{"type":"ack","id":11,"ok":true,"result":null}
+{"type":"ack","id":12,"ok":true,"result":[[95,"stone"],[96,"stone"]]}
+{"type":"ack","id":13,"ok":true,"result":null}
+{"type":"ack","id":14,"ok":true,"result":null}
+{"type":"ack","id":15,"ok":true,"result":"Teleported Play_Jo to -2.500000, 100.000000, -21.500000"}
+{"type":"ack","id":16,"ok":true,"result":true}
+{"type":"ack","id":17,"ok":true,"result":true}
+{"type":"ack","id":18,"ok":true,"result":true}
+{"type":"ack","id":19,"ok":true,"result":true}
+{"type":"ack","id":20,"ok":true,"result":true}
+{"type":"ack","id":21,"ok":true,"result":true}
+{"type":"ack","id":22,"ok":true,"result":true}
+{"type":"ack","id":23,"ok":true,"result":true}
+{"type":"ack","id":24,"ok":true,"result":true}
+{"type":"ack","id":25,"ok":true,"result":true}
+{"type":"ack","id":26,"ok":true,"result":true}
+{"type":"ack","id":27,"ok":true,"result":true}
+{"type":"ack","id":28,"ok":true,"result":205}
+{"type":"ack","id":29,"ok":true,"result":"Teleported Play_Jo to 1.500000, 95.000000, -21.500000"}
+{"type":"ack","id":30,"ok":true,"result":195}
+{"type":"ack","id":31,"ok":true,"result":"Teleported Play_Jo to -2.500000, 100.000000, -21.500000"}
+{"type":"ack","id":32,"ok":true,"result":135}
+{"type":"ack","id":33,"ok":true,"result":"Teleported Play_Jo to -2.500000, 105.000000, -21.500000"}
+{"type":"ack","id":34,"ok":true,"result":84}
+{"type":"ack","id":35,"ok":true,"result":"Teleported Play_Jo to -2.500000, 110.000000, -21.500000"}
+{"type":"ack","id":36,"ok":true,"result":39}
+{"type":"ack","id":37,"ok":true,"result":"Teleported Play_Jo to -2.500000, 115.000000, -21.500000"}
+{"type":"ack","id":38,"ok":true,"result":32}
+{"type":"ack","id":39,"ok":true,"result":"Teleported Play_Jo to -2.500000, 110.000000, -21.500000"}
+{"type":"ack","id":40,"ok":true,"result":21}
+{"type":"ack","id":41,"ok":true,"result":"Teleported Play_Jo to -17.500000, 100.000000, -21.500000"}

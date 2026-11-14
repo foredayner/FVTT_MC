@@ -1,0 +1,71 @@
+[
+  {
+    "label": "hallway_1f",
+    "ok": true,
+    "seconds": 3.169,
+    "hurt": 0
+  },
+  {
+    "label": "office",
+    "ok": true,
+    "seconds": 3.314,
+    "hurt": 0
+  },
+  {
+    "label": "hallway_3f",
+    "ok": true,
+    "seconds": 10.269,
+    "hurt": 0
+  },
+  {
+    "label": "unit301",
+    "ok": true,
+    "seconds": 1.505,
+    "hurt": 0
+  },
+  {
+    "label": "study302",
+    "ok": true,
+    "seconds": 5.635,
+    "hurt": 0
+  },
+  {
+    "label": "living302",
+    "ok": true,
+    "seconds": 2.108,
+    "hurt": 0
+  },
+  {
+    "label": "bedroom302",
+    "ok": true,
+    "seconds": 2.257,
+    "hurt": 0
+  },
+  {
+    "label": "boiler_room",
+    "ok": true,
+    "seconds": 14.897,
+    "hurt": 0
+  },
+  {
+    "label": "hidden_space",
+    "ok": false,
+    "at": [
+      1.24,
+      95,
+      -21.53
+    ]
+  },
+  {
+    "label": "hidden_space (after the secret door opened)",
+    "ok": true,
+    "seconds": 8.348,
+    "hurt": 0
+  },
+  {
+    "label": "back out of the entrance",
+    "ok": true,
+    "seconds": 7.556,
+    "hurt": 0
+  }
+]

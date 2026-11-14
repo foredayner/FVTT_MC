@@ -1,0 +1,111 @@
+Downloading mojang_1.21.4.jar
+Applying patches
+Starting org.bukkit.craftbukkit.Main
+*** Warning, you've not updated in a while! ***
+*** Please download a new build from https://papermc.io/downloads/paper ***
+2026-11-14T03:26:24.251011387Z ServerMain WARN Advanced terminal features are not available in this environment
+[03:26:24 INFO]: [bootstrap] Running Java 21 (OpenJDK 64-Bit Server VM 21.0.13+9-LTS; Eclipse Adoptium Temurin-21.0.13+9) on Linux 7.0.0-1014-aws (amd64)
+[03:26:24 INFO]: [bootstrap] Loading Paper 1.21.4-232-ver/1.21.4@12d8fe0 (2025-06-09T10:15:42Z) for Minecraft 1.21.4
+[03:26:24 INFO]: [PluginInitializerManager] Initializing plugins...
+[03:26:25 INFO]: [PluginInitializerManager] Initialized 0 plugins
+[03:26:25 INFO]: [ReobfServer] Remapping server...
+[03:26:30 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[03:26:30 INFO]: [MCTypeRegistry] Initialising converters for DataConverter...
+[03:26:30 INFO]: [MCTypeRegistry] Finished initialising converters for DataConverter in 194.8ms
+[03:26:30 WARN]: Missing data pack fabric
+[03:26:30 WARN]: Missing data pack fabric-convention-tags-v2
+[03:26:30 WARN]: Missing data pack fabric-gametest-api-v1
+[03:26:30 WARN]: Missing data pack minecraft-ai-build-assistant
+[03:26:30 INFO]: Found new data pack file/bukkit, loading it automatically
+[03:26:30 INFO]: Found new data pack paper, loading it automatically
+[03:26:31 INFO]: [ReobfServer] Done remapping server in 5480ms.
+[03:26:32 INFO]: Loaded 1370 recipes
+[03:26:32 INFO]: Loaded 1481 advancements
+[03:26:32 INFO]: Starting minecraft server version 1.21.4
+[03:26:32 INFO]: Loading properties
+[03:26:32 INFO]: This server is running Paper version 1.21.4-232-ver/1.21.4@12d8fe0 (2025-06-09T10:15:42Z) (Implementing API version 1.21.4-R0.1-SNAPSHOT)
+[03:26:32 INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[03:26:32 INFO]: Server Ping Player Sample Count: 12
+[03:26:32 INFO]: Using 4 threads for Netty based IO
+[03:26:33 INFO]: [MoonriseCommon] Paper is using 1 worker threads, 1 I/O threads
+[03:26:33 INFO]: [ChunkTaskScheduler] Chunk system is using population gen parallelism: true
+[03:26:33 INFO]: Default game type: SURVIVAL
+[03:26:33 INFO]: Generating keypair
+[03:26:33 INFO]: Starting Minecraft server on *:25621
+[03:26:33 INFO]: Using epoll channel type
+[03:26:33 INFO]: Paper: Using libdeflate (Linux x86_64) compression from Velocity.
+[03:26:33 INFO]: Paper: Using OpenSSL 3.x.x (Linux x86_64) cipher from Velocity.
+[03:26:33 WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[03:26:33 WARN]: The server will make no attempt to authenticate usernames. Beware.
+[03:26:33 WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[03:26:33 WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+[03:26:33 INFO]: Preparing level "world"
+[03:26:35 INFO]: Preparing start region for dimension minecraft:overworld
+[03:26:35 INFO]: Preparing spawn area: 0%
+[03:26:36 INFO]: Preparing spawn area: 0%
+[03:26:36 INFO]: Time elapsed: 568 ms
+[03:26:36 INFO]: Preparing start region for dimension minecraft:the_nether
+[03:26:36 INFO]: Preparing spawn area: 2%
+[03:26:36 INFO]: Preparing spawn area: 4%
+[03:26:37 INFO]: Preparing spawn area: 24%
+[03:26:37 INFO]: Preparing spawn area: 51%
+[03:26:38 INFO]: Preparing spawn area: 73%
+[03:26:38 INFO]: Time elapsed: 2094 ms
+[03:26:38 INFO]: Preparing start region for dimension minecraft:the_end
+[03:26:38 INFO]: Preparing spawn area: 2%
+[03:26:38 INFO]: Time elapsed: 384 ms
+[03:26:38 INFO]: [spark] Starting background profiler...
+[03:26:39 INFO]: Done preparing level "world" (5.681s)
+[03:26:39 INFO]: Starting remote control listener
+[03:26:39 INFO]: Thread RCON Listener started
+[03:26:39 INFO]: RCON running on 0.0.0.0:25622
+[03:26:39 INFO]: Running delayed init tasks
+[03:26:39 INFO]: Done (15.986s)! For help, type "help"
+[03:26:39 INFO]: *************************************************************************************
+[03:26:39 INFO]: This is the first time you're starting this server.
+[03:26:39 INFO]: It's recommended you read our 'Getting Started' documentation for guidance.
+[03:26:39 INFO]: View this and more helpful information here: https://docs.papermc.io/paper/next-steps
+[03:26:39 INFO]: *************************************************************************************
+[03:26:39 INFO]: Thread RCON Client /127.0.0.1 started
+[03:26:39 INFO]: UUID of player Play_Jo is 56ab3d0f-12cb-3555-8eca-743b45e2871b
+[03:26:39 INFO]: [Rcon: Gamerule doMobSpawning is now set to: false]
+[03:26:39 INFO]: Play_Jo joined the game
+[03:26:39 INFO]: Play_Jo[/127.0.0.1:33800] logged in with entity id 103 at ([world]5.5, 100.0, 2.5)
+[03:26:40 INFO]: [Rcon: Applied effect Jump Boost to Play_Jo]
+[03:26:40 INFO]: [Rcon: Set the time to 6000]
+[03:26:40 INFO]: [Rcon: Gamerule doDaylightCycle is now set to: false]
+[03:26:40 INFO]: [Rcon: Gamerule doMobSpawning is now set to: false]
+[03:26:40 INFO]: [Rcon: The difficulty has been set to Peaceful]
+[03:26:40 INFO]: [Rcon: Teleported Play_Jo to -17.500000, 100.000000, -21.500000]
+[03:27:39 INFO]: [Rcon: Changed the block at -7, 95, -22]
+[03:27:39 INFO]: [Rcon: Changed the block at -7, 96, -22]
+[03:27:55 INFO]: [Rcon: Teleported Play_Jo to -2.500000, 100.000000, -21.500000]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Summoned new Interaction]
+[03:27:57 INFO]: [Rcon: Summoned new Item Display]
+[03:27:57 INFO]: [Rcon: Gave 1 [서진의 일기장] to Play_Jo]
+[03:27:57 INFO]: [Rcon: Gave 1 [녹슨 열쇠] to Play_Jo]
+[03:27:57 INFO]: [Rcon: Teleported Play_Jo to 1.500000, 95.000000, -21.500000]
+[03:28:02 INFO]: [Rcon: Teleported Play_Jo to -2.500000, 100.000000, -21.500000]
+[03:28:06 INFO]: [Rcon: Teleported Play_Jo to -2.500000, 105.000000, -21.500000]
+[03:28:11 INFO]: [Rcon: Teleported Play_Jo to -2.500000, 110.000000, -21.500000]
+[03:28:16 INFO]: [Rcon: Teleported Play_Jo to -2.500000, 115.000000, -21.500000]
+[03:28:20 INFO]: [Rcon: Teleported Play_Jo to -2.500000, 110.000000, -21.500000]
+[03:28:25 INFO]: [Rcon: Teleported Play_Jo to -17.500000, 100.000000, -21.500000]
