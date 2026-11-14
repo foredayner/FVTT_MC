@@ -82,7 +82,7 @@ class StraightWalker {
       m.scafoldingBlocks = []
       m.allowParkour = false
       m.allowSprinting = true
-      m.canOpenDoors = true
+      m.canOpenDoors = false // doors are walked through by getBlock below, and opened by the walk
       m.maxDropDown = MAX_DROP
       m.allowEntityDetection = false
       this._movements = m
@@ -258,6 +258,21 @@ function townMovements (Movements) {
   let Move
   try { Move = require('mineflayer-pathfinder/lib/move') } catch { Move = null }
   class TownMovements extends Movements {
+    /**
+     * A door one opens by hand counts as a way through, open or shut (the walk opens it on the
+     * way): the path finder's own door opening only looks at the lower half and then finds the
+     * upper half a wall, so without this no path went through a closed door at all.
+     */
+    getBlock (pos, dx, dy, dz) {
+      const b = super.getBlock(pos, dx, dy, dz)
+      if (b?.name && HAND_DOOR_RE.test(b.name)) {
+        b.safe = true
+        b.physical = false
+        b.openable = true
+      }
+      return b
+    }
+
     getMoveDiagonal (node, dir, neighbors) {
       for (const [dx, dz] of [[dir.x, 0], [0, dir.z]]) {
         for (const dy of [0, 1]) {
