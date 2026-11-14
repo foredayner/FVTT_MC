@@ -46,6 +46,7 @@ jobs:
           BWB_LIVE_JAR: ${{ runner.temp }}/paper.jar
           BWB_PLAY_DIR: ${{ runner.temp }}/play
           BWB_PLAY_OUT: ${{ runner.temp }}/play-out
+          BWB_WALK_DEBUG: "1"
         run: |
           npm --prefix relay ci
           cd relay && node --test --test-force-exit test/playtest.test.js 2>&1 | tee "$RUNNER_TEMP/play-test.txt"

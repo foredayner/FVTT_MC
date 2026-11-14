@@ -20,7 +20,11 @@ const WALK_WHILE_OFF = 0.5 // about 30 degrees
 /** How long a path may take to work out, and how much of each tick it may use. */
 const PATH_TIMEOUT_MS = 1500
 /** To another floor the search is longer (round by doors, along halls, up flights): give it time. */
-const PATH_TIMEOUT_FLOORS_MS = 8000
+const PATH_TIMEOUT_FLOORS_MS = 10000
+const PATH_TICK_FLOORS_MS = 35
+/** Set BWB_WALK_DEBUG=1 to log each path search and why a walk stopped. */
+const DEBUG = !!process.env.BWB_WALK_DEBUG
+const dbg = (...a) => { if (DEBUG) console.log('[walk]', ...a) }
 const PATH_TICK_MS = 15
 /** Waypoint reached when this close (horizontal). */
 const WAYPOINT_REACH = 0.35
@@ -117,6 +121,7 @@ class StraightWalker {
       let yaw = bot.entity.yaw ?? 0
       let route = null // [{x, y, z}] block centres still to reach; null = straight at the target
       let planner = null
+      let planT0 = 0
       let replans = 0
       const finish = (err) => {
         if (done) return
@@ -139,7 +144,9 @@ class StraightWalker {
         try {
           // Every block of the way (not merged into long straight runs, which cut corners).
           const timeout = y !== null ? PATH_TIMEOUT_FLOORS_MS : PATH_TIMEOUT_MS
-          planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout, tickTimeout: PATH_TICK_MS, optimizePath: false })
+          const tickTimeout = y !== null ? PATH_TICK_FLOORS_MS : PATH_TICK_MS
+          planT0 = Date.now()
+          planner = bot.pathfinder.getPathFromTo(movements, bot.entity.position, goal, { timeout, tickTimeout, optimizePath: false })
         } catch { planner = null; route = null }
       }
 
@@ -152,6 +159,8 @@ class StraightWalker {
         if (result.status === 'partial') return
         planner = null
         const path = result.path ?? []
+        dbg(`plan from ${bot.entity.position.floored()} to ${x.toFixed(1)},${y},${z.toFixed(1)}: ${result.status} in ${Date.now() - planT0} ms,` +
+          ` ${path.length} steps, ${result.visitedNodes ?? '?'} nodes` + (path.length ? `, ends ${path.at(-1).x},${path.at(-1).y},${path.at(-1).z}` : ''))
         if (result.status === 'noPath' && !path.length) {
           route = null // nothing found: walk straight and see
           return
@@ -224,11 +233,13 @@ class StraightWalker {
         if (now - lastCheck >= STUCK_WINDOW_MS) {
           if (p.distanceTo(lastPos) < STUCK_MIN_PROGRESS) {
             if (replans < MAX_REPLANS && this.movements()) {
+              dbg(`no progress at ${p.toString()} aiming at ${JSON.stringify(aim)}: looking again`)
               replans++
               plan()
               lastCheck = now
               return
             }
+            dbg(`stuck at ${p.toString()} aiming at ${JSON.stringify(aim)} after ${replans} replans`)
             return finish(new WalkStopped('stuck', '막혀서 멈췄습니다 (갈 수 있는 길이 없습니다)'))
           }
           lastPos = p.clone()
