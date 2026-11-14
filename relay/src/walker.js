@@ -186,17 +186,20 @@ class StraightWalker {
         if (route && route.length) {
           let best = 0; let bd = Infinity
           for (let i = 0; i < Math.min(route.length, 12); i++) {
+            // Only waypoints at the character's own height: one right above or below (the same spot
+            // on another floor of the route) is not where it is.
+            if (Math.abs(route[i].y - p.y) > 1.2) continue
             const d = Math.hypot(route[i].x - p.x, route[i].z - p.z)
             if (d < bd) { bd = d; best = i }
           }
           // Only skip ahead to a waypoint the character is already standing at (never across a wall).
           if (best > 0 && bd < 0.9) route.splice(0, best)
-          if (bd > 3 && replans < MAX_REPLANS) { replans++; plan(); return }
+          if (bd > 3 && bd !== Infinity && replans < MAX_REPLANS) { replans++; plan(); return }
         }
         // Where to head now: the next waypoint, or the target itself.
         const stairs = onStairs(bot, p, route?.[0])
         const reach = stairs ? STAIR_WAYPOINT_REACH : WAYPOINT_REACH
-        while (route && route.length && Math.hypot(route[0].x - p.x, route[0].z - p.z) <= reach && (!stairs || Math.abs(route[0].y - p.y) < 0.8)) route.shift()
+        while (route && route.length && Math.hypot(route[0].x - p.x, route[0].z - p.z) <= reach && Math.abs(route[0].y - p.y) < (stairs ? 0.8 : 1.2)) route.shift()
         if (route && !route.length) route = null
         // Cut straight to a waypoint further on when nothing is in the way of the whole body.
         if (route && route.length > 1 && !route[0].hop && !stairs) {
