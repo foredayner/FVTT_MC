@@ -1,0 +1,68 @@
+name: playtest
+
+# A play test in a building the scenario builder made: the world from MCSinarioBuilder's hand
+# test (hand-results branch: world.zip, clues.json, playtest.json) on a real Paper 1.21.4 server,
+# driven by the relay as the game table would. A character walks every room by doors and stairs,
+# the clues go into the world, and the map is drawn floor by floor. Results go to the
+# playtest-results branch. Start it from the Actions tab or by pushing to the "playtest" branch.
+on:
+  workflow_dispatch:
+  push:
+    branches: [playtest]
+
+permissions:
+  contents: write
+
+jobs:
+  play:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Paper 1.21.4
+        run: |
+          url=$(curl -sf https://fill.papermc.io/v3/projects/paper/versions/1.21.4/builds | jq -r '([.[] | select(.channel=="STABLE")][0] // .[0]).downloads."server:default".url')
+          curl -sfL -o "$RUNNER_TEMP/paper.jar" "$url"
+      - name: The built building (MCSinarioBuilder hand-results)
+        run: |
+          git clone -q --depth 1 -b hand-results https://github.com/foredayner/MCSinarioBuilder.git "$RUNNER_TEMP/hand"
+          cat "$RUNNER_TEMP/hand/RUN.txt"
+          mkdir -p "$RUNNER_TEMP/play/world"
+          unzip -q "$RUNNER_TEMP/hand/world.zip" -d "$RUNNER_TEMP/play/world"
+          cp "$RUNNER_TEMP/hand/hand/clues.json" "$RUNNER_TEMP/hand/hand/playtest.json" "$RUNNER_TEMP/play/"
+          cp "$RUNNER_TEMP/hand/RUN.txt" "$RUNNER_TEMP/play/BUILT.txt"
+          ls -la "$RUNNER_TEMP/play" "$RUNNER_TEMP/play/world"
+      - name: Play it through the relay
+        id: play
+        continue-on-error: true
+        env:
+          BWB_LIVE_JAR: ${{ runner.temp }}/paper.jar
+          BWB_PLAY_DIR: ${{ runner.temp }}/play
+          BWB_PLAY_OUT: ${{ runner.temp }}/play-out
+        run: |
+          npm --prefix relay ci
+          cd relay && node --test --test-force-exit test/playtest.test.js 2>&1 | tee "$RUNNER_TEMP/play-test.txt"
+          exit ${PIPESTATUS[0]}
+      - name: Publish results to the playtest-results branch
+        if: always()
+        run: |
+          out=$(mktemp -d)
+          cp -r "$RUNNER_TEMP/play-out/." "$out/" 2>/dev/null || true
+          cp "$RUNNER_TEMP/play-test.txt" "$RUNNER_TEMP/play/BUILT.txt" "$out/" 2>/dev/null || true
+          echo "${GITHUB_SHA} play=${{ steps.play.outcome }}" > "$out/RUN.txt"
+          cd "$out"
+          git init -q
+          git checkout -q -b playtest-results
+          git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "play test for ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" playtest-results
+      - name: Fail when the play test failed
+        if: steps.play.outcome != 'success'
+        run: exit 1
