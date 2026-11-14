@@ -1,0 +1,45 @@
+TAP version 13
+# server up
+# character at 8.5, -60, -7.5; hotbar [null,null,null,null,null,null,null,null,null]
+# placing a clue...
+# cluePlace: {"type":"ack","id":2,"ok":true,"result":true}
+# entities with the clue's tag: Test passed, count: 2
+# clueGive book: {"type":"ack","id":3,"ok":true,"result":true}
+# clueGive key: {"type":"ack","id":4,"ok":true,"result":true}
+# in the inventory: Found 1 matching item(s) on player Live_Jo | Found 1 matching item(s) on player Live_Jo
+# the key's components: Live_Jo has the following entity data: {"minecraft:lore": ['{"color":"gray","italic":false,"text":"B1 이라고 적힌 꼬리표"}'], "minecraft:custom_name": '{"italic":false,"text":"녹슨 열쇠"}', "minecraft:custom_data": {bwb_clue: "live2"}}
+# the book's title: Live_Jo has the following entity data: {raw: "서진의 일기장"}
+# hotbar now: [{"n":"written_book","c":1,"t":"서진의 일기장"},{"n":"tripwire_hook","c":1,"t":"녹슨 열쇠"},null,null,null,null,null,null,null] named ["서진의 일기장","녹슨 열쇠"]
+# dropItem: {"type":"ack","id":6,"ok":true,"result":null}
+# the key left the hotbar
+# round 1 up: there in 1.8 s at 17.99, -55.50, -7.50
+# round 1 upstairs, beside the hole: there in 0.9 s at 16.89, -55.00, -5.88
+# round 1 down: there in 2.7 s at 14.60, -58.50, -7.48
+# round 1 under the floor: there in 1.1 s at 15.86, -60.00, -8.56
+# round 2 up: there in 2.8 s at 18.11, -55.50, -7.50
+# round 2 upstairs, beside the hole: there in 0.9 s at 16.94, -55.00, -5.94
+# round 2 down: there in 2.4 s at 14.47, -58.46, -7.49
+# round 2 under the floor: there in 1.1 s at 16.21, -60.00, -8.63
+# round 3 up: there in 2.7 s at 17.87, -55.50, -7.50
+# round 3 upstairs, beside the hole: there in 0.9 s at 16.84, -55.00, -5.84
+# round 3 down: there in 2.6 s at 14.40, -58.77, -7.48
+# round 3 under the floor: there in 1.1 s at 16.16, -60.00, -8.64
+# stairs: lowest -60.00 (ground -60), health 20, lowest health 20
+# stairs: off the flight's middle by at most 0.69 between the floors
+# after removing: Test failed
+# ALL OK
+# Subtest: relay against a real Paper 1.21.4 server: clues and items
+ok 1 - relay against a real Paper 1.21.4 server: clues and items
+  ---
+  duration_ms: 52500.632184
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 52797.678131

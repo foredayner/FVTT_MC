@@ -1,0 +1,25 @@
+{"type":"welcome","protocol":1,"mcVersion":"1.21.4","viewer":{"enabled":false,"version":"1.21.4","radius":2},"gmCommandsVia":"rcon"}
+{"type":"bots","bots":[]}
+{"type":"bots","bots":[{"key":"u1","username":"Live_Jo","online":false}]}
+{"type":"ack","id":1,"ok":true,"result":true}
+{"type":"event","kind":"info","key":"u1","text":"Live_Jo 접속"}
+{"type":"bots","bots":[{"key":"u1","username":"Live_Jo","online":true}]}
+{"type":"ack","id":2,"ok":true,"result":true}
+{"type":"ack","id":3,"ok":true,"result":true}
+{"type":"ack","id":4,"ok":true,"result":true}
+{"type":"ack","id":5,"ok":true,"result":null}
+{"type":"ack","id":6,"ok":true,"result":null}
+{"type":"ack","id":7,"ok":true,"result":null}
+{"type":"ack","id":8,"ok":true,"result":null}
+{"type":"ack","id":9,"ok":true,"result":null}
+{"type":"ack","id":10,"ok":true,"result":null}
+{"type":"ack","id":11,"ok":true,"result":null}
+{"type":"ack","id":12,"ok":true,"result":null}
+{"type":"ack","id":13,"ok":true,"result":null}
+{"type":"ack","id":14,"ok":true,"result":null}
+{"type":"ack","id":15,"ok":true,"result":null}
+{"type":"ack","id":16,"ok":true,"result":null}
+{"type":"ack","id":17,"ok":true,"result":null}
+{"type":"ack","id":18,"ok":true,"result":null}
+{"type":"event","kind":"chat","text":"Your game mode has been updated to Creative Mode"}
+{"type":"ack","id":19,"ok":true,"result":true}

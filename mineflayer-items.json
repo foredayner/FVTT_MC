@@ -1,0 +1,91 @@
+[
+  {
+    "name": "written_book",
+    "components": [
+      {
+        "type": "written_book_content",
+        "data": {
+          "rawTitle": "서진의 일기장",
+          "author": "",
+          "generation": 0,
+          "pages": [
+            {
+              "content": {
+                "type": "string",
+                "value": "10월 27일. 관리실에서 보일러실 열쇠를 빌렸다. '누가' 부른다.\n내일 다시 간다."
+              }
+            }
+          ],
+          "resolved": false
+        }
+      },
+      {
+        "type": "custom_data",
+        "data": {
+          "type": "compound",
+          "value": {
+            "bwb_clue": {
+              "type": "string",
+              "value": "live1"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "tripwire_hook",
+    "components": [
+      {
+        "type": "custom_name",
+        "data": {
+          "type": "compound",
+          "value": {
+            "italic": {
+              "type": "byte",
+              "value": 0
+            },
+            "text": {
+              "type": "string",
+              "value": "녹슨 열쇠"
+            }
+          }
+        }
+      },
+      {
+        "type": "lore",
+        "data": [
+          {
+            "type": "compound",
+            "value": {
+              "italic": {
+                "type": "byte",
+                "value": 0
+              },
+              "color": {
+                "type": "string",
+                "value": "gray"
+              },
+              "text": {
+                "type": "string",
+                "value": "B1 이라고 적힌 꼬리표"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "custom_data",
+        "data": {
+          "type": "compound",
+          "value": {
+            "bwb_clue": {
+              "type": "string",
+              "value": "live2"
+            }
+          }
+        }
+      }
+    ]
+  }
+]

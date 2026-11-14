@@ -1,0 +1,96 @@
+Downloading mojang_1.21.4.jar
+Applying patches
+Starting org.bukkit.craftbukkit.Main
+*** Warning, you've not updated in a while! ***
+*** Please download a new build from https://papermc.io/downloads/paper ***
+2026-11-14T03:29:43.037163311Z ServerMain WARN Advanced terminal features are not available in this environment
+[03:29:43 INFO]: [bootstrap] Running Java 21 (OpenJDK 64-Bit Server VM 21.0.13+9-LTS; Eclipse Adoptium Temurin-21.0.13+9) on Linux 7.0.0-1017-azure (amd64)
+[03:29:43 INFO]: [bootstrap] Loading Paper 1.21.4-232-ver/1.21.4@12d8fe0 (2025-06-09T10:15:42Z) for Minecraft 1.21.4
+[03:29:44 INFO]: [PluginInitializerManager] Initializing plugins...
+[03:29:44 INFO]: [PluginInitializerManager] Initialized 0 plugins
+[03:29:45 INFO]: [ReobfServer] Remapping server...
+[03:29:51 INFO]: Environment: Environment[sessionHost=https://sessionserver.mojang.com, servicesHost=https://api.minecraftservices.com, name=PROD]
+[03:29:51 INFO]: Found new data pack file/bukkit, loading it automatically
+[03:29:51 INFO]: Found new data pack paper, loading it automatically
+[03:29:52 INFO]: No existing world data, creating new world
+[03:29:52 ERROR]: No key layers in MapLike[{}]
+[03:29:53 INFO]: [ReobfServer] Done remapping server in 7468ms.
+[03:29:53 INFO]: Loaded 1370 recipes
+[03:29:53 INFO]: Loaded 1481 advancements
+[03:29:53 INFO]: [MCTypeRegistry] Initialising converters for DataConverter...
+[03:29:54 INFO]: [MCTypeRegistry] Finished initialising converters for DataConverter in 307.9ms
+[03:29:54 INFO]: Starting minecraft server version 1.21.4
+[03:29:54 INFO]: Loading properties
+[03:29:54 INFO]: This server is running Paper version 1.21.4-232-ver/1.21.4@12d8fe0 (2025-06-09T10:15:42Z) (Implementing API version 1.21.4-R0.1-SNAPSHOT)
+[03:29:54 INFO]: [spark] This server bundles the spark profiler. For more information please visit https://docs.papermc.io/paper/profiling
+[03:29:54 INFO]: Server Ping Player Sample Count: 12
+[03:29:54 INFO]: Using 4 threads for Netty based IO
+[03:29:55 INFO]: [MoonriseCommon] Paper is using 1 worker threads, 1 I/O threads
+[03:29:55 INFO]: [ChunkTaskScheduler] Chunk system is using population gen parallelism: true
+[03:29:55 INFO]: Default game type: SURVIVAL
+[03:29:55 INFO]: Generating keypair
+[03:29:55 INFO]: Starting Minecraft server on *:25611
+[03:29:55 INFO]: Using epoll channel type
+[03:29:55 INFO]: Paper: Using libdeflate (Linux x86_64) compression from Velocity.
+[03:29:55 INFO]: Paper: Using OpenSSL 3.x.x (Linux x86_64) cipher from Velocity.
+[03:29:55 WARN]: **** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!
+[03:29:55 WARN]: The server will make no attempt to authenticate usernames. Beware.
+[03:29:55 WARN]: While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.
+[03:29:55 WARN]: To change this, set "online-mode" to "true" in the server.properties file.
+[03:29:55 INFO]: Preparing level "world"
+[03:29:55 ERROR]: No key layers in MapLike[{}]
+[03:29:56 ERROR]: No key layers in MapLike[{}]
+[03:29:57 ERROR]: No key layers in MapLike[{}]
+[03:29:58 INFO]: Preparing start region for dimension minecraft:overworld
+[03:29:58 INFO]: Preparing spawn area: 2%
+[03:29:58 INFO]: Time elapsed: 239 ms
+[03:29:58 INFO]: Preparing start region for dimension minecraft:the_nether
+[03:29:58 INFO]: Preparing spawn area: 2%
+[03:29:58 INFO]: Preparing spawn area: 4%
+[03:29:59 INFO]: Preparing spawn area: 24%
+[03:29:59 INFO]: Preparing spawn area: 61%
+[03:30:00 INFO]: Preparing spawn area: 95%
+[03:30:00 INFO]: Time elapsed: 2270 ms
+[03:30:00 INFO]: Preparing start region for dimension minecraft:the_end
+[03:30:00 INFO]: Preparing spawn area: 2%
+[03:30:01 INFO]: Preparing spawn area: 51%
+[03:30:01 INFO]: Time elapsed: 572 ms
+[03:30:01 INFO]: [spark] Starting background profiler...
+[03:30:02 INFO]: Done preparing level "world" (7.028s)
+[03:30:02 INFO]: Starting remote control listener
+[03:30:02 INFO]: Thread RCON Listener started
+[03:30:02 INFO]: RCON running on 0.0.0.0:25612
+[03:30:02 INFO]: Running delayed init tasks
+[03:30:02 INFO]: Done (20.965s)! For help, type "help"
+[03:30:02 INFO]: *************************************************************************************
+[03:30:02 INFO]: This is the first time you're starting this server.
+[03:30:02 INFO]: It's recommended you read our 'Getting Started' documentation for guidance.
+[03:30:02 INFO]: View this and more helpful information here: https://docs.papermc.io/paper/next-steps
+[03:30:02 INFO]: *************************************************************************************
+[03:30:02 INFO]: Thread RCON Client /127.0.0.1 started
+[03:30:03 INFO]: [Rcon: Gamerule doMobSpawning is now set to: false]
+[03:30:03 INFO]: UUID of player Live_Jo is 4c99a04f-dc88-3d1a-bcfc-f8058a8e4839
+[03:30:03 INFO]: Live_Jo joined the game
+[03:30:03 INFO]: Live_Jo[/127.0.0.1:40184] logged in with entity id 25 at ([world]8.5, -60.0, -7.5)
+[03:30:03 INFO]: [Rcon: Applied effect Jump Boost to Live_Jo]
+[03:30:03 INFO]: [Rcon: Summoned new Interaction]
+[03:30:03 INFO]: [Rcon: Summoned new Item Display]
+[03:30:03 INFO]: [Rcon: Gave 1 [서진의 일기장] to Live_Jo]
+[03:30:03 INFO]: [Rcon: Gave 1 [녹슨 열쇠] to Live_Jo]
+[03:30:03 INFO]: [Rcon: Found 1 matching item(s) on player Live_Jo]
+[03:30:03 INFO]: [Rcon: Found 1 matching item(s) on player Live_Jo]
+[03:30:05 INFO]: [Rcon: Successfully filled 55 block(s)]
+[03:30:05 INFO]: [Rcon: Changed the block at 15, -56, -8]
+[03:30:05 INFO]: [Rcon: Changed the block at 16, -56, -8]
+[03:30:05 INFO]: [Rcon: Changed the block at 17, -56, -8]
+[03:30:05 INFO]: [Rcon: Changed the block at 14, -60, -8]
+[03:30:05 INFO]: [Rcon: Successfully filled 1 block(s)]
+[03:30:05 INFO]: [Rcon: Changed the block at 15, -59, -8]
+[03:30:05 INFO]: [Rcon: Successfully filled 2 block(s)]
+[03:30:05 INFO]: [Rcon: Changed the block at 16, -58, -8]
+[03:30:05 INFO]: [Rcon: Successfully filled 3 block(s)]
+[03:30:05 INFO]: [Rcon: Changed the block at 17, -57, -8]
+[03:30:05 INFO]: [Rcon: Changed the block at 18, -56, -8]
+[03:30:05 INFO]: [Rcon: Teleported Live_Jo to 12.500000, -60.000000, -6.500000]
+[03:30:27 INFO]: [Rcon: Set Live_Jo's game mode to Creative Mode]
+[03:30:27 INFO]: [Rcon: Killed 2 entities]
