@@ -205,6 +205,13 @@ test('rcon: auth + command round trip against a fake server', async () => {
   const bad = new Rcon({ host: '127.0.0.1', port, password: 'nope' })
   await assert.rejects(bad.connect(), /비밀번호/)
   bad.close()
+  // The server drops the connection: the next command connects again and runs.
+  const again = new Rcon({ host: '127.0.0.1', port, password: 'pw' })
+  await again.connect()
+  again.socket.destroy()
+  await new Promise((r) => setTimeout(r, 50))
+  assert.strictEqual(await again.send('say hi'), 'ran:say hi')
+  again.close()
   server.close()
 })
 

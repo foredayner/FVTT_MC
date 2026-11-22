@@ -3,6 +3,7 @@
 // Packet: int32 length | int32 id | int32 type | ascii body | 0x00 0x00   (little endian)
 const net = require('net')
 
+const CLOSED = 'RCON 연결이 닫혔습니다'
 const TYPE_AUTH = 3
 const TYPE_COMMAND = 2
 
@@ -16,10 +17,15 @@ class Rcon {
   }
 
   async connect () {
-    this.socket = net.createConnection({ host: this.host, port: this.port })
-    this.socket.on('data', (d) => this.onData(d))
-    this.socket.on('close', () => this.failAll(new Error('RCON 연결이 닫혔습니다')))
-    this.socket.on('error', (e) => this.failAll(e))
+    const socket = net.createConnection({ host: this.host, port: this.port })
+    this.socket = socket
+    this.buf = Buffer.alloc(0)
+    socket.on('data', (d) => this.onData(d))
+    socket.on('close', () => {
+      if (this.socket === socket) this.socket = null // the next command connects again
+      this.failAll(new Error(CLOSED))
+    })
+    socket.on('error', (e) => this.failAll(e))
     await new Promise((resolve, reject) => {
       this.socket.once('connect', resolve)
       this.socket.once('error', reject)
@@ -28,8 +34,21 @@ class Rcon {
     if (res.id === -1) throw new Error('RCON 비밀번호가 틀렸습니다')
   }
 
-  send (command) {
-    return this.request(TYPE_COMMAND, command).then((r) => r.body)
+  /**
+   * Run a command. A connection the server dropped (it does now and then, busy starting up) is
+   * made again, and the command tried once more.
+   */
+  async send (command) {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (!this.socket && !this.closed) await this.connect()
+        return (await this.request(TYPE_COMMAND, command)).body
+      } catch (err) {
+        if (attempt >= 1 || this.closed || !(err.message === CLOSED || err.code === 'ECONNRESET' || err.code === 'EPIPE')) throw err
+        this.socket?.destroy()
+        this.socket = null
+      }
+    }
   }
 
   request (type, body) {
@@ -77,7 +96,7 @@ class Rcon {
     this.waiting.clear()
   }
 
-  close () { this.socket?.end(); this.socket = null }
+  close () { this.closed = true; this.socket?.end(); this.socket = null }
 }
 
 module.exports = { Rcon }
