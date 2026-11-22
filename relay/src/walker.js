@@ -90,8 +90,8 @@ class StraightWalker {
       m.allowSprinting = true
       m.canOpenDoors = false // doors are walked through by getBlock below, and opened by the walk
       m.maxDropDown = MAX_DROP
-      // Fields: walking over farmland tramples the crops (and fills the pockets with wheat). Go round.
-      for (const name of ['farmland']) {
+      // Fields: crops are stepped through at the feet (and broken, filling the pockets with wheat). Go round.
+      for (const name of ['farmland', 'wheat', 'carrots', 'potatoes', 'beetroots']) {
         const b = bot.registry?.blocksByName?.[name]
         if (b && m.blocksToAvoid?.add) m.blocksToAvoid.add(b.id)
       }
