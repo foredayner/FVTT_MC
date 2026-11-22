@@ -73,7 +73,7 @@ function startServer (dir) {
   fs.writeFileSync(path.join(dir, 'eula.txt'), 'eula=true\n')
   fs.writeFileSync(path.join(dir, 'server.properties'), [
     `server-port=${MC_PORT}`, 'online-mode=false', 'level-name=world', 'spawn-protection=0', 'enable-rcon=true',
-    `rcon.port=${RCON_PORT}`, `rcon.password=${RCON_PASS}`, 'spawn-monsters=false', 'view-distance=6', 'simulation-distance=6',
+    `rcon.port=${RCON_PORT}`, `rcon.password=${RCON_PASS}`, 'spawn-monsters=false', 'view-distance=12', 'simulation-distance=6',
     'gamemode=survival', 'difficulty=peaceful'
   ].join('\n') + '\n')
   const proc = spawn('java', ['-Xmx2G', '-jar', JAR, '--nogui'], { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] })
@@ -175,6 +175,13 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
       ok = await go(`${r.id} (after the secret door opened)`, r.stand)
     }
     if (!ok) problem(`could not walk to ${r.id}`)
+  }
+  // The secret way: with the false walls open, from one cellar to another through the tunnel.
+  const cellars = rooms.filter((r) => r.id.includes('#cellar'))
+  if ((play.secretDoors ?? []).length && cellars.length >= 2) {
+    if (!secretsOpen) await openSecrets()
+    if (!(await go(`${cellars[0].id} (again)`, cellars[0].stand))) problem(`could not walk back to ${cellars[0].id}`)
+    else if (!(await go(`through the secret tunnel to ${cellars[1].id}`, cellars[1].stand))) problem('could not walk through the secret tunnel')
   }
   if (!(await go('back out of the entrance', play.entrance))) problem('could not walk back out')
   clearInterval(watch)

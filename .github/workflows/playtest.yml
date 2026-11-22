@@ -4,9 +4,13 @@ name: playtest
 # test (hand-results branch: world.zip, clues.json, playtest.json) on a real Paper 1.21.4 server,
 # driven by the relay as the game table would. A character walks every room by doors and stairs,
 # the clues go into the world, and the map is drawn floor by floor. Results go to the
-# playtest-results branch. Start it from the Actions tab or by pushing to the "playtest" branch.
+# playtest-results-<scenario> branch. Start it from the Actions tab or by pushing to the "playtest" branch.
 on:
   workflow_dispatch:
+    inputs:
+      scenario:
+        description: Built test scenario (MCSinarioBuilder hand-results-<scenario>); empty for all of them
+        default: ""
   push:
     branches: [playtest]
 
@@ -16,7 +20,11 @@ permissions:
 jobs:
   play:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: ${{ fromJSON(github.event.inputs.scenario && format('["{0}"]', github.event.inputs.scenario) || '["apartment302","millbrook"]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,7 +40,7 @@ jobs:
           curl -sfL -o "$RUNNER_TEMP/paper.jar" "$url"
       - name: The built building (MCSinarioBuilder hand-results)
         run: |
-          git clone -q --depth 1 -b hand-results https://github.com/foredayner/MCSinarioBuilder.git "$RUNNER_TEMP/hand"
+          git clone -q --depth 1 -b hand-results-${{ matrix.scenario }} https://github.com/foredayner/MCSinarioBuilder.git "$RUNNER_TEMP/hand"
           cat "$RUNNER_TEMP/hand/RUN.txt"
           mkdir -p "$RUNNER_TEMP/play/world"
           unzip -q "$RUNNER_TEMP/hand/world.zip" -d "$RUNNER_TEMP/play/world"
@@ -57,13 +65,13 @@ jobs:
           out=$(mktemp -d)
           cp -r "$RUNNER_TEMP/play-out/." "$out/" 2>/dev/null || true
           cp "$RUNNER_TEMP/play-test.txt" "$RUNNER_TEMP/play/BUILT.txt" "$out/" 2>/dev/null || true
-          echo "${GITHUB_SHA} play=${{ steps.play.outcome }}" > "$out/RUN.txt"
+          echo "${GITHUB_SHA} play=${{ steps.play.outcome }} scenario=${{ matrix.scenario }}" > "$out/RUN.txt"
           cd "$out"
           git init -q
-          git checkout -q -b playtest-results
+          git checkout -q -b playtest-results-${{ matrix.scenario }}
           git add -A
           git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "play test for ${GITHUB_SHA}"
-          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" playtest-results
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" playtest-results-${{ matrix.scenario }}
       - name: Fail when the play test failed
         if: steps.play.outcome != 'success'
         run: exit 1
