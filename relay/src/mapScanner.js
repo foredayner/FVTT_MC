@@ -21,7 +21,7 @@ const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, 
 // Doors are blue everywhere (floor plan and top view) so entrances stand out from wood floors.
 // Doors leading outside are deep blue (open or shut, on the floor plan and on roofs alike);
 // doors inside a building are yellow. Open or shut shows on the Foundry door.
-const PLAN = { WALL: [43, 43, 48], WINDOW: [159, 211, 234], DOOR_OUT: [28, 72, 214], DOOR_IN: [236, 190, 24] }
+const PLAN = { WALL: [43, 43, 48], ROCK: [20, 20, 23], WINDOW: [159, 211, 234], DOOR_OUT: [28, 72, 214], DOOR_IN: [236, 190, 24] }
 /** How far under a roof a door is looked for, and how far out from it the open sky. */
 const DOOR_UNDER_ROOF = 12
 const DOOR_SKY_REACH = 4
@@ -44,7 +44,7 @@ const blend = (a, b, t) => a.map((v, i) => Math.round(v * (1 - t) + b[i] * t))
 /** Colour of a floor-plan cell. */
 function planColour (cell) {
   if (cell.kind === KIND.FLOOR) return lighten(shadeRgb(cell.id, SHADE.NORMAL))
-  if (cell.kind === KIND.WALL) return PLAN.WALL
+  if (cell.kind === KIND.WALL) return cell.rock ? PLAN.ROCK : PLAN.WALL
   if (cell.kind === KIND.FURNITURE) return cell.id === ID.NONE ? FURNITURE_FALLBACK : furnish(shadeRgb(cell.id, SHADE.NORMAL))
   if (cell.kind === KIND.WINDOW) return PLAN.WINDOW
   return cell.outer ? PLAN.DOOR_OUT : PLAN.DOOR_IN
@@ -236,7 +236,18 @@ class MapScanner {
       }
       p.set(x, cut, z)
       if (WINDOW_RE.test(name)) return { kind: KIND.WINDOW, y: cut }
-      if (solidAt(p)) return { kind: fullAt(p) || WALL_RE.test(name) ? KIND.WALL : KIND.FURNITURE, y: cut, id: colorId(name) }
+      if (solidAt(p)) {
+        if (!(fullAt(p) || WALL_RE.test(name))) return { kind: KIND.FURNITURE, y: cut, id: colorId(name) }
+        // Solid all round at the cut (the earth round a cellar, the middle of a thick wall): still a
+        // wall to see and walk by, drawn darker so the wall line along the rooms stands out.
+        let inside = true
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          p.set(x + dx, cut, z + dz)
+          if (!solidAt(p)) { inside = false; break }
+        }
+        p.set(x, cut, z)
+        return { kind: KIND.WALL, y: cut, id: colorId(name), rock: inside }
+      }
       for (let y = cut; y >= bottom; y--) {
         p.set(x, y, z)
         const n = nameAt(p)

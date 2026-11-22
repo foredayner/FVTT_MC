@@ -90,6 +90,11 @@ class StraightWalker {
       m.allowSprinting = true
       m.canOpenDoors = false // doors are walked through by getBlock below, and opened by the walk
       m.maxDropDown = MAX_DROP
+      // Fields: walking over farmland tramples the crops (and fills the pockets with wheat). Go round.
+      for (const name of ['farmland']) {
+        const b = bot.registry?.blocksByName?.[name]
+        if (b && m.blocksToAvoid?.add) m.blocksToAvoid.add(b.id)
+      }
       m.allowEntityDetection = false
       this._movements = m
       bot.pathfinder.setMovements?.(m)
