@@ -140,10 +140,11 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
   let weakest = bot.health
   const watch = setInterval(() => { weakest = Math.min(weakest, bot.health) }, 100)
   const walks = []
-  const go = async (label, [x, y, z], ms = 90000) => {
+  const go = async (label, [x, y, z], ms = 90000, ask = () => c.call('moveTo', { key: 'u1', x: x + 0.5, z: z + 0.5, y })) => {
     const t0 = Date.now()
     const h0 = bot.health
-    await c.call('moveTo', { key: 'u1', x: x + 0.5, z: z + 0.5, y })
+    const r = await ask()
+    if (r && r.ok === false) note(`walk ${label}: asked, but ${r.error}`)
     let stillSince = Date.now(); let last = bot.entity.position.clone()
     while (Date.now() - t0 < ms) {
       await sleep(150)
@@ -187,6 +188,38 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     if (!(await go(`${cellars[0].id} (again)`, cellars[0].stand))) problem(`could not walk back to ${cellars[0].id}`)
     else if (!(await go(`through the secret tunnel to ${cellars[1].id}`, cellars[1].stand))) problem('could not walk through the secret tunnel')
   }
+  // A one-block-wide door: clicked (as on the map), the character goes through to the block past it
+  // (opening it if it is shut); right-clicked, it opens or shuts.
+  const sd = play.singleDoor
+  if (sd) {
+    const [dx, dy, dz] = sd.door
+    const isOpen = async () => /passed/.test(String(await rcon(`execute if block ${dx} ${dy} ${dz} #minecraft:doors[open=true]`)))
+    if (!(await go(`before the door of ${sd.place}`, sd.before))) problem(`could not walk up to the door of ${sd.place}`)
+    else {
+      note(`the door of ${sd.place} is ${(await isOpen()) ? 'open' : 'shut'}`)
+      if (!(await go(`through the door of ${sd.place} (clicked)`, sd.past, 60000, () => c.call('moveTo', { key: 'u1', x: dx + 0.5, z: dz + 0.5 })))) {
+        problem(`clicking the door of ${sd.place} did not take the character through it`)
+      }
+      const was = await isOpen()
+      const r = await c.call('useDoor', { key: 'u1', x: dx + 0.5, z: dz + 0.5 })
+      await sleep(1500)
+      const now = await isOpen()
+      note(`right-click on the door: ${r.ok ? 'ok' : r.error}; ${was ? 'open' : 'shut'} -> ${now ? 'open' : 'shut'}`)
+      if (!r.ok || was === now) problem('right-clicking the door did not open or shut it')
+    }
+  }
+  // Stairs clicked on the map: to the flight's end on this floor, then up it; and down again.
+  for (const fl of (file.stairs ?? []).slice(0, 3)) {
+    const end = (p) => ({ x: p[0] + 0.5, y: p[1], z: p[2] + 0.5 })
+    const label = `flight ${fl.from} -> ${fl.to} at ${fl.bottom.join(',')}`
+    if (!(await go(`up the ${label} (clicked)`, fl.top, 90000, () => c.call('climb', { key: 'u1', from: end(fl.bottom), to: end(fl.top) })))) {
+      problem(`clicking the stairs did not take the character up the ${label}`)
+      continue
+    }
+    if (!(await go(`down the ${label} (clicked)`, fl.bottom, 90000, () => c.call('climb', { key: 'u1', from: end(fl.top), to: end(fl.bottom) })))) {
+      problem(`clicking the stairs did not take the character down the ${label}`)
+    }
+  }
   if (!(await go('back out of the entrance', play.entrance))) problem('could not walk back out')
   clearInterval(watch)
   note(`in the pockets after the walk: ${bot.inventory.items().map((it) => `${it.name} x${it.count}`).join(', ') || 'nothing'}`)
@@ -194,6 +227,10 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
   if (weakest < 20) problem(`hurt on the way (lowest health ${weakest})`)
 
   // ---------------------------------------------------------------- clues
+  // The scenario builder's floating papers over the spots, before the game table puts its own there.
+  const papers = async () => Number((/count: (\d+)/.exec(String(await rcon('execute if entity @e[tag=bwb_spot]'))) ?? [0, 0])[1])
+  const papersBefore = await papers()
+  note(`the builder's papers over the clue spots (loaded here): ${papersBefore}`)
   const near = rooms.find((r) => r.level === 0) ?? rooms[0]
   await c.call('gm', { action: 'tp', args: { target: 'Play_Jo', x: near.stand[0], y: near.stand[1], z: near.stand[2], center: true } })
   await sleep(2000)
@@ -204,6 +241,9 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     note(`clue ${cl.id} (${cl.kind}) at ${cl.x},${cl.y},${cl.z}: ${r.ok ? 'placed' : 'NOT placed ' + r.error}; ${n.trim()}; in air: ${/passed/.test(at)}`)
     if (!r.ok || !/count: 2/.test(n)) problem(`clue ${cl.id} not placed in the world`)
   }
+  const papersAfter = await papers()
+  note(`papers left after the clues were put in their places: ${papersAfter}`)
+  if (papersAfter > 0) problem(`${papersAfter} of the builder's papers stayed where clues were put`)
   const carried = file.clues.filter((cl) => cl.kind === 'item')
   for (const cl of carried) {
     const r = await c.call('clueGive', { key: 'u1', clue: cl.id, title: cl.name, text: cl.text, item: cl.item })

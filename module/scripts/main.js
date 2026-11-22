@@ -4,6 +4,7 @@ import { MapLayer } from "./map-layer.js";
 import { TokenSync } from "./token-sync.js";
 import { MapView } from "./map-view.js";
 import { sceneToMc } from "./coords.js";
+import { KIND } from "./walls.js";
 import { visionSceneData } from "./map-setup.js";
 import { BridgePanel } from "./apps/panel.js";
 import { View3D } from "./apps/view3d.js";
@@ -52,7 +53,7 @@ class Bridge {
    * Uses the pointer position in scene coordinates and converts it to block coordinates.
    */
   onCanvasPointer(event) {
-    if (!this.mapMode || event.button !== 0) return;
+    if (!this.mapMode || (event.button !== 0 && event.button !== 2)) return;
     const map = canvas.scene?.getFlag(MODULE_ID, "map");
     if (!map) return;
     const pt = event.getLocalPosition?.(canvas.stage) ?? canvas.mousePosition;
@@ -61,6 +62,15 @@ class Bridge {
     const mc = sceneToMc(pt, map, dims);
     const key = game.user.id;
     const ev = event.nativeEvent ?? event;
+    if (event.button === 2) {
+      // Right-click on a door: open or shut it (walking up to it first if it is far).
+      const k = this.mapView?.walls?.kindAt(map.dim ?? "overworld", Math.floor(mc.x), Math.floor(mc.z));
+      if (k === KIND.DOOR || k === KIND.DOOR_OPEN) {
+        canvas.ping?.(pt);
+        this.hub.tryIntent({ type: "useDoor", key, x: mc.x, z: mc.z });
+      }
+      return;
+    }
     if (ev.ctrlKey && game.user.isGM) {
       // GM: Ctrl+click a wall to make it a secret door (or a plain wall again).
       this.mapView?.walls.toggleSecret(Math.floor(mc.x), Math.floor(mc.z)).catch((err) => ui.notifications.warn(err.message));
@@ -79,9 +89,10 @@ const bridge = new Bridge();
 
 // Whether Alt is held (for the GM's Alt+drag teleport).
 let altDown = false;
-window.addEventListener("keydown", (ev) => { if (ev.key === "Alt") altDown = true; });
-window.addEventListener("keyup", (ev) => { if (ev.key === "Alt") altDown = false; });
-window.addEventListener("blur", () => { altDown = false; });
+let shiftDown = false;
+window.addEventListener("keydown", (ev) => { if (ev.key === "Alt") altDown = true; if (ev.key === "Shift") shiftDown = true; });
+window.addEventListener("keyup", (ev) => { if (ev.key === "Alt") altDown = false; if (ev.key === "Shift") shiftDown = false; });
+window.addEventListener("blur", () => { altDown = false; shiftDown = false; });
 
 /**
  * GM Alt+drag of a character's token: teleport the Minecraft character there (to the middle of
@@ -201,10 +212,18 @@ Hooks.on("getSceneControlButtons", (controls) => {
 
 Hooks.once("ready", () => bridge.ready());
 
-// A journal dropped on a map scene (GM) becomes a clue lying there; a hotbar slot dropped on the
-// map is handed to the character under it, or dropped.
+// A journal dropped on a map scene: by the GM it becomes a clue lying there (Shift: a pin
+// instead); by a player it is pinned there for everyone. A clue's hotbar slot dropped on the map
+// is pinned too.
 Hooks.on("dropCanvasData", (cnv, data) => {
-  if (data?.type === "JournalEntry" && game.user.isGM && bridge.clues?.scene) { bridge.clues.dropJournal(data); return false; }
+  const clues = bridge.clues;
+  if (!clues?.scene) return;
+  const pinnable = data?.type === "JournalEntry" || data?.type === "JournalEntryPage";
+  if (pinnable && data.uuid && (!game.user.isGM || data.type === "JournalEntryPage" || shiftDown)) {
+    clues.requestPin(data.uuid, clues.dropSpot(data));
+    return false;
+  }
+  if (data?.type === "JournalEntry" && game.user.isGM) { clues.dropJournal(data); return false; }
   if (data?.type === "bwbHotbar" && bridge.hotbar) { bridge.hotbar.dropOnCanvas(data); return false; }
 });
 

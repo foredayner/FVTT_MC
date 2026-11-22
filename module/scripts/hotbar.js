@@ -1,8 +1,7 @@
 // My character's Minecraft hotbar, at the bottom of the screen while it is in the game.
-// As in Minecraft: 1-9 pick a slot, Q throws what is in hand; click picks too, right-click reads a
-// book or clue in that slot; drag a slot onto another character's token to hand it over (onto
-// the map anywhere else: drop it). The number keys and Q only act in map mode, so Foundry's own
-// shortcuts (macro hotbar) keep working otherwise.
+// As in Minecraft: 1-9 pick a slot; click picks too, right-click reads a book or clue in that
+// slot; drag a clue's slot onto the map to pin its journal there for everyone (it stays in the
+// hotbar). The number keys only act in map mode, so Foundry's own shortcuts keep working otherwise.
 
 import { MODULE_ID, L } from "./constants.js";
 import { esc } from "./clues/store.js";
@@ -77,15 +76,17 @@ export class Hotbar {
     ui.notifications.info(READABLE.test(it.n) ? L("Hotbar.Book", { name: it.t }) : L("Clue.JustAnItem", { name: it.t }));
   }
 
-  /** A slot dropped on the map: onto another character's token = give, anywhere else = drop. */
+  /**
+   * A slot dropped on the map: a clue's item (or a book that is one) is pinned there for everyone,
+   * as its journal. It stays in the hotbar; nothing is handed over or thrown down.
+   */
   async dropOnCanvas(data) {
-    await this.hub.intent({ type: "hotbar", key: game.user.id, slot: data.slot }).catch(() => {});
-    const token = canvas.tokens?.placeables.find((t) => {
-      const k = t.document.getFlag(MODULE_ID, "botKey");
-      return k && k !== game.user.id && t.bounds?.contains(data.x, data.y);
-    });
-    if (token) return this.hub.tryIntent({ type: "giveItem", key: game.user.id, to: token.document.getFlag(MODULE_ID, "botKey") });
-    return this.hub.tryIntent({ type: "dropItem", key: game.user.id });
+    const it = this.mine?.hotbar?.[data.slot];
+    if (!it) return;
+    const clues = this.bridge.clues;
+    const c = Object.values(clues.placed()).find((p) => p.name.slice(0, 32) === it.t);
+    if (!c) { ui.notifications.info(L("Pin.NotAClue", { name: it.t })); return; }
+    return clues.requestPin(c.uuid, clues.dropSpot(data));
   }
 
   onKey(ev) {
@@ -97,9 +98,6 @@ export class Hotbar {
     if (m) {
       ev.preventDefault(); ev.stopImmediatePropagation();
       this.select(Number(m[1]) - 1);
-    } else if (ev.code === "KeyQ" && !ev.repeat) {
-      ev.preventDefault(); ev.stopImmediatePropagation();
-      this.hub.tryIntent({ type: "dropItem", key: game.user.id });
     }
   }
 }

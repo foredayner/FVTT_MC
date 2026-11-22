@@ -1,7 +1,8 @@
 // Stairs on the map scene (from the scenario builder's file): each flight drawn over its steps
 // with an arrow up it, and a sign at each end for the floor one is on: "▲" at the bottom on the
-// floor below, "▼" at the top on the floor above. Right-clicking a sign walks one's character up
-// or down the flight (the relay walks it carefully, step by step).
+// floor below, "▼" at the top on the floor above. Clicking the band or a sign walks one's
+// character to the end on its own floor, onto that sign, and then up or down the flight to the
+// other end (the relay walks it carefully, step by step).
 
 import { MODULE_ID, L } from "../constants.js";
 import { mcToScene } from "../coords.js";
@@ -91,6 +92,16 @@ export class StairsLayer {
       band.lineStyle(g * 0.08, 0xffffff, 0.75).moveTo(a.x, a.y).lineTo(b.x, b.y)
         .moveTo(b.x - Math.cos(ang - 0.5) * head, b.y - Math.sin(ang - 0.5) * head).lineTo(b.x, b.y)
         .lineTo(b.x - Math.cos(ang + 0.5) * head, b.y - Math.sin(ang + 0.5) * head);
+      // The whole band is a button too.
+      const nx = -Math.sin(ang) * g * 0.45; const ny = Math.cos(ang) * g * 0.45;
+      band.hitArea = new PIXI.Polygon([a.x + nx, a.y + ny, b.x + nx, b.y + ny, b.x - nx, b.y - ny, a.x - nx, a.y - ny]);
+      band.eventMode = "static";
+      band.cursor = "pointer";
+      const way = lower ? "up" : "down";
+      band.on("pointerover", (ev) => this.showTip(way, f, ev));
+      band.on("pointermove", (ev) => this.moveTip(ev));
+      band.on("pointerout", () => this.hideTip());
+      band.on("pointerdown", (ev) => this.clicked(ev, f, way));
       box.addChild(band);
       if (lower) box.addChild(this.sign(f, i, "up", a, g));
       if (upper) box.addChild(this.sign(f, i, "down", b, g));
@@ -115,15 +126,24 @@ export class StairsLayer {
     s.on("pointerover", (ev) => this.showTip(way, f, ev));
     s.on("pointermove", (ev) => this.moveTip(ev));
     s.on("pointerout", () => this.hideTip());
-    s.on("rightdown", (ev) => { ev.stopPropagation(); this.hideTip(); this.walk(f, way); });
+    s.on("pointerdown", (ev) => this.clicked(ev, f, way));
     s.stairsIndex = i;
     return s;
   }
 
-  /** Walk one's own character to the top (or the bottom) of the flight. */
+  clicked(ev, f, way) {
+    const button = ev.button ?? ev.data?.button ?? 0;
+    if (button !== 0 && button !== 2) return;
+    ev.stopPropagation(); // not also a walk to the spot under it
+    this.hideTip();
+    this.walk(f, way);
+  }
+
+  /** Walk one's own character to the end of the flight on its floor, then up (or down) to the other end. */
   walk(f, way) {
-    const [x, y, z] = way === "up" ? f.top : f.bottom;
-    this.system.hub.tryIntent({ type: "moveTo", key: game.user.id, x: x + 0.5, z: z + 0.5, y });
+    const [from, to] = way === "up" ? [f.bottom, f.top] : [f.top, f.bottom];
+    const end = (p) => ({ x: p[0] + 0.5, y: p[1], z: p[2] + 0.5 });
+    this.system.hub.tryIntent({ type: "climb", key: game.user.id, from: end(from), to: end(to) });
   }
 
   clear() {

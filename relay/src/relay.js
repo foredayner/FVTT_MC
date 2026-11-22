@@ -11,6 +11,7 @@ const { World3D, readAsset, assetVersion } = require('./world3d')
 const { DisplayTracker } = require('./displays')
 const { setDoor, setSecret } = require('./doors')
 const { ClueSpots } = require('./clues')
+const { readScenarioFile } = require('./scenarioFile')
 
 function safeEqual (a, b) {
   const ba = Buffer.from(String(a)); const bb = Buffer.from(String(b))
@@ -62,6 +63,12 @@ async function startRelay (cfg, log = console) {
     spawnBot: (m) => { bots.spawn(m.key, m.username); return true },
     despawnBot: (m) => { bots.despawn(m.key); return true },
     moveTo: (m) => bots.moveTo(m.key, num(m.x), num(m.z), m.y === undefined || m.y === null ? null : num(m.y)),
+    // A flight of stairs: to its end on this floor, then up or down it to the other end.
+    climb: (m) => bots.climb(m.key, point(m.from), point(m.to)),
+    // A door: right-click opens or shuts it (walking to it first).
+    useDoor: (m) => bots.useDoor(m.key, num(m.x), num(m.z)),
+    // The scenario builder's file in the server's world, if there is one: {world, hash, data} or null.
+    scenarioFile: () => readScenarioFile(cfg.serverDir),
     stop: (m) => bots.stop(m.key),
     dig: (m) => bots.dig(m.key, num(m.x), num(m.z), m.y),
     attackAt: (m) => bots.attackAt(m.key, num(m.x), num(m.z)),
@@ -92,8 +99,6 @@ async function startRelay (cfg, log = console) {
       return clues.give(m, e.username)
     },
     hotbar: (m) => bots.hotbar(m.key, m.slot),
-    dropItem: (m) => bots.dropItem(m.key),
-    giveItem: (m) => bots.giveItem(m.key, m.to),
     secret: async (m) => { const r = await setSecret(bots, m); redraw(m); return r },
     asset3d: (m) => readAsset(cfg.minecraft.version, m.name),
     mapView: (m) => {
@@ -216,6 +221,10 @@ async function startRelay (cfg, log = console) {
 function reply (ws, id, ok, error, result) {
   if (id === undefined || ws.readyState !== 1) return
   ws.send(JSON.stringify({ type: 'ack', id, ok, error, result: result === undefined ? null : result }))
+}
+
+function point (p) {
+  return { x: num(p?.x), y: num(p?.y), z: num(p?.z) }
 }
 
 function num (v) {

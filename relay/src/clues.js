@@ -91,14 +91,36 @@ class ClueSpots {
     const id = clueId(m.clue)
     const x = int(m.x, 'x'); const y = int(m.y, 'y', -64, 319); const z = int(m.z, 'z')
     const item = itemName(m.item)
-    await this.remove({ clue: id }).catch(() => {})
     const tags = `Tags:["bwb_clue","bwb_c_${id}"]`
     const cx = x + 0.5; const cz = z + 0.5
-    await this.bots.runCommand(`summon minecraft:interaction ${cx} ${y} ${cz} {width:0.8f,height:0.9f,response:1b,${tags}}`)
-    await this.bots.runCommand(`summon minecraft:item_display ${cx} ${y + 0.5} ${cz} {item:{id:"minecraft:${item}",count:1},billboard:"vertical",` +
-      `transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[0.6f,0.6f,0.6f]},${tags}}`)
+    // Far from every character the clue's chunk is not loaded and a summon there does nothing
+    // (the server only says so): load it for the moment, and check what the server answers.
+    const forced = await this.bots.runCommand(`forceload add ${x} ${z}`).then(() => true, () => false)
+    try {
+      await this.remove({ clue: id }).catch(() => {})
+      // The scenario builder's floating paper over this spot gives way to the clue itself.
+      await this.bots.runCommand(`execute positioned ${cx} ${y} ${cz} run kill @e[tag=bwb_spot,distance=..1.5]`).catch(() => {})
+      await this.summon(`summon minecraft:interaction ${cx} ${y} ${cz} {width:0.8f,height:0.9f,response:1b,${tags}}`)
+      await this.summon(`summon minecraft:item_display ${cx} ${y + 0.5} ${cz} {item:{id:"minecraft:${item}",count:1},billboard:"vertical",` +
+        `transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],translation:[0f,0f,0f],scale:[0.6f,0.6f,0.6f]},${tags}}`)
+    } finally {
+      if (forced) await this.bots.runCommand(`forceload remove ${x} ${z}`).catch(() => {})
+    }
     this.spots.set(id, { x, y, z, item })
     return true
+  }
+
+  /** Run a summon until the server says it was made (its chunk may take a moment to load). */
+  async summon (cmd) {
+    let out = ''
+    for (let i = 0; i < 12; i++) {
+      out = String(await this.bots.runCommand(cmd) ?? '')
+      // Over RCON the server answers "Summoned new ..."; through a character's chat there is no answer.
+      if (!out || /summoned/i.test(out)) return
+      if (!/not loaded|unloaded|out of the world/i.test(out)) break
+      await new Promise((resolve) => setTimeout(resolve, 250))
+    }
+    throw new ClueError(`마크에 단서를 놓지 못했습니다: ${out.slice(0, 160)}`)
   }
 
   async remove (m) {

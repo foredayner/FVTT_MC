@@ -203,11 +203,14 @@ class StraightWalker {
         }
         // Where to head now: the next waypoint, or the target itself.
         const stairs = onStairs(bot, p, route?.[0])
-        const reach = stairs ? STAIR_WAYPOINT_REACH : WAYPOINT_REACH
+        // By a door (a one-wide gap): through its middle, facing it square, never jumping.
+        const doorway = !stairs && nearDoorway(bot, p, route)
+        const careful = stairs || doorway
+        const reach = careful ? STAIR_WAYPOINT_REACH : WAYPOINT_REACH
         while (route && route.length && Math.hypot(route[0].x - p.x, route[0].z - p.z) <= reach && Math.abs(route[0].y - p.y) < (stairs ? 0.8 : 1.2)) route.shift()
         if (route && !route.length) route = null
         // Cut straight to a waypoint further on when nothing is in the way of the whole body.
-        if (route && route.length > 1 && !route[0].hop && !stairs) {
+        if (route && route.length > 1 && !route[0].hop && !careful) {
           let far = 0
           for (let i = 1; i < Math.min(route.length, LOOK_AHEAD + 1); i++) {
             if (route[i].y !== route[0].y || route[i].hop || route[i - 1].hop) break
@@ -224,9 +227,9 @@ class StraightWalker {
         yaw = turnStep(yaw, want)
         bot.look(yaw, 0, true)?.catch?.(() => {})
         const off = Math.abs(angleTo(yaw, want))
-        const walkWhileOff = stairs ? STAIR_WALK_WHILE_OFF : WALK_WHILE_OFF
+        const walkWhileOff = careful ? STAIR_WALK_WHILE_OFF : WALK_WHILE_OFF
         bot.setControlState('forward', off < walkWhileOff)
-        bot.setControlState('sprint', !stairs && off < 0.2 && left > 6)
+        bot.setControlState('sprint', !careful && off < 0.2 && left > 6)
         const now = Date.now()
         // A closed door right ahead: open it and walk on.
         if (now - lastDoor > DOOR_RETRY_MS && openDoorAhead(bot, dx / dist, dz / dist)) {
@@ -236,7 +239,7 @@ class StraightWalker {
         // Up a step of stairs the feet step up by themselves: a jump there could carry over the side.
         const stairUp = aim.y !== null && isStairs(bot, aim.x, aim.y - 1, aim.z)
         const up = aim.y !== null && ((aim.y > p.y + 0.5 && !stairUp) || (aim.hop && dist < 1.6))
-        bot.setControlState('jump', (up || !!(bot.entity.isCollidedHorizontally || bot.entity.isInWater)) && !doorAhead(bot, dx / dist, dz / dist))
+        bot.setControlState('jump', !doorway && (up || !!(bot.entity.isCollidedHorizontally || bot.entity.isInWater)) && !doorAhead(bot, dx / dist, dz / dist))
         if (off >= walkWhileOff) { lastCheck = now; lastPos = p.clone(); return } // turning on the spot
         if (now - lastCheck >= STUCK_WINDOW_MS) {
           if (p.distanceTo(lastPos) < STUCK_MIN_PROGRESS) {
@@ -398,6 +401,27 @@ function doorAhead (bot, ux, uz) {
   return null
 }
 
+const ANY_DOOR_RE = /_door$/
+
+/**
+ * A door within reach: in the character's own block, the one the next waypoint is in, or in the
+ * blocks the next two waypoints pass through (a doorway is one block wide, and a corner cut or a
+ * jump there only rubs along the frame).
+ */
+function nearDoorway (bot, p, route) {
+  if (typeof bot.blockAt !== 'function') return false
+  const cells = [{ x: p.x, y: p.y, z: p.z }]
+  if (route) for (const w of route.slice(0, 2)) cells.push({ x: w.x, y: w.y ?? p.y, z: w.z })
+  for (const c of cells) {
+    if (Math.hypot(c.x - p.x, c.z - p.z) > 2.2) continue
+    for (const up of [0, 1]) {
+      const b = bot.blockAt(new Vec3(Math.floor(c.x), Math.floor(c.y) + up, Math.floor(c.z)), false)
+      if (b && ANY_DOOR_RE.test(b.name)) return true
+    }
+  }
+  return false
+}
+
 /** Open the closed door just ahead, if there is one. */
 function openDoorAhead (bot, ux, uz) {
   const door = doorAhead(bot, ux, uz)
@@ -406,4 +430,4 @@ function openDoorAhead (bot, ux, uz) {
   return true
 }
 
-module.exports = { StraightWalker, WalkStopped, yawToward, turnStep, angleTo, doorAhead, clearWay, townMovements, onStairs, HAND_DOOR_RE }
+module.exports = { StraightWalker, WalkStopped, yawToward, turnStep, angleTo, doorAhead, clearWay, townMovements, onStairs, nearDoorway, HAND_DOOR_RE }

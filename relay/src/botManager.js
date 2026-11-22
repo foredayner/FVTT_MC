@@ -129,18 +129,62 @@ class BotManager extends EventEmitter {
     e.bot.clearControlStates()
     const door = y === null ? this.doorAt(e.bot, x, z) : null
     if (door) {
-      // Clicked a door: go to it and open (or close) it.
-      this.exclusive(e, async () => {
-        const c = door.position.offset(0.5, 0.5, 0.5)
-        if (e.bot.entity.position.distanceTo(c) > 2.5) {
-          await e.walker.walkTo(c.x, c.z, 1.8).catch((err) => this.walkFailed(err))
-        }
-        if (e.bot.entity.position.distanceTo(c) > REACH) throw new Error('문까지 닿지 않습니다')
-        await e.bot.activateBlock(door)
-      }).catch((err) => this.reportWalk(e, err))
+      // Clicked a door: through it to the block beyond, on the far side from the character
+      // (the walk opens it if it is shut; it is left as it is).
+      const t = this.beyondDoor(e.bot, door)
+      e.walker.walkTo(t.x, t.z, 0.3, t.y).catch((err) => this.reportWalk(e, err))
       return
     }
     e.walker.walkTo(x, z, y === null ? 0.5 : 0.3, y).catch((err) => this.reportWalk(e, err))
+  }
+
+  /** Walk to one end of a flight of stairs (onto it), then along the flight to the other end. */
+  climb (key, from, to) {
+    const e = this.get(key)
+    e.bot.clearControlStates()
+    const steps = async () => {
+      await e.walker.walkTo(from.x, from.z, 0.3, from.y)
+      await e.walker.walkTo(to.x, to.z, 0.3, to.y)
+    }
+    steps().catch((err) => this.reportWalk(e, err))
+    return true
+  }
+
+  /** Right-click on a door: walk up to it if it is far, then open or shut it. */
+  useDoor (key, x, z) {
+    const e = this.get(key)
+    const door = this.doorAt(e.bot, x, z)
+    if (!door) throw new Error('그 자리에 손으로 여는 문이 없습니다')
+    e.bot.clearControlStates()
+    this.exclusive(e, async () => {
+      const c = door.position.offset(0.5, 0.5, 0.5)
+      if (e.bot.entity.position.distanceTo(c) > 2.5) {
+        // To the near side of the door, not into it.
+        const t = this.beyondDoor(e.bot, door, -1)
+        await e.walker.walkTo(t.x, t.z, 0.6, t.y).catch((err) => this.walkFailed(err))
+      }
+      if (e.bot.entity.position.distanceTo(c) > REACH) throw new Error('문까지 닿지 않습니다')
+      await e.bot.activateBlock(door)
+    }).catch((err) => this.reportWalk(e, err))
+    return true
+  }
+
+  /**
+   * The middle of the block one past the door, on the side away from the character (side 1), or
+   * the one before it on the character's side (side -1). A door's way through is along its facing.
+   */
+  beyondDoor (bot, door, side = 1) {
+    const props = door.getProperties?.() ?? {}
+    const lower = props.half === 'upper' ? door.position.offset(0, -1, 0) : door.position
+    const f = String(props.facing ?? 'north')
+    const ax = f === 'east' || f === 'west' ? 1 : 0
+    const az = 1 - ax
+    const p = bot.entity.position
+    const cx = lower.x + 0.5; const cz = lower.z + 0.5
+    // Which side the character is on now (straight across the door's line).
+    const s = ax ? Math.sign(p.x - cx) || 1 : Math.sign(p.z - cz) || 1
+    const k = -s * side
+    return { x: cx + ax * k, y: lower.y, z: cz + az * k }
   }
 
   /** A door a hand can open in column x,z, near the character's height. */
@@ -219,27 +263,6 @@ class BotManager extends EventEmitter {
     const n = Number(slot)
     if (!Number.isInteger(n) || n < 0 || n > 8) throw new Error('핫바 칸은 0~8 입니다')
     this.get(key).bot.setQuickBarSlot(n)
-  }
-
-  /** Throw the held stack ahead (Q). */
-  async dropItem (key) {
-    const { bot } = this.get(key)
-    const item = bot.heldItem
-    if (!item) throw new Error('손에 든 것이 없습니다')
-    await bot.tossStack(item)
-  }
-
-  /** Throw the held stack to another character standing close by. */
-  async giveItem (key, to) {
-    const { bot } = this.get(key)
-    const other = this.entries.get(String(to))
-    if (!other?.online || !other.bot.entity) throw new Error('받을 캐릭터가 접속해 있지 않습니다')
-    const item = bot.heldItem
-    if (!item) throw new Error('손에 든 것이 없습니다')
-    const there = other.bot.entity.position
-    if (bot.entity.position.distanceTo(there) > 5) throw new Error('받을 캐릭터가 너무 멉니다 (5블록 안)')
-    await bot.lookAt(there.offset(0, 1, 0), true)
-    await bot.tossStack(item)
   }
 
   /** Mouse button in the 3D window: left = hit entity or dig block under cursor, right = use block. */

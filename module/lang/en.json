@@ -20,7 +20,7 @@
       "MapModeOn": "Map control on",
       "MapModeOff": "Map control off",
       "Stop": "Stop",
-      "MapHint": "Map control: click = walk (click a door to open/close it; doors on the way open by themselves) · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · GM: Ctrl+click = make a wall a secret door / a wall again · GM: Alt+drag a token = teleport",
+      "MapHint": "Map control: click = walk · left-click a door = go through to the block beyond (opening it if shut) · right-click a door = open/close · click a stairs band or circle = take the stairs · Shift+click = dig · Alt+click = attack (toggle with Shift+N) · drag a clue from the hotbar onto the map = a journal pin for everyone · GM: Ctrl+click = make a wall a secret door / a wall again · GM: Alt+drag a token = teleport",
       "ChatPlaceholder": "Say something in Minecraft chat",
       "Avatar": "3D look"
     },
@@ -268,7 +268,9 @@
       "Unseen": "not seen yet",
       "BoardHint": "Drop a journal on the map to make it a clue. Red ones are hidden.",
       "NoneYet": "No clues on this map yet",
-      "Import": "Import scenario builder clues"
+      "Import": "Import scenario builder clues",
+      "AutoTitle": "Scenario builder file",
+      "AutoAsk": "The Minecraft world '{world}' has a scenario builder file ({title}: {clues} clues, {stairs} flights of stairs). Load it onto this map scene ({scene})?"
     },
     "Hotbar": {
       "Book": "{name} (a book)"
@@ -276,9 +278,19 @@
     "Stairs": {
       "Up": "Upstairs",
       "Down": "Downstairs",
-      "Hint": "Right-click: take the stairs to {floor}",
+      "Hint": "Click: take the stairs to {floor}",
       "Floor": "floor {n}",
       "ImportedN": "{n} flights of stairs"
+    },
+    "Pin": {
+      "Gone": "The pin's journal is gone",
+      "Hint": "Click: open",
+      "HintMine": "Click: open · Right-click: remove the pin",
+      "By": "Pinned by {who}",
+      "CannotPin": "You can only pin a journal you can read",
+      "NotYours": "You can only remove your own pins",
+      "Pinned": "{who} pinned on the map: {name}",
+      "NotAClue": "{name}: only clue items can be pinned on the map"
     }
   }
 }

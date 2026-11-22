@@ -156,15 +156,11 @@ test('relay against a real Paper 1.21.4 server: clues and items', { skip: !JAR, 
   assert.ok(bar.hotbar.some((it) => it && it.t === '녹슨 열쇠'), 'the key shows by its name')
   assert.ok(bar.named.includes('녹슨 열쇠'))
 
-  // 4. Picking a slot and throwing what is in hand.
+  // 4. Picking a slot (nothing can be thrown down from Foundry any more).
   const slot = bar.hotbar.findIndex((it) => it && it.n === 'tripwire_hook')
   assert.ok((await c.call('hotbar', { key: 'u1', slot })).ok)
   await c.wait((m) => m.type === 'state' && m.bots.find((b) => b.key === 'u1')?.sel === slot, 10000)
-  const dropped = await c.call('dropItem', { key: 'u1' })
-  note(`dropItem: ${JSON.stringify(dropped)}`)
-  assert.ok(dropped.ok, dropped.error)
-  await c.wait((m) => m.type === 'state' && !(m.bots.find((b) => b.key === 'u1')?.hotbar ?? []).some((it) => it && it.n === 'tripwire_hook'), 10000)
-  note('the key left the hotbar')
+  assert.strictEqual((await c.call('dropItem', { key: 'u1' })).ok, false, 'no dropping')
 
   // 5. Stairs: an open flight of five steps (no rail, the last set in the floor above) with the hole
   // over it, like the scenario builder makes. Walk up and down three times: never off the side,

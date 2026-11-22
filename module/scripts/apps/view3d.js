@@ -200,12 +200,12 @@ export class View3D extends ApplicationV2 {
 
   onKey(ev, down) {
     ev.stopPropagation();
-    // Hotbar as in Minecraft: 1-9 pick a slot, Q throws what is in hand.
+    // Hotbar as in Minecraft: 1-9 pick a slot. (Nothing is thrown down: Q does nothing.)
     const digit = /^Digit([1-9])$/.exec(ev.code);
     if (digit || ev.code === "KeyQ") {
       ev.preventDefault();
-      if (down && !ev.repeat) {
-        this.hub.intent(digit ? { type: "hotbar", key: this.key, slot: Number(digit[1]) - 1 } : { type: "dropItem", key: this.key })
+      if (digit && down && !ev.repeat) {
+        this.hub.intent({ type: "hotbar", key: this.key, slot: Number(digit[1]) - 1 })
           .catch((err) => ui.notifications.warn(err.message));
       }
       return;

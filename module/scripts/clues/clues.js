@@ -10,6 +10,7 @@ import { rules } from "./rules.js";
 import { clueSettings, newPlaced, visibleTo, audience, within, plainText, readClueFile, DEFAULT_CLUE, esc } from "./store.js";
 import { ClueLayer } from "./clue-layer.js";
 import { StairsLayer, readStairs } from "./stairs-layer.js";
+import { PinLayer } from "./pin-layer.js";
 import { ClueView } from "./clue-view.js";
 import { ClueConfig } from "./clue-config.js";
 import { ClueBoard } from "./clue-board.js";
@@ -26,6 +27,7 @@ export class ClueSystem {
     this.hub = bridge.hub;
     this.layer = new ClueLayer(this);
     this.stairs = new StairsLayer(this);
+    this.pins = new PinLayer(this);
     this.views = new Map();      // placeId -> ClueView (mine)
     this.rolling = new Set();    // "placeId:userId" spot checks in progress
     this.gmPages = new Map();    // journal uuid -> lines about its later pages (GM tooltip)
@@ -35,7 +37,12 @@ export class ClueSystem {
       const tick = foundry.utils.throttle(() => this.discover(), 400);
       this.hub.addEventListener("state", (ev) => { tick(); this.followItems(ev.detail); });
       this.hub.addEventListener("event", (ev) => this.onRelayEvent(ev.detail));
-      this.hub.addEventListener("status", (ev) => { if (ev.detail?.status === "connected") this.syncRelay(); });
+      this.hub.addEventListener("status", (ev) => {
+        if (ev.detail?.status !== "connected") return;
+        this.syncRelay();
+        this.offerScenarioFile();
+      });
+      Hooks.on("canvasReady", () => this.offerScenarioFile());
     }
   }
 
@@ -150,6 +157,38 @@ export class ClueSystem {
     try { await this.hub.relay.call("clueKnown", { list }); } catch { /* older relay */ }
   }
 
+  /**
+   * The scenario builder's file in the Minecraft server's world (the map was built there): offer
+   * once to load its clues and stairs onto the map scene being looked at. A file already loaded
+   * (or turned down this session) is not offered again.
+   */
+  async offerScenarioFile() {
+    const scene = this.scene;
+    if (!scene || !this.isHost() || !this.hub.relay || this.offering) return;
+    this.offering = true;
+    try {
+      let file = null;
+      try { file = await this.hub.relay.call("scenarioFile", {}); } catch { return; } // an older relay
+      if (!file?.data || !file.hash) return;
+      this.declined ??= new Set();
+      if (scene.getFlag(MODULE_ID, "fileHash") === file.hash || this.declined.has(`${scene.id}:${file.hash}`)) return;
+      const nClues = Array.isArray(file.data.clues) ? file.data.clues.length : 0;
+      const nStairs = Array.isArray(file.data.stairs) ? file.data.stairs.length : 0;
+      const title = file.data.scenario || file.world;
+      const yes = await foundry.applications.api.DialogV2.confirm({
+        window: { title: L("Clue.AutoTitle") },
+        content: `<p>${esc(L("Clue.AutoAsk", { world: file.world, title, clues: nClues, stairs: nStairs, scene: scene.name }))}</p>`,
+        rejectClose: false
+      }).catch(() => false);
+      if (!yes) { this.declined.add(`${scene.id}:${file.hash}`); return; }
+      try {
+        const n = await this.importFile(file.data, scene);
+        await scene.setFlag(MODULE_ID, "fileHash", file.hash);
+        ui.notifications.info(L("Clue.ImportedN", { n }));
+      } catch (err) { ui.notifications.warn(`${L("Clue.ImportFailed")}: ${err.message}`); }
+    } finally { this.offering = false; }
+  }
+
   /** The scenario builder's clues file: a journal per clue (in a folder), each placed where it was built. */
   async importFile(data, scene = this.scene) {
     const { scenario, clues } = readClueFile(data);
@@ -180,6 +219,14 @@ export class ClueSystem {
     return n;
   }
 
+  /** Where on the map (block coordinates) a drop landed. */
+  dropSpot(data) {
+    const scene = this.scene;
+    const map = scene.getFlag(MODULE_ID, "map");
+    const dims = { grid: scene.grid.size, sceneX: canvas.dimensions.sceneX, sceneY: canvas.dimensions.sceneY };
+    return sceneToMc({ x: data.x, y: data.y }, map, dims);
+  }
+
   /** GM: a journal dropped on the map scene becomes a clue lying there. */
   async dropJournal(data) {
     const scene = this.scene;
@@ -194,6 +241,56 @@ export class ClueSystem {
       ui.notifications.info(L("Clue.Placed", { name: journal.name }));
     } catch (err) { ui.notifications.warn(err.message); }
     return true;
+  }
+
+  // ---------------- pins ----------------
+
+  /**
+   * Pin a journal (or a page of one) at a spot of the map for everyone: asked by anyone who can
+   * read it; the GM makes it readable to all and keeps the pin on the scene.
+   * @param {string} uuid  @param {{x:number, z:number}} at  block coordinates
+   */
+  async requestPin(uuid, at) {
+    const doc = await fromUuid(uuid).catch(() => null);
+    if (!doc || !doc.testUserPermission(game.user, "OBSERVER")) { ui.notifications.warn(L("Pin.CannotPin")); return; }
+    const msg = { t: "pinReq", from: game.user.id, uuid, x: Math.floor(at.x), z: Math.floor(at.z) };
+    if (this.isHost()) return this.pin(game.user.id, msg).catch((err) => ui.notifications.warn(err.message));
+    if (!game.users.activeGM) { ui.notifications.warn(L("Notify.NoGM")); return; }
+    game.socket.emit(SOCKET, msg);
+  }
+
+  requestUnpin(id) {
+    const msg = { t: "pinDel", from: game.user.id, pin: id };
+    if (this.isHost()) return this.unpin(game.user.id, msg).catch((err) => ui.notifications.warn(err.message));
+    game.socket.emit(SOCKET, msg);
+  }
+
+  async pin(userId, m) {
+    const scene = this.scene;
+    const user = game.users.get(userId);
+    if (!scene || !user) return;
+    const doc = await fromUuid(String(m.uuid)).catch(() => null);
+    if (!doc || !(doc instanceof JournalEntry || doc instanceof JournalEntryPage)) throw new Error(L("Pin.Gone"));
+    if (!doc.testUserPermission(user, "OBSERVER")) throw new Error(L("Pin.CannotPin"));
+    const x = Number(m.x); const z = Number(m.z);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+    // Everyone may read what is pinned (a page: its journal too, or it would not open).
+    const share = async (d) => { if ((d.ownership?.default ?? 0) < OBSERVER()) await d.update({ "ownership.default": OBSERVER() }); };
+    if (doc instanceof JournalEntryPage) await share(doc.parent);
+    await share(doc);
+    const id = foundry.utils.randomID();
+    const name = doc instanceof JournalEntryPage ? `${doc.parent.name}: ${doc.name}` : doc.name;
+    await scene.update({ [`flags.${MODULE_ID}.pins.${id}`]: { id, uuid: doc.uuid, name, x, z, by: userId, byName: this.userName(userId) } });
+    this.announce(userId, L("Pin.Pinned", { who: this.userName(userId), name }));
+  }
+
+  async unpin(userId, m) {
+    const scene = this.scene;
+    const user = game.users.get(userId);
+    const p = scene?.getFlag(MODULE_ID, "pins")?.[m.pin];
+    if (!p || !user) return;
+    if (!user.isGM && p.by !== userId) throw new Error(L("Pin.NotYours"));
+    await scene.update({ [`flags.${MODULE_ID}.pins.-=${m.pin}`]: null });
   }
 
   configure(journal) {
@@ -437,6 +534,13 @@ export class ClueSystem {
       const from = (typeof sender === "string" && game.users.get(sender)) ? sender : data.from;
       if (!["use", "take", "check"].includes(data.op)) return;
       this.handle(from, data.op, data.place, data.page).catch((err) => this.tell(from, { t: "clueError", text: err.message }));
+      return;
+    }
+    if (data.t === "pinReq" || data.t === "pinDel") {
+      if (!this.isHost()) return;
+      const from = (typeof sender === "string" && game.users.get(sender)) ? sender : data.from;
+      (data.t === "pinReq" ? this.pin(from, data) : this.unpin(from, data))
+        .catch((err) => this.tell(from, { t: "clueError", text: err.message }));
       return;
     }
     if (data.to === game.user.id) this.onMessage(data);

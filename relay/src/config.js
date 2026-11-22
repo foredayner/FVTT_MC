@@ -20,6 +20,12 @@ function loadConfig (file = process.env.BWB_CONFIG || path.join(ROOT, 'config.js
     throw new Error(`설정 파일이 없습니다: ${file}\nconfig.example.json 을 config.json 으로 복사하고 token 을 바꾸세요.`)
   }
   const cfg = deepMerge(defaults, JSON.parse(fs.readFileSync(file, 'utf8')))
+  // The Minecraft server's folder (for the scenario builder's file in its world): set, or the
+  // launcher's layout (its relay config sits beside the "server" folder).
+  if (!cfg.serverDir) {
+    const beside = path.join(path.dirname(path.resolve(file)), 'server')
+    if (fs.existsSync(path.join(beside, 'server.properties'))) cfg.serverDir = beside
+  }
   if (!cfg.token || cfg.token.startsWith('CHANGE_ME') || cfg.token.length < 16) {
     throw new Error('config.json 의 token 을 16자 이상의 임의 문자열로 바꾸세요.')
   }

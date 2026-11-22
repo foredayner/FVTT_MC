@@ -443,9 +443,18 @@ test('clues: objects summoned with tags, items given with their text, the clue u
   const cmds = []
   const spots = new ClueSpots({ runCommand: async (c) => { cmds.push(c); return '' } })
   await spots.place({ clue: 'abc_1', x: 10, y: 64, z: -3, item: 'paper' })
-  assert.strictEqual(cmds[0], 'kill @e[tag=bwb_c_abc_1]', 'an old one there goes first')
-  assert.ok(cmds[1].startsWith('summon minecraft:interaction 10.5 64 -2.5 {'))
-  assert.ok(cmds[2].includes('item_display 10.5 64.5 -2.5') && cmds[2].includes('id:"minecraft:paper"') && cmds[2].includes('"bwb_c_abc_1"'))
+  assert.strictEqual(cmds[0], 'forceload add 10 -3', 'its chunk loaded for the moment')
+  assert.strictEqual(cmds[1], 'kill @e[tag=bwb_c_abc_1]', 'an old one there goes first')
+  assert.strictEqual(cmds[2], 'execute positioned 10.5 64 -2.5 run kill @e[tag=bwb_spot,distance=..1.5]', "the builder's paper there goes")
+  assert.ok(cmds[3].startsWith('summon minecraft:interaction 10.5 64 -2.5 {'))
+  assert.ok(cmds[4].includes('item_display 10.5 64.5 -2.5') && cmds[4].includes('id:"minecraft:paper"') && cmds[4].includes('"bwb_c_abc_1"'))
+  assert.strictEqual(cmds[5], 'forceload remove 10 -3')
+  // The server says the chunk is not loaded: tried again; still not, then it fails out loud.
+  let tries = 0
+  const slow = new ClueSpots({ runCommand: async (c) => (c.startsWith('summon') && tries++ < 2 ? 'That position is not loaded' : c.startsWith('summon') ? 'Summoned new Interaction' : '') })
+  assert.ok(await slow.place({ clue: 'later', x: 0, y: 64, z: 0 }))
+  const never = new ClueSpots({ runCommand: async (c) => (c.startsWith('summon') ? 'Unknown or incomplete command' : '') })
+  await assert.rejects(() => never.place({ clue: 'no', x: 0, y: 64, z: 0 }), /놓지 못했습니다/)
   await assert.rejects(() => spots.place({ clue: 'x; kill', x: 0, y: 64, z: 0 }))
   await assert.rejects(() => spots.place({ clue: 'ok', x: 0, y: 64, z: 0, item: 'paper"}]' }))
 
@@ -463,4 +472,33 @@ test('clues: objects summoned with tags, items given with their text, the clue u
   assert.strictEqual(spots.atCursor(bot), 'abc_1')
   bot.entity.yaw = Math.PI // facing south: not it
   assert.strictEqual(spots.atCursor(bot), null)
+})
+
+test('scenario file: read from the world the server runs, and nothing when there is none', () => {
+  const fs = require('fs'); const os = require('os'); const path = require('path')
+  const { readScenarioFile } = require('../src/scenarioFile')
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bwb-srv-'))
+  assert.strictEqual(readScenarioFile(dir), null)
+  fs.writeFileSync(path.join(dir, 'server.properties'), 'motd=x\nlevel-name=millbrook\n')
+  fs.mkdirSync(path.join(dir, 'millbrook', 'blockworld'), { recursive: true })
+  fs.writeFileSync(path.join(dir, 'millbrook', 'blockworld', 'clues.json'), JSON.stringify({ scenario: 'M', clues: [{ id: 'a' }], stairs: [] }))
+  const f = readScenarioFile(dir)
+  assert.strictEqual(f.world, 'millbrook')
+  assert.strictEqual(f.data.clues.length, 1)
+  assert.match(f.hash, /^[0-9a-f]{16}$/)
+  fs.writeFileSync(path.join(dir, 'millbrook', 'blockworld', 'clues.json'), '{bad')
+  assert.strictEqual(readScenarioFile(dir), null)
+  assert.strictEqual(readScenarioFile(null), null)
+})
+
+test('doors: clicked, the way through goes to the block past it, on the far side', () => {
+  const { BotManager } = require('../src/botManager')
+  const door = { position: { x: 5, y: 64, z: 5, offset: (a, b, c) => ({ x: 5 + a, y: 64 + b, z: 5 + c }) }, getProperties: () => ({ facing: 'north', half: 'lower' }) }
+  const bot = (x, z) => ({ entity: { position: { x, y: 64, z } } })
+  const through = BotManager.prototype.beyondDoor
+  assert.deepStrictEqual(through.call(null, bot(5.5, 7), door), { x: 5.5, y: 64, z: 4.5 }, 'from the south: to the north')
+  assert.deepStrictEqual(through.call(null, bot(5.5, 3), door), { x: 5.5, y: 64, z: 6.5 }, 'from the north: to the south')
+  assert.deepStrictEqual(through.call(null, bot(5.5, 3), door, -1), { x: 5.5, y: 64, z: 4.5 }, 'its own side')
+  const eastWest = { ...door, getProperties: () => ({ facing: 'east', half: 'lower' }) }
+  assert.deepStrictEqual(through.call(null, bot(8, 5.5), eastWest), { x: 4.5, y: 64, z: 5.5 })
 })
