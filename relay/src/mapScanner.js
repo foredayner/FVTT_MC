@@ -327,7 +327,7 @@ class MapScanner {
         }
         p.set(x, s.y, z)
         const [r, g, b] = this.outerDoor(x, z, s.y, bottom, nameAt, surface) ? PLAN.DOOR_OUT
-          : STAIRS_RE.test(nameAt(p) ?? '') ? PLAN.STAIRS : shadeRgb(s.id, shade)
+          : STAIRS_RE.test(nameAt(p) ?? '') && this.groundStep(x, s.y, z, nameAt, surface) ? PLAN.STAIRS : shadeRgb(s.id, shade)
         rgb[i * 3] = r; rgb[i * 3 + 1] = g; rgb[i * 3 + 2] = b
         heights[i] = s.y
         found++
@@ -342,6 +342,22 @@ class MapScanner {
     this.chunks.set(k, entry)
     this.onChunk(MapScanner.encode(entry))
     return true
+  }
+
+  /**
+   * Outdoors, stairs that are steps (up to a door, a porch, a terrace), not a roof: beside them is
+   * ground that is not stairs, level with them or a block lower.
+   */
+  groundStep (x, y, z, nameAt, surface) {
+    const p = new Vec3(0, 0, 0)
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      let n = null
+      try { n = surface(x + dx, z + dz) } catch { n = null }
+      if (!n || n.y > y || n.y < y - 1) continue
+      p.set(x + dx, n.y, z + dz)
+      if (!STAIRS_RE.test(nameAt(p) ?? '')) return true
+    }
+    return false
   }
 
   /**
