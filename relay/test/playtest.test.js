@@ -132,6 +132,9 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
   await c.call('gm', { action: 'tp', args: { target: 'Play_Jo', x: ex, y: ey, z: ez, center: true } })
   await sleep(4000) // the building's chunks come in
   note(`at the entrance ${bot.entity.position}`)
+  // Things lying about before anyone walked (dropped while the town was built?).
+  const lying = Object.values(bot.entities).filter((e) => e.name === 'item')
+  note(`items lying in the world at the start: ${lying.length}` + (lying.length ? ` (first at ${lying[0].position})` : ''))
 
   // ---------------------------------------------------------------- walking
   let weakest = bot.health
@@ -147,8 +150,9 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
       const p = bot.entity.position
       if (Math.hypot(p.x - x - 0.5, p.z - z - 0.5) < 0.8 && Math.abs(p.y - y) < 0.8) {
         const s = (Date.now() - t0) / 1000
-        walks.push({ label, ok: true, seconds: s, hurt: h0 - Math.min(h0, weakest) })
-        note(`walk ${label}: there in ${s.toFixed(1)} s`)
+        const pockets = bot.inventory.items().reduce((n, it) => n + it.count, 0)
+        walks.push({ label, ok: true, seconds: s, hurt: h0 - Math.min(h0, weakest), pockets })
+        note(`walk ${label}: there in ${s.toFixed(1)} s (${pockets} things in the pockets)`)
         return true
       }
       if (p.distanceTo(last) > 0.05) { last = p.clone(); stillSince = Date.now() }
@@ -185,6 +189,7 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
   }
   if (!(await go('back out of the entrance', play.entrance))) problem('could not walk back out')
   clearInterval(watch)
+  note(`in the pockets after the walk: ${bot.inventory.items().map((it) => `${it.name} x${it.count}`).join(', ') || 'nothing'}`)
   note(`lowest health on the walk: ${weakest} of 20`)
   if (weakest < 20) problem(`hurt on the way (lowest health ${weakest})`)
 
