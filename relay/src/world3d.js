@@ -108,9 +108,28 @@ function assetVersion (mcVersion) {
   try { return readAssets(mcVersion).version } catch { return null }
 }
 
+/**
+ * The item pictures (16x16 PNGs) as one JSON file {name: base64 PNG}: the 3D view draws an item
+ * display (a clue lying about) as its item's picture.
+ */
+function itemPictures (a) {
+  const out = {}
+  // Items first; a block item without a picture of its own (a tripwire hook, a lantern) uses its block's.
+  for (const sub of ['items', 'blocks']) {
+    const dir = path.join(path.dirname(a.atlas), a.version, sub)
+    if (!fs.existsSync(dir)) continue
+    for (const f of fs.readdirSync(dir)) {
+      const name = f.slice(0, -4)
+      if (f.endsWith('.png') && !(name in out)) out[name] = fs.readFileSync(path.join(dir, f)).toString('base64')
+    }
+  }
+  return Buffer.from(JSON.stringify(out))
+}
+
 /** One asset file as base64 (for the GM to upload into Foundry's data folder). */
 function readAsset (mcVersion, name) {
   const a = readAssets(mcVersion)
+  if (name === 'items') return { version: a.version, name, data: itemPictures(a).toString('base64') }
   const file = name === 'atlas' ? a.atlas : name === 'blockStates' ? a.blockStates : null
   if (!file) throw new Error(`알 수 없는 자료: ${name}`)
   return { version: a.version, name, data: fs.readFileSync(file).toString('base64') }

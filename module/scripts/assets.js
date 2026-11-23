@@ -4,7 +4,8 @@ import { MODULE_ID, L } from "./constants.js";
 export const ASSET_ROOT = "bwb-assets";
 const FILES = [
   { name: "atlas", file: "atlas.png", type: "image/png" },
-  { name: "blockStates", file: "blockStates.json", type: "application/json" }
+  { name: "blockStates", file: "blockStates.json", type: "application/json" },
+  { name: "items", file: "items.json", type: "application/json" }
 ];
 
 /** Absolute URLs the 3D renderer needs for a version. */
@@ -13,6 +14,7 @@ export function assetUrls(version) {
   return {
     atlasUrl: at("atlas.png"),
     blockStatesUrl: at("blockStates.json"),
+    itemsUrl: at("items.json"),
     workerUrl: new URL(`modules/${MODULE_ID}/vendor/bwb3d-worker.js`, document.baseURI).href
   };
 }
@@ -29,7 +31,8 @@ export function assetsReady(version) {
 export async function ensureAssets(relay, version) {
   const dir = `${ASSET_ROOT}/${version}`;
   const urls = assetUrls(version);
-  if (assetsReady(version) && await exists(urls.atlasUrl) && await exists(urls.blockStatesUrl)) return;
+  const at = (f) => new URL(`${dir}/${f}`, document.baseURI).href;
+  if (assetsReady(version) && await exists(urls.atlasUrl) && await exists(urls.blockStatesUrl) && await exists(urls.itemsUrl)) return;
 
   const FP = foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
   if (!FP?.upload) throw new Error("FilePicker.upload unavailable");
@@ -37,6 +40,7 @@ export async function ensureAssets(relay, version) {
   await mkdir(FP, ASSET_ROOT);
   await mkdir(FP, dir);
   for (const f of FILES) {
+    if (await exists(at(f.file))) continue; // there from before (an older module had fewer files)
     const res = await relay.call("asset3d", { name: f.name }, 120000);
     const bytes = Uint8Array.from(atob(res.data), (c) => c.charCodeAt(0));
     const file = new File([bytes], f.file, { type: f.type });

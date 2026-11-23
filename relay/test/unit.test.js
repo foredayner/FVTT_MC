@@ -502,3 +502,18 @@ test('doors: clicked, the way through goes to the block past it, on the far side
   const eastWest = { ...door, getProperties: () => ({ facing: 'east', half: 'lower' }) }
   assert.deepStrictEqual(through.call(null, bot(8, 5.5), eastWest), { x: 4.5, y: 64, z: 5.5 })
 })
+
+test('item displays (clues lying about): read as their item, size and spot', () => {
+  const { readItem, metaIndex } = require('../src/displays')
+  const registry = require('minecraft-data')('1.21.4')
+  const idx = metaIndex(registry)
+  const keys = registry.entitiesByName.item_display.metadataKeys
+  const meta = []
+  meta[keys.indexOf('item_stack')] = { itemCount: 1, itemId: registry.itemsByName.paper.id }
+  meta[keys.indexOf('scale')] = { x: 0.6, y: 0.6, z: 0.6 }
+  const it = readItem({ id: 7, metadata: meta, position: { x: 1.5, y: 64.5, z: -2.5 } }, registry, idx, 'overworld')
+  assert.deepStrictEqual(it, { id: 'i7', dim: 'overworld', item: 'paper', x: 1.5, y: 64.5, z: -2.5, size: 0.6 })
+  const empty = []
+  empty[keys.indexOf('item_stack')] = { itemCount: 0 }
+  assert.strictEqual(readItem({ id: 8, metadata: empty, position: { x: 0, y: 0, z: 0 } }, registry, idx, 'overworld'), null)
+})

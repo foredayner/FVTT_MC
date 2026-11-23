@@ -8,6 +8,7 @@
 //     item   the Minecraft item floating where it lies (paper, book, tripwire_hook...)
 //     radius blocks within which it is noticed
 //     spot   difficulty of the automatic perception check for a hidden clue
+//     only   user ids it is shown to on the map (empty: everyone); the GM can add more later
 //   page flags["blockworld-bridge"].check = { skill, difficulty, label }: a check that reveals it
 //
 // Where clues lie is kept on the map scene (flags["blockworld-bridge"].clues), one entry per
@@ -15,7 +16,7 @@
 
 export const KINDS = ["normal", "hidden", "item"];
 export const ITEMS = ["paper", "book", "written_book", "filled_map", "tripwire_hook", "name_tag", "flower_pot", "bone", "emerald", "clock", "compass", "potion", "feather", "string"];
-export const DEFAULT_CLUE = { kind: "normal", item: "paper", radius: 5, spot: "regular", icon: "" };
+export const DEFAULT_CLUE = { kind: "normal", item: "paper", radius: 5, spot: "regular", icon: "", only: [] };
 
 /** A journal's clue settings with the defaults filled in. */
 export function clueSettings(flag) {
@@ -24,6 +25,7 @@ export function clueSettings(flag) {
   c.radius = Math.max(1, Math.min(32, Number(c.radius) || DEFAULT_CLUE.radius));
   if (!/^[a-z0-9_]{1,40}$/.test(String(c.item))) c.item = "paper";
   if (!["regular", "hard", "extreme"].includes(c.spot)) c.spot = "regular";
+  c.only = Array.isArray(c.only) ? [...new Set(c.only.map(String).filter((u) => /^[A-Za-z0-9]{1,32}$/.test(u)))] : [];
   return c;
 }
 
@@ -39,9 +41,11 @@ export function newPlaced(id, journal, settings, at) {
     radius: settings.radius,
     spotDifficulty: settings.spot,
     icon: settings.icon || "",
+    only: settings.only ?? [],
     x: at.x, y: at.y, z: at.z, dim: at.dim ?? "overworld",
     revealed: settings.kind !== "hidden", // a hidden clue shows once spotted (or shown by the GM)
     seen: {},       // who has seen it on the map ("*" = everyone): it stays drawn for them
+                    // (a hidden clue: only those who spotted it, or whom the GM showed it to)
     spotted: {},    // automatic perception checks: userId -> "ok" | "fail"
     found: {},      // who has looked at it (it is in their journal)
     tried: {},      // "userId:pageId" -> true|false: extra checks tried (once each)
@@ -52,8 +56,20 @@ export function newPlaced(id, journal, settings, at) {
 /** Is a placed clue drawn for this user (GM: always)? */
 export function visibleTo(c, userId, isGM) {
   if (isGM) return true;
+  // Shown only to some players: nobody else ever sees it.
+  if (Array.isArray(c.only) && c.only.length && !c.only.includes(userId)) return false;
   if (!c.revealed) return false;
   return !!(c.seen?.["*"] || c.seen?.[userId]);
+}
+
+/**
+ * Who a character in view of a revealed clue now counts as having seen it for: everyone in a
+ * shared game, itself in a private one; a hidden clue only for one who spotted it (a failed or
+ * not yet rolled check sees nothing, even when another player found it). null: nobody.
+ */
+export function seenFor(c, mode, userId) {
+  if (c.kind === "hidden" && c.spotted?.[userId] !== "ok" && !c.seen?.[userId]) return null;
+  return c.kind === "hidden" ? userId : audience(mode, userId);
 }
 
 /** Who a discovery is for: everyone in a shared game, the one who found it in a private one. */

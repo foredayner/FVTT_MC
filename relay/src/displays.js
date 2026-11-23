@@ -87,12 +87,44 @@ function vec (v, fallback) {
   return v
 }
 
-/** Index of each metadata field for block_display in this game version. */
+/** Index of each metadata field for block_display (and item_display) in this game version. */
 function metaIndex (registry) {
   const keys = registry.entitiesByName?.block_display?.metadataKeys
   if (!keys) return null
   const at = (name) => keys.indexOf(name)
-  return { translation: at('translation'), scale: at('scale'), left: at('left_rotation'), right: at('right_rotation'), blockState: at('block_state') }
+  const items = registry.entitiesByName?.item_display?.metadataKeys ?? []
+  return {
+    translation: at('translation'),
+    scale: at('scale'),
+    left: at('left_rotation'),
+    right: at('right_rotation'),
+    blockState: at('block_state'),
+    itemStack: items.indexOf('item_stack'),
+    itemScale: items.indexOf('scale')
+  }
+}
+
+/**
+ * An item display (a clue lying about, the scenario builder's floating paper) as a picture of its
+ * item where the game draws it: {id, dim, item, x, y, z, size}, or null if it shows nothing.
+ */
+function readItem (ent, registry, idx, dim) {
+  const meta = ent.metadata ?? []
+  const stack = idx.itemStack >= 0 ? meta[idx.itemStack] : null
+  const itemId = stack?.itemId ?? stack?.id ?? stack?.present?.itemId
+  if (itemId === undefined || itemId === null || itemId < 0 || stack?.itemCount === 0) return null
+  const name = registry.items?.[itemId]?.name
+  if (!name || name === 'air') return null
+  const sc = vec(idx.itemScale >= 0 ? meta[idx.itemScale] : null, ONE)
+  return {
+    id: `i${ent.id}`,
+    dim,
+    item: name,
+    x: r4(ent.position.x),
+    y: r4(ent.position.y),
+    z: r4(ent.position.z),
+    size: r4(Math.max(0.1, Math.min(4, Number(sc.y) || 1)))
+  }
 }
 
 const r4 = (v) => Math.round(v * 1e4) / 1e4
@@ -158,16 +190,17 @@ class DisplayTracker {
       const dim = String(bot.game?.dimension ?? 'overworld')
       const p = bot.entity.position
       for (const ent of Object.values(bot.entities)) {
-        if (ent.name !== 'block_display' || now.has(String(ent.id))) continue
+        const item = ent.name === 'item_display'
+        if ((ent.name !== 'block_display' && !item) || now.has(item ? `i${ent.id}` : String(ent.id))) continue
         if (Math.abs(ent.position.x - p.x) > this.radius || Math.abs(ent.position.z - p.z) > this.radius) continue
         if (now.size >= this.maxParts) { capped = true; break }
-        const part = readPart(ent, bot.registry, idx, dim)
+        const part = item ? readItem(ent, bot.registry, idx, dim) : readPart(ent, bot.registry, idx, dim)
         if (part) now.set(part.id, part)
       }
     }
     const add = []
     for (const [id, part] of now) {
-      const sig = `${part.s}|${part.m.join(',')}`
+      const sig = part.item ? `${part.item}|${part.x},${part.y},${part.z}|${part.size}` : `${part.s}|${part.m.join(',')}`
       if (this.sig.get(id) === sig) continue
       this.sig.set(id, sig)
       this.parts.set(id, part)
@@ -188,7 +221,7 @@ class DisplayTracker {
     this.reported = n
     this.lastReport = Date.now()
     const kinds = {}
-    for (const p of this.parts.values()) kinds[p.name] = (kinds[p.name] ?? 0) + 1
+    for (const p of this.parts.values()) { const k = p.item ? `item ${p.item}` : p.name; kinds[k] = (kinds[k] ?? 0) + 1 }
     const top = Object.entries(kinds).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, v]) => `${k} ${v}`).join(', ')
     this.log.log(`디스플레이 블록 ${n}개${n ? ` (${top})` : ''}${capped ? ` — 최대 ${this.maxParts}개까지만 보냅니다` : ''}`)
   }
@@ -201,4 +234,4 @@ class DisplayTracker {
   }
 }
 
-module.exports = { DisplayTracker, displayMatrix, unitBox, readPart, metaIndex, quat, mul, apply }
+module.exports = { readItem, DisplayTracker, displayMatrix, unitBox, readPart, metaIndex, quat, mul, apply }

@@ -1,6 +1,6 @@
 // GM: a journal's clue settings (kind, the item it shows as, how near it is noticed, the
-// perception difficulty for a hidden one, its icon) and, for each later page, the check that
-// reveals it.
+// perception difficulty for a hidden one, which players it is shown to on the map, its icon) and,
+// for each later page, the check that reveals it.
 
 import { MODULE_ID, L } from "../constants.js";
 import { rules } from "./rules.js";
@@ -32,6 +32,9 @@ export class ClueConfig extends ApplicationV2 {
     const diffs = r.difficulties.map((d) => [d.key, d.label]);
     const skills = [["", L("Clue.GmOnly")], ...r.skills.map((s) => [s.key, s.label])];
     const items = ITEMS.includes(c.item) ? ITEMS : [...ITEMS, c.item];
+    // Shown on the map only to these players (none ticked: everyone).
+    const players = game.users.filter((u) => !u.isGM).map((u) =>
+      `<label class="checkbox"><input type="checkbox" name="only.${u.id}" ${c.only.includes(u.id) ? "checked" : ""}> ${esc(u.name)}</label>`).join(" ");
     const pages = this.journal.pages.contents.sort((a, b) => a.sort - b.sort);
     const rows = pages.slice(1).map((p) => {
       const k = p.getFlag(MODULE_ID, "check") ?? {};
@@ -50,6 +53,9 @@ export class ClueConfig extends ApplicationV2 {
         <input type="number" name="radius" min="1" max="32" value="${c.radius}"></div>
       <div class="form-group"><label>${esc(L("Clue.SpotLabel"))}</label>
         <select name="spot">${opt(diffs, c.spot)}</select></div>
+      <div class="form-group"><label>${esc(L("Clue.OnlyLabel"))}</label>
+        <div class="bwb-clue-only">${players}</div></div>
+      <p class="bwb-hint">${esc(L("Clue.OnlyHint"))}</p>
       <div class="form-group"><label>${esc(L("Clue.IconLabel"))}</label>
         <input type="text" name="icon" value="${esc(c.icon)}" placeholder="clue.svg">
         <button type="button" data-action="pickIcon"><i class="fa-solid fa-file-image"></i></button></div>
@@ -69,7 +75,8 @@ export class ClueConfig extends ApplicationV2 {
 
   static async #save(event, form, formData) {
     const d = formData.object;
-    await this.journal.setFlag(MODULE_ID, "clue", clueSettings({ kind: d.kind, item: d.item, radius: d.radius, spot: d.spot, icon: d.icon }));
+    const only = Object.keys(d).filter((k) => k.startsWith("only.") && d[k]).map((k) => k.slice(5));
+    await this.journal.setFlag(MODULE_ID, "clue", clueSettings({ kind: d.kind, item: d.item, radius: d.radius, spot: d.spot, icon: d.icon, only }));
     const updates = [];
     for (const p of this.journal.pages.contents.sort((a, b) => a.sort - b.sort).slice(1)) {
       const skill = d[`skill.${p.id}`] ?? "";

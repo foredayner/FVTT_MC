@@ -136,7 +136,12 @@ export class View3D extends ApplicationV2 {
     for (const e of recent) this.hud.chat(e.text);
     on("event", (ev) => this.hud?.handle(ev.detail, this.key));
     // Objects built from block displays: the whole set for my dimension, redrawn when it changes.
-    const pushDisplays = () => this.r3d?.setDisplays([...hub.displays.values()].filter((p) => (p.dim ?? "overworld") === myDim()));
+    // Item displays (clues lying about, the builder's floating papers) as their items' pictures.
+    const pushDisplays = () => {
+      const mine = [...hub.displays.values()].filter((p) => (p.dim ?? "overworld") === myDim());
+      this.r3d?.setDisplays(mine.filter((p) => !p.item));
+      this.r3d?.setItems?.(mine.filter((p) => p.item));
+    };
     on("disp", pushDisplays);
     pushDisplays();
     // Someone changed their look: redraw at once instead of waiting for the next state tick.

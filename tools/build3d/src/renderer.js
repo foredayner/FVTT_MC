@@ -27,6 +27,7 @@ class Renderer3D {
    */
   constructor (canvas, opts) {
     this.canvas = canvas
+    this.opts = opts
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
     this.renderer.setPixelRatio(Math.min(2, globalThis.devicePixelRatio || 1))
     this.scene = new THREE.Scene()
@@ -199,6 +200,66 @@ class Renderer3D {
     geo.setIndex(g.indices)
     this.models.set(stateId, geo)
     this.setDisplays(this.displayParts)
+  }
+
+  // ---------- item displays (clues lying about) ----------
+
+  /**
+   * Item displays to show (replaces the previous set): each its item's picture, turned to the
+   * camera like the game's "vertical" billboard, `size` blocks across, centred on x, y, z.
+   * @param {{id:string, item:string, x:number, y:number, z:number, size:number}[]} list
+   */
+  setItems (list) {
+    this.items ??= new Map()
+    const seen = new Set()
+    for (const it of list) {
+      const id = String(it.id)
+      seen.add(id)
+      let obj = this.items.get(id)
+      if (obj && obj.userData.item !== it.item) { this.dropItem(id); obj = null }
+      if (!obj) {
+        obj = new THREE.Group()
+        obj.userData.item = it.item
+        this.items.set(id, obj)
+        this.scene.add(obj)
+        this.itemTexture(it.item).then((tex) => {
+          if (!tex || !obj.parent) return
+          const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, alphaTest: 0.1 }))
+          obj.add(sprite)
+        })
+      }
+      obj.position.set(it.x, it.y, it.z)
+      obj.scale.set(it.size || 0.6, it.size || 0.6, it.size || 0.6)
+    }
+    for (const id of [...this.items.keys()]) if (!seen.has(id)) this.dropItem(id)
+  }
+
+  dropItem (id) {
+    const obj = this.items.get(id)
+    if (!obj) return
+    this.scene.remove(obj)
+    obj.traverse((m) => { if (m.isSprite) m.material.dispose() }) // textures stay cached
+    this.items.delete(id)
+  }
+
+  /** An item's picture (from items.json, loaded once); null if there is none. */
+  itemTexture (name) {
+    this.itemPictures ??= this.opts?.itemsUrl
+      ? fetch(this.opts.itemsUrl).then((r) => (r.ok ? r.json() : {})).catch(() => ({}))
+      : Promise.resolve({})
+    this.itemTextures ??= new Map()
+    if (!this.itemTextures.has(name)) {
+      this.itemTextures.set(name, this.itemPictures.then((pics) => new Promise((resolve) => {
+        const b64 = pics[name] ?? pics.paper
+        if (!b64) { resolve(null); return }
+        new THREE.TextureLoader().load(`data:image/png;base64,${b64}`, (tex) => {
+          tex.magFilter = THREE.NearestFilter
+          tex.minFilter = THREE.NearestFilter
+          resolve(tex)
+        }, undefined, () => resolve(null))
+      })))
+    }
+    return this.itemTextures.get(name)
   }
 
   // ---------- camera and entities ----------

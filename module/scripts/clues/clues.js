@@ -7,10 +7,11 @@
 import { MODULE_ID, SOCKET, L } from "../constants.js";
 import { mcToScene } from "../coords.js";
 import { rules } from "./rules.js";
-import { clueSettings, newPlaced, visibleTo, audience, within, plainText, readClueFile, DEFAULT_CLUE, esc } from "./store.js";
+import { clueSettings, newPlaced, visibleTo, audience, seenFor, within, plainText, readClueFile, DEFAULT_CLUE, esc } from "./store.js";
 import { ClueLayer } from "./clue-layer.js";
 import { StairsLayer, readStairs } from "./stairs-layer.js";
 import { PinLayer } from "./pin-layer.js";
+import { PlaceLayer, readPlaces } from "./place-layer.js";
 import { ClueView } from "./clue-view.js";
 import { ClueConfig } from "./clue-config.js";
 import { ClueBoard } from "./clue-board.js";
@@ -28,6 +29,7 @@ export class ClueSystem {
     this.layer = new ClueLayer(this);
     this.stairs = new StairsLayer(this);
     this.pins = new PinLayer(this);
+    this.placeNames = new PlaceLayer(this);
     this.views = new Map();      // placeId -> ClueView (mine)
     this.rolling = new Set();    // "placeId:userId" spot checks in progress
     this.gmPages = new Map();    // journal uuid -> lines about its later pages (GM tooltip)
@@ -193,14 +195,19 @@ export class ClueSystem {
   async importFile(data, scene = this.scene) {
     const { scenario, clues } = readClueFile(data);
     const stairs = readStairs(data);
-    if (!clues.length && !stairs.length) throw new Error(L("Clue.ImportEmpty"));
-    // The flights of stairs replace any from an earlier file.
+    const places = readPlaces(data);
+    if (!clues.length && !stairs.length && !places.length) throw new Error(L("Clue.ImportEmpty"));
+    // The flights of stairs and the place names replace any from an earlier file.
     if (stairs.length) await scene.setFlag(MODULE_ID, "stairs", stairs);
-    if (!clues.length) return 0;
+    if (places.length) await scene.update({ [`flags.${MODULE_ID}.places`]: places });
+    // A clue of the same name already lying at the same spot (the file loaded before) is not made twice.
+    const there = new Set(Object.values(this.placed(scene)).map((p) => `${p.name}|${p.x},${p.y},${p.z}`));
+    const fresh = clues.filter((c) => !there.has(`${c.name}|${c.x},${c.y},${c.z}`));
+    if (!fresh.length) return 0;
     const folder = await Folder.create({ name: `${L("Clue.Folder")}: ${scenario || L("Clue.Imported")}`, type: "JournalEntry" });
     const ruleSet = rules();
     let n = 0;
-    for (const c of clues) {
+    for (const c of fresh) {
       const pages = [{ name: L("Clue.SurfacePage"), type: "text", text: { content: `<p>${esc(c.text).replace(/\n/g, "<br>")}</p>` } }];
       for (const k of c.checks) {
         pages.push({
@@ -259,6 +266,23 @@ export class ClueSystem {
     game.socket.emit(SOCKET, msg);
   }
 
+  /** The one who pinned it, or the GM: its size (for everyone). */
+  requestPinSize(id, scale) {
+    const msg = { t: "pinSize", from: game.user.id, pin: id, scale };
+    if (this.isHost()) return this.pinSize(game.user.id, msg).catch((err) => ui.notifications.warn(err.message));
+    game.socket.emit(SOCKET, msg);
+  }
+
+  async pinSize(userId, m) {
+    const scene = this.scene;
+    const user = game.users.get(userId);
+    const p = scene?.getFlag(MODULE_ID, "pins")?.[m.pin];
+    if (!p || !user) return;
+    if (!user.isGM && p.by !== userId) throw new Error(L("Pin.NotYours"));
+    const scale = Math.max(0.5, Math.min(4, Number(m.scale) || 1));
+    await scene.update({ [`flags.${MODULE_ID}.pins.${m.pin}.scale`]: scale });
+  }
+
   requestUnpin(id) {
     const msg = { t: "pinDel", from: game.user.id, pin: id };
     if (this.isHost()) return this.unpin(game.user.id, msg).catch((err) => ui.notifications.warn(err.message));
@@ -309,7 +333,7 @@ export class ClueSystem {
       if (!scene.getFlag(MODULE_ID, "map")) continue;
       for (const c of Object.values(this.placed(scene))) {
         if (c.uuid !== journal.uuid) continue;
-        const change = { name: journal.name, surface: this.surfaceOf(journal), kind: s.kind, item: s.item, radius: s.radius, spotDifficulty: s.spot, icon: s.icon || "" };
+        const change = { name: journal.name, surface: this.surfaceOf(journal), kind: s.kind, item: s.item, radius: s.radius, spotDifficulty: s.spot, icon: s.icon || "", only: s.only };
         if (s.kind !== "hidden" && !c.revealed) change.revealed = true;
         await this.save(c.id, change, scene);
         if ((change.revealed || c.revealed) && (c.item !== s.item || change.revealed)) await this.relayPlace({ ...c, ...change });
@@ -344,12 +368,12 @@ export class ClueSystem {
       if (!pos || (pos.dim ?? "overworld") !== dim) continue;
       for (const c of placed) {
         if (!within(pos, c, c.radius) || !this.lineOfSight(scene, pos, c)) continue;
-        if (!c.revealed) {
-          if (c.kind === "hidden" && !c.spotted?.[bot.key]) this.spotCheck(scene, c.id, bot.key);
-          continue;
-        }
-        const who = audience(this.mode, bot.key);
-        if (!c.seen?.[who]) (seen[c.id] ??= {})[who] = true;
+        if (c.only?.length && !c.only.includes(bot.key)) continue; // not shown to this player at all
+        // A hidden clue: each character gets its own check, found by another or not.
+        if (c.kind === "hidden" && !c.spotted?.[bot.key] && !c.seen?.[bot.key]) { this.spotCheck(scene, c.id, bot.key); continue; }
+        if (!c.revealed) continue;
+        const who = seenFor(c, this.mode, bot.key);
+        if (who && !c.seen?.[who]) (seen[c.id] ??= {})[who] = true;
       }
     }
     for (const [id, who] of Object.entries(seen)) this.save(id, { seen: who }, scene).catch(() => {});
@@ -362,7 +386,7 @@ export class ClueSystem {
     this.rolling.add(k);
     this.queue = this.queue.then(async () => {
       const c = this.get(id, scene);
-      if (!c || c.revealed || c.spotted?.[userId]) return;
+      if (!c || c.spotted?.[userId] || c.seen?.[userId]) return;
       const r = rules();
       const actor = this.actorFor(userId, scene);
       const res = await r.check(actor, r.perception, c.spotDifficulty ?? "regular", { blind: true, flavor: L("Clue.SpotFlavor", { name: c.name, who: this.userName(userId) }) });
@@ -370,8 +394,9 @@ export class ClueSystem {
         await this.save(id, { spotted: { [userId]: "fail" } }, scene);
         return;
       }
-      await this.save(id, { spotted: { [userId]: "ok" }, revealed: true, seen: { [audience(this.mode, userId)]: true } }, scene);
-      await this.relayPlace({ ...c, revealed: true });
+      // Only the one who spotted it sees it on the map (in Minecraft it lies there for everyone).
+      await this.save(id, { spotted: { [userId]: "ok" }, revealed: true, seen: { [userId]: true } }, scene);
+      if (!c.revealed) await this.relayPlace({ ...c, revealed: true });
       this.tell(userId, { t: "clueNotice", place: id });
     }).catch((err) => console.warn(`${MODULE_ID} | spot`, err)).finally(() => this.rolling.delete(k));
   }
@@ -380,7 +405,7 @@ export class ClueSystem {
   async revealHidden(id, userId = null) {
     const c = this.get(id);
     if (!c) return;
-    const who = userId ? audience(this.mode, userId) : "*";
+    const who = !userId ? "*" : c.kind === "hidden" ? userId : audience(this.mode, userId);
     await this.save(id, { revealed: true, seen: { [who]: true } });
     await this.relayPlace({ ...c, revealed: true });
     for (const u of game.users) if (!u.isGM && (!userId || u.id === userId)) this.tell(u.id, { t: "clueNotice", place: id });
@@ -536,10 +561,10 @@ export class ClueSystem {
       this.handle(from, data.op, data.place, data.page).catch((err) => this.tell(from, { t: "clueError", text: err.message }));
       return;
     }
-    if (data.t === "pinReq" || data.t === "pinDel") {
+    if (data.t === "pinReq" || data.t === "pinDel" || data.t === "pinSize") {
       if (!this.isHost()) return;
       const from = (typeof sender === "string" && game.users.get(sender)) ? sender : data.from;
-      (data.t === "pinReq" ? this.pin(from, data) : this.unpin(from, data))
+      (data.t === "pinReq" ? this.pin(from, data) : data.t === "pinSize" ? this.pinSize(from, data) : this.unpin(from, data))
         .catch((err) => this.tell(from, { t: "clueError", text: err.message }));
       return;
     }

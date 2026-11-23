@@ -1,10 +1,16 @@
-// Clues drawn on the map scene: an icon on each clue a player has seen (it stays once seen, like
-// an outer door), every clue for the GM (hidden ones faint until spotted). Hovering shows what is
-// there at a glance (and, for the GM, what more there is); right-clicking looks at it.
+// Clues drawn on the map scene: an icon on each clue a player has seen, every clue for the GM
+// (hidden ones faint until spotted). Only the clues of the floor one is on. For a player only
+// while in sight of their character; once seen, a clue out of sight stays faint where it was.
+// Hovering shows what is there at a glance (and, for the GM, what more there is); right-clicking
+// looks at it.
 
 import { MODULE_ID, L } from "../constants.js";
 import { mcToScene } from "../coords.js";
 import { visibleTo, esc } from "./store.js";
+import { viewY, onFloor } from "./stairs-layer.js";
+
+/** How a clue out of sight that one has seen before shows. */
+const FAINT = 0.35;
 
 export const DEFAULT_ICON = `modules/${MODULE_ID}/assets/clue.svg`;
 
@@ -19,6 +25,47 @@ export class ClueLayer {
       if (scene.id === canvas.scene?.id && foundry.utils.hasProperty(change, `flags.${MODULE_ID}`)) redraw();
     });
     Hooks.on("canvasTearDown", () => { this.container = null; this.hideTip(); });
+    // Another floor: other clues. In or out of sight: drawn, faint or not at all.
+    system.hub.addEventListener("state", foundry.utils.throttle(() => {
+      if (this.floorKey() !== this.shownFloor) this.draw();
+    }, 300));
+    const sight = foundry.utils.throttle(() => this.refreshSight(), 150);
+    for (const hook of ["sightRefresh", "visibilityRefresh", "refreshToken", "updateToken"]) Hooks.on(hook, sight);
+  }
+
+  floorKey() {
+    const vy = viewY(this.system);
+    return vy === null ? "all" : String(Math.floor((vy + 2.5) / 5));
+  }
+
+  /** The clues of this scene one has had in sight (kept on one's user, so a reload keeps them). */
+  sighted(scene = this.system.scene) {
+    return game.user.getFlag(MODULE_ID, `sighted.${scene?.id}`) ?? {};
+  }
+
+  /** Player: each clue drawn in full while in sight, faint once seen and out of sight, else not at all. */
+  refreshSight() {
+    const box = this.container;
+    const scene = this.system.scene;
+    if (!box || box.destroyed || !scene || game.user.isGM) return;
+    const vis = canvas.visibility;
+    const tol = scene.grid.size * 0.35;
+    const had = this.sighted(scene);
+    const now = {};
+    for (const sprite of box.children) {
+      const id = sprite.clueId;
+      if (!id) continue;
+      let inSight = true;
+      if (vis?.tokenVision) {
+        try { inSight = vis.testVisibility({ x: sprite.x, y: sprite.y }, { tolerance: tol }); } catch { inSight = true; }
+      }
+      if (inSight && !had[id]) now[id] = true;
+      sprite.visible = inSight || !!had[id];
+      sprite.alpha = inSight ? 1 : FAINT;
+    }
+    if (Object.keys(now).length) {
+      game.user.update({ [`flags.${MODULE_ID}.sighted.${scene.id}`]: now }).catch(() => {});
+    }
   }
 
   async draw() {
@@ -40,8 +87,11 @@ export class ClueLayer {
     box.eventMode = "passive";
     box.sortableChildren = true;
     const isGM = game.user.isGM;
+    const vy = viewY(this.system);
+    this.shownFloor = this.floorKey();
     for (const c of Object.values(this.system.placed(scene))) {
       if (!visibleTo(c, game.user.id, isGM) || (c.dim ?? "overworld") !== (map.dim ?? "overworld")) continue;
+      if (!onFloor(c.y, vy)) continue; // another floor's
       const at = mcToScene({ x: c.x + 0.5, z: c.z + 0.5 }, map, dims);
       const tex = icons.get(c.icon || DEFAULT_ICON);
       if (!tex) continue;
@@ -63,6 +113,7 @@ export class ClueLayer {
     }
     (canvas.interface ?? canvas.stage).addChild(box);
     this.container = box;
+    this.refreshSight();
   }
 
   clear() {

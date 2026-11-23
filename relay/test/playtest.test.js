@@ -241,6 +241,10 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     note(`clue ${cl.id} (${cl.kind}) at ${cl.x},${cl.y},${cl.z}: ${r.ok ? 'placed' : 'NOT placed ' + r.error}; ${n.trim()}; in air: ${/passed/.test(at)}`)
     if (!r.ok || !/count: 2/.test(n)) problem(`clue ${cl.id} not placed in the world`)
   }
+  // The clues near the character reach the game table's 3D view as their items' pictures.
+  const items = new Set(c.msgs.filter((m) => m.type === 'disp').flatMap((m) => (m.add ?? []).filter((p) => p.item).map((p) => p.item)))
+  note(`item displays the 3D view gets: ${[...items].join(', ') || 'none'}`)
+  if (!items.size) problem('no clue reached the 3D view as an item display')
   const papersAfter = await papers()
   note(`papers left after the clues were put in their places: ${papersAfter}`)
   if (papersAfter > 0) problem(`${papersAfter} of the builder's papers stayed where clues were put`)

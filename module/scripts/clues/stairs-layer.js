@@ -28,6 +28,24 @@ export function readStairs(data) {
   return out;
 }
 
+/** The height (feet) of the floor one is looking at: one's character, else the fixed floor plan, else none (all). */
+export function viewY(system) {
+  const me = system.hub.positions?.get(game.user.id);
+  if (me && Number.isFinite(me.y)) return me.y;
+  const v = viewOf(system.scene);
+  return v.mode === "fixed" && Number.isFinite(v.y) ? v.y + 1 : null;
+}
+
+/**
+ * Whether something at height y (feet; a clue, a place's floor) is on the floor seen from viewY:
+ * from a little under it up to just under the next floor (floors are 5 apart). null: every floor.
+ */
+export function onFloor(y, vy) {
+  if (vy === null || !Number.isFinite(y)) return true;
+  const d = y - vy;
+  return d >= -2.5 && d < 3.5;
+}
+
 export class StairsLayer {
   constructor(system) {
     this.system = system;
@@ -50,13 +68,7 @@ export class StairsLayer {
 
   flights() { return this.scene?.getFlag(MODULE_ID, "stairs") ?? []; }
 
-  /** The height of the floor one is looking at: one's character, else the fixed floor plan, else none (all). */
-  viewY() {
-    const me = this.system.hub.positions?.get(game.user.id);
-    if (me && Number.isFinite(me.y)) return me.y;
-    const v = viewOf(this.scene);
-    return v.mode === "fixed" && Number.isFinite(v.y) ? v.y + 1 : null;
-  }
+  viewY() { return viewY(this.system); }
 
   /** Which ends show now (to redraw only when that changes). */
   signature() {

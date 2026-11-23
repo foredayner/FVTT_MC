@@ -427,6 +427,20 @@ test("clues: settings, visibility, distance and the scenario builder's file", as
   assert.strictEqual(S.visibleTo(plain, "u1", false), true, "seen by the party: drawn for everyone");
   plain.seen = { u2: true };
   assert.strictEqual(S.visibleTo(plain, "u1", false), false, "a private find: only for who found it");
+  // A hidden clue: seen only by who spotted it, even once another found it.
+  hidden.revealed = true;
+  hidden.spotted = { u1: "ok", u2: "fail" };
+  assert.strictEqual(S.seenFor(hidden, "party", "u1"), "u1");
+  assert.strictEqual(S.seenFor(hidden, "party", "u2"), null, "a failed check sees nothing");
+  assert.strictEqual(S.seenFor(hidden, "party", "u3"), null, "no check yet: nothing");
+  assert.strictEqual(S.seenFor(plain, "party", "u3"), "*");
+  hidden.seen = { u1: true };
+  assert.ok(S.visibleTo(hidden, "u1", false) && !S.visibleTo(hidden, "u2", false));
+  // Shown only to some players.
+  const some = { ...plain, revealed: true, seen: { "*": true }, only: ["u2"] };
+  assert.ok(!S.visibleTo(some, "u1", false) && S.visibleTo(some, "u2", false) && S.visibleTo(some, "u1", true));
+  assert.deepStrictEqual(S.clueSettings({ only: ["u2", "u2", "bad id!"] }).only, ["u2"]);
+  assert.deepStrictEqual(S.clueSettings({}).only, []);
   assert.strictEqual(S.audience("private", "u1"), "u1");
   assert.strictEqual(S.audience("party", "u1"), "*");
   assert.ok(S.within({ x: 3.5, y: 64, z: 0.5 }, plain, 3));
