@@ -220,8 +220,22 @@ class BotManager extends EventEmitter {
       if (bot.entity.position.distanceTo(centre) > REACH + 0.5) throw new Error('블록까지 닿지 않습니다')
       const block = bot.blockAt(pos)
       if (!block || !bot.canDigBlock(block)) throw new Error('캘 수 없는 블록입니다')
-      await bot.dig(block, true)
+      await this.digClean(bot, block, true)
     })
+  }
+
+  /**
+   * Dig a block as the game does (its time, its sound), then take away what it dropped before the
+   * character picks it up (items lie half a second before they can be picked up): blocks broken
+   * from Foundry do not end up in the hotbar. Without RCON the drops stay.
+   */
+  async digClean (bot, block, look) {
+    const c = block.position.offset(0.5, 0.5, 0.5)
+    await bot.dig(block, look)
+    if (!this.rcon) return
+    const sweep = () => this.runCommand(`execute positioned ${c.x} ${c.y} ${c.z} run kill @e[type=minecraft:item,distance=..2.5]`).catch(() => {})
+    await sweep()
+    setTimeout(sweep, 250) // one that fell a moment later (the upper half of a door, a torch on it)
   }
 
   /** Attack the nearest non-bot entity close to x,z. */
@@ -275,7 +289,7 @@ class BotManager extends EventEmitter {
       const block = bot.blockAtCursor(5)
       if (!block || !bot.canDigBlock(block)) return
       if (bot.targetDigBlock) return // already digging
-      return this.exclusive(e, () => bot.dig(block, 'ignore'))
+      return this.exclusive(e, () => this.digClean(bot, block, 'ignore'))
     }
     if (button === 'right') {
       // As in the game: a clue (an entity) first, then a block that does something, then the item in hand.

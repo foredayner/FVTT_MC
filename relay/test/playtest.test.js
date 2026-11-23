@@ -221,6 +221,21 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     }
   }
   if (!(await go('back out of the entrance', play.entrance))) problem('could not walk back out')
+  // A block broken from Foundry leaves nothing to pick up: the grass two blocks east of the entrance.
+  {
+    const [ex, ey, ez] = play.entrance
+    const before = bot.inventory.items().reduce((n, it) => n + it.count, 0)
+    await rcon(`setblock ${ex + 2} ${ey - 1} ${ez} minecraft:dirt`)
+    await sleep(500)
+    const r = await c.call('dig', { key: 'u1', x: ex + 2.5, z: ez + 0.5, y: ey - 1 })
+    await sleep(2500)
+    const gone = /passed/i.test(String(await rcon(`execute if block ${ex + 2} ${ey - 1} ${ez} minecraft:air`)))
+    const after = bot.inventory.items().reduce((n, it) => n + it.count, 0)
+    note(`dug the block by the entrance: ${r.ok ? 'ok' : r.error}; broken ${gone ? 'yes' : 'no'}; pockets ${before} -> ${after}`)
+    if (!r.ok || !gone) problem('could not dig the block by the entrance')
+    if (after > before) problem('the block dug from Foundry ended up in the pockets')
+    await rcon(`setblock ${ex + 2} ${ey - 1} ${ez} minecraft:grass_block`)
+  }
   clearInterval(watch)
   note(`in the pockets after the walk: ${bot.inventory.items().map((it) => `${it.name} x${it.count}`).join(', ') || 'nothing'}`)
   note(`lowest health on the walk: ${weakest} of 20`)

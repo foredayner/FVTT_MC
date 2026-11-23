@@ -517,3 +517,19 @@ test('item displays (clues lying about): read as their item, size and spot', () 
   empty[keys.indexOf('item_stack')] = { itemCount: 0 }
   assert.strictEqual(readItem({ id: 8, metadata: empty, position: { x: 0, y: 0, z: 0 } }, registry, idx, 'overworld'), null)
 })
+
+test('map: a lone odd cell of ground takes the colour round it; paths and props stay', () => {
+  const { despeckle, SMALL_PLANT_RE, LEAVES_RE } = require('../src/mapScanner')
+  const rgb = new Uint8Array(256 * 3)
+  const soft = new Uint8Array(256).fill(1)
+  const set = (x, z, c) => { const i = (z * 16 + x) * 3; rgb[i] = c[0]; rgb[i + 1] = c[1]; rgb[i + 2] = c[2] }
+  const get = (x, z) => { const i = (z * 16 + x) * 3; return [rgb[i], rgb[i + 1], rgb[i + 2]] }
+  for (let z = 0; z < 16; z++) for (let x = 0; x < 16; x++) set(x, z, [100, 150, 50])
+  set(5, 5, [120, 90, 60]) // a dirt patch in the lawn
+  set(8, 8, [140, 100, 60]); soft[8 * 16 + 8] = 0 // a post: not ground
+  despeckle(rgb, soft)
+  assert.deepStrictEqual(get(5, 5), [100, 150, 50])
+  assert.deepStrictEqual(get(8, 8), [140, 100, 60])
+  assert.ok(SMALL_PLANT_RE.test('short_grass') && SMALL_PLANT_RE.test('poppy') && SMALL_PLANT_RE.test('oak_sapling') && !SMALL_PLANT_RE.test('wheat'))
+  assert.ok(LEAVES_RE.test('spruce_leaves') && !LEAVES_RE.test('oak_log'))
+})

@@ -24,6 +24,17 @@ const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, 
 const PLAN = { WALL: [43, 43, 48], ROCK: [20, 20, 23], WINDOW: [159, 211, 234], DOOR_OUT: [28, 72, 214], DOOR_IN: [236, 190, 24], STAIRS: [150, 104, 196] }
 /** Stairs have their own colour (on floor plans and outdoors), so a flight stands out from the floor. */
 const STAIRS_RE = /_stairs$/
+
+// ---- a cleaner map outdoors ----
+/** Small plants on the ground (grass, flowers, ferns, saplings, mushrooms, vines): looked through, the ground under them shows. */
+const SMALL_PLANT_RE = /^(short_grass|tall_grass|grass|fern|large_fern|dead_bush|sweet_berry_bush|bush|firefly_bush|short_dry_grass|tall_dry_grass|leaf_litter|wildflowers|pink_petals|brown_mushroom|red_mushroom|crimson_fungus|warped_fungus|crimson_roots|warped_roots|nether_sprouts|vine|glow_lichen|dandelion|poppy|blue_orchid|allium|azure_bluet|red_tulip|orange_tulip|white_tulip|pink_tulip|oxeye_daisy|cornflower|lily_of_the_valley|wither_rose|sunflower|lilac|rose_bush|peony|torchflower|pitcher_plant|open_eyeblossom|closed_eyeblossom|.*_sapling)$/
+/** Trees from above: every kind of leaves one flat dark green, so a tree reads as one shape. */
+const LEAVES_RE = /_leaves$|^(azalea|flowering_azalea)$/
+const TREE = [46, 92, 36]
+/** How much of the height shading is kept on the ground outdoors (0 = none). */
+const LAND_SHADE = 0.35
+/** Natural ground (and paths) outdoors: a lone odd cell of it may take its neighbours' colour; a path never changes. */
+const GROUND_RE = /^(grass_block|dirt|coarse_dirt|rooted_dirt|podzol|mycelium|gravel|sand|red_sand|stone|andesite|diorite|granite|tuff|clay|mud|moss_block|snow|snow_block|dirt_path)$/
 /** How far under a roof a door is looked for, and how far out from it the open sky. */
 const DOOR_UNDER_ROOF = 12
 const DOOR_SKY_REACH = 4
@@ -205,7 +216,7 @@ class MapScanner {
         const name = nameAt(p)
         if (name === null) return null
         const id = colorId(name)
-        if (id === ID.NONE) continue
+        if (id === ID.NONE || SMALL_PLANT_RE.test(name)) continue
         let depth = 0
         if (id === ID.WATER) {
           for (let d = y; d > y - MAX_WATER_DEPTH && d >= bottom; d--) {
@@ -215,7 +226,7 @@ class MapScanner {
             depth++
           }
         }
-        return { y, id, depth }
+        return { y, id, depth, leaves: LEAVES_RE.test(name) }
       }
       return null
     }
@@ -285,6 +296,9 @@ class MapScanner {
     }
 
     const rgb = new Uint8Array(16 * 16 * 3)
+    // Outdoor ground: 1 = may be painted over when it is a lone odd cell, 2 = a path (counts, never changes),
+    // 0 = everything else (water, doors, stairs, posts and props, floor plans).
+    const soft = new Uint8Array(16 * 16)
     const heights = new Int16Array(16 * 16).fill(NO_HEIGHT)
     const kinds = new Uint8Array(16 * 16)
     // Row above (north of) the chunk first, so the first row can be shaded too.
@@ -326,15 +340,23 @@ class MapScanner {
           continue
         }
         p.set(x, s.y, z)
-        const [r, g, b] = this.outerDoor(x, z, s.y, bottom, nameAt, surface) ? PLAN.DOOR_OUT
-          : STAIRS_RE.test(nameAt(p) ?? '') && this.groundStep(x, s.y, z, nameAt, surface) ? PLAN.STAIRS : shadeRgb(s.id, shade)
+        const door = this.outerDoor(x, z, s.y, bottom, nameAt, surface)
+        const step = !door && STAIRS_RE.test(nameAt(p) ?? '') && this.groundStep(x, s.y, z, nameAt, surface)
+        const [r, g, b] = door ? PLAN.DOOR_OUT : step ? PLAN.STAIRS
+          : s.id === ID.WATER ? shadeRgb(s.id, shade)
+            : s.leaves ? TREE
+              // the ground: only a little of the height shading, so it reads as one colour
+              : blend(shadeRgb(s.id, SHADE.NORMAL), shadeRgb(s.id, shade), LAND_SHADE)
         rgb[i * 3] = r; rgb[i * 3 + 1] = g; rgb[i * 3 + 2] = b
+        const ground = !door && !step && s.id !== ID.WATER && !s.leaves ? (nameAt(p) ?? '') : ''
+        soft[i] = !GROUND_RE.test(ground) ? 0 : ground === 'dirt_path' ? 2 : 1
         heights[i] = s.y
         found++
       }
       northRow = row
     }
     if (!found) return false
+    despeckle(rgb, soft)
     const k = this.key(dim, cx, cz)
     const prev = this.chunks.get(k)
     if (prev && equalBytes(prev.rgb, rgb) && equalBytes(prev.heights, heights) && equalBytes(prev.kinds, kinds)) return false
@@ -467,6 +489,37 @@ class MapScanner {
   }
 }
 
+/**
+ * A lone odd cell of ground outdoors (a gravel block on a path, a dirt patch in a lawn) painted the
+ * colour that at least three of its four neighbours share. Only ground cells (soft 1) change, and
+ * only from ground or path neighbours; paths, water, doors, stairs, props and floor plans stay.
+ */
+function despeckle (rgb, soft) {
+  const src = rgb.slice()
+  const at = (i) => (src[i * 3] << 16) | (src[i * 3 + 1] << 8) | src[i * 3 + 2]
+  for (let z = 0; z < 16; z++) {
+    for (let x = 0; x < 16; x++) {
+      const i = z * 16 + x
+      if (soft[i] !== 1) continue
+      const me = at(i)
+      const counts = new Map()
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + dx; const nz = z + dz
+        if (nx < 0 || nx > 15 || nz < 0 || nz > 15) continue
+        const j = nz * 16 + nx
+        if (!soft[j]) continue
+        const c = at(j)
+        if (c !== me) counts.set(c, (counts.get(c) ?? 0) + 1)
+      }
+      for (const [c, n] of counts) {
+        if (n < 3) continue
+        rgb[i * 3] = c >> 16; rgb[i * 3 + 1] = (c >> 8) & 255; rgb[i * 3 + 2] = c & 255
+        break
+      }
+    }
+  }
+}
+
 function dimOf (bot) { return String(bot.game?.dimension ?? 'overworld') }
 
 /**
@@ -536,4 +589,4 @@ function equalBytes (a, b) {
   return Buffer.from(a.buffer, a.byteOffset, a.byteLength).equals(Buffer.from(b.buffer, b.byteOffset, b.byteLength))
 }
 
-module.exports = { MapScanner, KIND }
+module.exports = { despeckle, SMALL_PLANT_RE, LEAVES_RE, MapScanner, KIND }
