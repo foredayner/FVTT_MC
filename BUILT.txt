@@ -1,0 +1,1 @@
+24fd681f884be56502479b10c2de6ac4bbde06e5 hand=success scenario=apartment302

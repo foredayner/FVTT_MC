@@ -1,0 +1,50 @@
+server up; scenario "302호의 침묵", 10 clues, 4 flights of stairs, 24 rooms
+the scenario's area from the world's builder file: 10 rectangles
+at the entrance (-71.5, 67, -46.5)
+items lying in the world at the start: 0
+walk hallway_1f: there in 3.2 s (0 things in the pockets)
+walk office: there in 3.2 s (0 things in the pockets)
+walk hallway_3f: there in 10.9 s (0 things in the pockets)
+walk unit301: there in 1.7 s (0 things in the pockets)
+walk study302: there in 5.8 s (0 things in the pockets)
+walk living302: there in 2.1 s (0 things in the pockets)
+walk bedroom302: there in 2.4 s (0 things in the pockets)
+walk boiler_room: there in 13.0 s (0 things in the pockets)
+walk hidden_space: NOT there (stopped at -52.99, 62.00, -46.53)
+GM opens the secret door at -61, 62, -47: {"type":"ack","id":12,"ok":true,"result":[[62,"stone"],[63,"stone"]]}
+walk hidden_space (after the secret door opened): there in 12.6 s (0 things in the pockets)
+walk up the flight -1 -> 0 at -58,63,-46 (clicked): there in 2.9 s (0 things in the pockets)
+walk down the flight -1 -> 0 at -58,63,-46 (clicked): there in 1.8 s (0 things in the pockets)
+walk up the flight 0 -> 1 at -51,68,-46 (clicked): there in 3.3 s (0 things in the pockets)
+walk down the flight 0 -> 1 at -51,68,-46 (clicked): there in 1.8 s (0 things in the pockets)
+walk up the flight 1 -> 2 at -48,73,-48 (clicked): there in 3.9 s (0 things in the pockets)
+walk down the flight 1 -> 2 at -48,73,-48 (clicked): there in 1.7 s (0 things in the pockets)
+walk back out of the entrance: there in 8.1 s (0 things in the pockets)
+dug the block by the entrance: ok; broken yes; pockets 0 -> 0
+in the pockets after the walk: nothing
+lowest health on the walk: 20 of 20
+the builder's papers over the clue spots (loaded here): 0
+clue bills (normal) at -62,68,-47: placed; Test passed, count: 2; in air: true
+clue bookshelf (normal) at -67,78,-42: placed; Test passed, count: 2; in air: true
+clue manuscript (normal) at -63,78,-39: placed; Test passed, count: 2; in air: true
+clue floorboard (hidden) at -51,78,-44: placed; Test passed, count: 2; in air: true
+clue diary (item) at -51,78,-43: placed; Test passed, count: 2; in air: true
+clue key_rack (normal) at -63,68,-55: placed; Test passed, count: 2; in air: true
+clue rusty_key (item) at -55,78,-40: placed; Test passed, count: 2; in air: true
+clue new_wall (normal) at -60,62,-47: placed; Test passed, count: 2; in air: true
+clue silver_ring (hidden) at -57,63,-43: placed; Test passed, count: 2; in air: true
+clue altar (normal) at -66,63,-47: placed; Test passed, count: 2; in air: true
+moving clue bills one block east: the floor there at y 68
+after the move: Test passed, count: 2; at the new spot: Test passed, count: 2
+the 3D view got the moved clue at its new spot: yes
+item displays the 3D view gets: paper, written_book, tripwire_hook
+papers left after the clues were put in their places: 0
+hotbar: [{"n":"written_book","c":1,"t":"서진의 일기장"},{"n":"tripwire_hook","c":1,"t":"녹슨 열쇠"}]
+map map_floor_b1: 1147 of 1147 blocks drawn
+map map_floor_1: 1147 of 1147 blocks drawn
+map map_floor_2: 1147 of 1147 blocks drawn
+map map_floor_3: 1147 of 1147 blocks drawn
+map map_floor_4: 1147 of 1147 blocks drawn
+map map_auto_upstairs: 1147 of 1147 blocks drawn
+map map_from_above: 1147 of 1147 blocks drawn
+ALL OK

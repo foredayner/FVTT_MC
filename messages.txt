@@ -1,0 +1,56 @@
+{"type":"welcome","protocol":1,"mcVersion":"1.21.4","viewer":{"enabled":false,"version":"1.21.4","radius":2},"gmCommandsVia":"rcon"}
+{"type":"bots","bots":[]}
+{"type":"bots","bots":[{"key":"u1","username":"Play_Jo","online":false}]}
+{"type":"ack","id":1,"ok":true,"result":true}
+{"type":"event","kind":"info","key":"u1","text":"Play_Jo 접속"}
+{"type":"bots","bots":[{"key":"u1","username":"Play_Jo","online":true}]}
+{"type":"ack","id":2,"ok":true,"result":"Teleported Play_Jo to -71.500000, 67.000000, -46.500000"}
+{"type":"ack","id":3,"ok":true,"result":null}
+{"type":"ack","id":4,"ok":true,"result":null}
+{"type":"ack","id":5,"ok":true,"result":null}
+{"type":"ack","id":6,"ok":true,"result":null}
+{"type":"ack","id":7,"ok":true,"result":null}
+{"type":"ack","id":8,"ok":true,"result":null}
+{"type":"ack","id":9,"ok":true,"result":null}
+{"type":"ack","id":10,"ok":true,"result":null}
+{"type":"ack","id":11,"ok":true,"result":null}
+{"type":"ack","id":12,"ok":true,"result":[[62,"stone"],[63,"stone"]]}
+{"type":"ack","id":13,"ok":true,"result":null}
+{"type":"ack","id":14,"ok":true,"result":true}
+{"type":"ack","id":15,"ok":true,"result":true}
+{"type":"ack","id":16,"ok":true,"result":true}
+{"type":"ack","id":17,"ok":true,"result":true}
+{"type":"ack","id":18,"ok":true,"result":true}
+{"type":"ack","id":19,"ok":true,"result":true}
+{"type":"ack","id":20,"ok":true,"result":null}
+{"type":"ack","id":21,"ok":true,"result":null}
+{"type":"ack","id":22,"ok":true,"result":"Teleported Play_Jo to -56.500000, 67.000000, -46.500000"}
+{"type":"ack","id":23,"ok":true,"result":{"y":68}}
+{"type":"ack","id":24,"ok":true,"result":{"y":78}}
+{"type":"ack","id":25,"ok":true,"result":{"y":78}}
+{"type":"ack","id":26,"ok":true,"result":{"y":78}}
+{"type":"ack","id":27,"ok":true,"result":{"y":78}}
+{"type":"ack","id":28,"ok":true,"result":{"y":68}}
+{"type":"ack","id":29,"ok":true,"result":{"y":78}}
+{"type":"ack","id":30,"ok":true,"result":{"y":62}}
+{"type":"ack","id":31,"ok":true,"result":{"y":63}}
+{"type":"ack","id":32,"ok":true,"result":{"y":63}}
+{"type":"ack","id":33,"ok":true,"result":{"y":68}}
+{"type":"ack","id":34,"ok":true,"result":{"y":68}}
+{"type":"ack","id":35,"ok":true,"result":{"y":68}}
+{"type":"ack","id":36,"ok":true,"result":true}
+{"type":"ack","id":37,"ok":true,"result":true}
+{"type":"ack","id":38,"ok":true,"result":603}
+{"type":"ack","id":39,"ok":true,"result":"Teleported Play_Jo to -52.500000, 62.000000, -46.500000"}
+{"type":"ack","id":40,"ok":true,"result":606}
+{"type":"ack","id":41,"ok":true,"result":"Teleported Play_Jo to -56.500000, 67.000000, -46.500000"}
+{"type":"ack","id":42,"ok":true,"result":528}
+{"type":"ack","id":43,"ok":true,"result":"Teleported Play_Jo to -56.500000, 72.000000, -46.500000"}
+{"type":"ack","id":44,"ok":true,"result":422}
+{"type":"ack","id":45,"ok":true,"result":"Teleported Play_Jo to -56.500000, 77.000000, -46.500000"}
+{"type":"ack","id":46,"ok":true,"result":236}
+{"type":"ack","id":47,"ok":true,"result":"Teleported Play_Jo to -56.500000, 82.000000, -46.500000"}
+{"type":"ack","id":48,"ok":true,"result":82}
+{"type":"ack","id":49,"ok":true,"result":"Teleported Play_Jo to -56.500000, 77.000000, -46.500000"}
+{"type":"ack","id":50,"ok":true,"result":37}
+{"type":"ack","id":51,"ok":true,"result":"Teleported Play_Jo to -71.500000, 67.000000, -46.500000"}
