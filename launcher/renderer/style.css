@@ -221,3 +221,10 @@ button.big { padding: 10px 26px; font-size: 15px; }
   box-shadow: 0 6px 24px rgba(0,0,0,.18);
 }
 .toast.bad { background: var(--red); }
+
+/* A newer launcher: downloading, or ready to install */
+.top .update { margin-left: auto; margin-right: 12px; display: flex; align-items: center; gap: 10px;
+  padding: 6px 10px; border-radius: 8px; background: #e7f0dc; color: #2f4a1f; font-size: 13px; }
+.top .update[hidden] { display: none; }
+.top .update button { padding: 4px 10px; border: 0; border-radius: 6px; background: #3f7a2c; color: #fff; cursor: pointer; font: inherit; }
+.top .update button:disabled { opacity: .6; cursor: default; }

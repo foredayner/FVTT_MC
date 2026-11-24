@@ -78,7 +78,7 @@ jobs:
           TAG: ${{ steps.ver.outputs.tag }}
         run: |
           LV=$(jq -r .version launcher/package.json)
-          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qF "Setup.${LV}.exe"; then
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qF "Setup-${LV}.exe"; then
             echo "launcher=false" >> "$GITHUB_OUTPUT"
           else
             echo "launcher=true" >> "$GITHUB_OUTPUT"
@@ -109,7 +109,11 @@ jobs:
           for a in $(gh release view "$TAG" --json assets --jq '.assets[].name' | grep -E '\.exe$|-win\.zip$' | grep -vF "${LV}"); do
             gh release delete-asset "$TAG" "$a" --yes
           done
-          gh release upload "$TAG" dist/*.exe dist/*.zip --clobber
+          # latest.yml (and the blockmap) are what an installed launcher reads to update itself.
+          for a in $(gh release view "$TAG" --json assets --jq '.assets[].name' | grep -E '\.blockmap$' | grep -vF "${LV}"); do
+            gh release delete-asset "$TAG" "$a" --yes
+          done
+          gh release upload "$TAG" dist/*.exe dist/*.zip dist/*.blockmap dist/latest.yml --clobber
           NOTES="../.github/release-notes/${TAG}.md"
           if [ -f "$NOTES" ]; then gh release edit "$TAG" --notes-file "$NOTES"; fi
 

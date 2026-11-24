@@ -270,6 +270,23 @@ drop.addEventListener('drop', (e) => {
   call(/\.zip$/i.test(p) ? 'world:importZip' : 'world:dropFolder', p)
 })
 
+// ---------------- launcher update ----------------
+
+function showUpdate (u) {
+  const box = $('#update')
+  const text = { downloading: `새 버전 ${u.version ?? ''} 받는 중${u.percent ? ` (${u.percent}%)` : ''}`, ready: `새 버전 ${u.version ?? ''} 준비됨` }[u?.state]
+  box.hidden = !text
+  $('#updateText').textContent = text ?? ''
+  $('#updateInstall').hidden = u?.state !== 'ready'
+}
+$('#updateInstall').addEventListener('click', async () => {
+  $('#updateInstall').disabled = true
+  $('#updateText').textContent = '서버와 relay를 멈추고 업데이트합니다…'
+  const res = await bwb.call('update:install')
+  if (res && !res.ok) { toast(res.error, true); $('#updateInstall').disabled = false }
+})
+bwb.on('update', showUpdate)
+
 bwb.on('snapshot', render)
 bwb.on('progress', progress)
 bwb.on('log', (e) => {

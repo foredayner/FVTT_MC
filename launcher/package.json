@@ -1,7 +1,7 @@
 {
   "name": "blockworld-bridge-launcher",
   "productName": "Blockworld Bridge",
-  "version": "0.3.10",
+  "version": "0.3.11",
   "description": "Prepares and runs the Minecraft server and relay for the Blockworld Bridge Foundry VTT module.",
   "main": "main.js",
   "license": "MIT",
@@ -11,10 +11,11 @@
     "prepare-bundle": "node scripts/prepare.js",
     "start": "node scripts/prepare.js && electron .",
     "test": "node --test test/launcher.test.js",
-    "dist": "node scripts/prepare.js && electron-builder --win --x64"
+    "dist": "node scripts/prepare.js && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "electron-updater": "^6.8.11",
     "mineflayer": "^4.39.0",
     "prismarine-nbt": "^2.7.0",
     "prismarine-viewer": "^1.33.0",
@@ -26,7 +27,14 @@
     "appId": "io.github.foredayner.blockworld-bridge",
     "productName": "Blockworld Bridge",
     "asar": false,
-    "publish": null,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "foredayner",
+        "repo": "FVTT_MC",
+        "releaseType": "release"
+      }
+    ],
     "files": [
       "main.js",
       "preload.js",
@@ -48,7 +56,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Blockworld-Bridge-Setup-${version}.${ext}"
     }
   },
   "devDependencies": {

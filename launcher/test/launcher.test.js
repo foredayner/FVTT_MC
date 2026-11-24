@@ -333,3 +333,28 @@ test('status: seven lights in order, readyToRun needs the first four', () => {
   assert.strictEqual(s.readyToRun, true)
   assert.strictEqual(s.items.find((i) => i.id === 'map').text, 'world (새로 생성)')
 })
+
+test('updater: a newer launcher is downloaded, then offered; installed only when ready', () => {
+  const { startUpdater } = require('../lib/updater')
+  const EventEmitter = require('events')
+  const fake = new EventEmitter()
+  let checks = 0; let installed = null
+  fake.checkForUpdates = () => { checks++; return Promise.resolve() }
+  fake.quitAndInstall = (silent, run) => { installed = { silent, run } }
+  const seen = []
+  const u = startUpdater({ app: { isPackaged: true }, onState: (s) => seen.push(s.state), updater: fake })
+  assert.strictEqual(checks, 1, 'looked on start')
+  assert.strictEqual(fake.autoDownload, true)
+  assert.strictEqual(u.install(), false, 'nothing to install yet')
+  fake.emit('update-available', { version: '0.3.11' })
+  fake.emit('download-progress', { percent: 42.4 })
+  assert.deepStrictEqual(u.state(), { state: 'downloading', version: '0.3.11', percent: 42 })
+  fake.emit('update-downloaded', { version: '0.3.11' })
+  fake.emit('error', new Error('later check failed'))
+  assert.deepStrictEqual(u.state(), { state: 'ready', version: '0.3.11' }, 'a later error does not hide a ready update')
+  assert.strictEqual(u.install(), true)
+  assert.deepStrictEqual(installed, { silent: true, run: true })
+  // From source: nothing to update.
+  const dev = startUpdater({ app: { isPackaged: false }, onState: () => {} })
+  assert.strictEqual(dev.install(), false)
+})

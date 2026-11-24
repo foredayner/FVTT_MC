@@ -12,6 +12,7 @@ const settings = require('./lib/settings')
 const foundry = require('./lib/foundry')
 const { Runner } = require('./lib/runner')
 const { computeStatus } = require('./lib/status')
+const { startUpdater } = require('./lib/updater')
 
 const HOME = process.env.BWB_LAUNCHER_HOME || app.getPath('userData')
 const BUNDLED = path.join(__dirname, 'bundled')
@@ -193,6 +194,15 @@ const handlers = {
   'run:stop': () => runner.stop(),
   'run:command': (text) => runner.command(text),
 
+  // A newer launcher downloaded: stop relay and server (the world is saved), then install and start it.
+  'update:install': async () => {
+    if (updater?.state().state !== 'ready') throw new Error('설치할 새 버전이 아직 없습니다.')
+    await runner.stop()
+    quitting = true
+    updater.install()
+  },
+  'update:check': () => { updater?.check() },
+
   clipboard: (text) => { clipboard.writeText(String(text ?? '')) },
   'open:url': (url) => { if (OPEN_URLS.has(url)) shell.openExternal(url) }
 }
@@ -260,5 +270,10 @@ app.on('before-quit', (e) => {
   runner.stop().finally(() => app.quit())
 })
 
-app.whenReady().then(createWindow)
+let updater = null
+app.whenReady().then(() => {
+  createWindow()
+  updater = startUpdater({ app, onState: (st) => send('update', st) })
+  win.webContents.on('did-finish-load', () => send('update', updater.state()))
+})
 app.on('window-all-closed', () => app.quit())
