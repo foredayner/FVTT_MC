@@ -1,0 +1,57 @@
+server up; scenario "밀브룩의 물레방아", 10 clues, 3 flights of stairs, 11 rooms
+the scenario's area from the world's builder file: 11 rectangles
+at the entrance (-70.5, 73, 107.5)
+items lying in the world at the start: 0
+walk town_hall: there in 9.8 s (0 things in the pockets)
+walk town_hall#2f: there in 8.0 s (0 things in the pockets)
+walk general_store: there in 14.4 s (0 things in the pockets)
+walk store_shed: there in 19.9 s (0 things in the pockets)
+walk evelyn_house: there in 26.3 s (0 things in the pockets)
+walk evelyn_house#cellar: there in 6.0 s (0 things in the pockets)
+walk mill: there in 13.5 s (0 things in the pockets)
+walk mill#cellar: there in 6.1 s (0 things in the pockets)
+walk well: there in 18.2 s (0 things in the pockets)
+walk market: there in 9.7 s (0 things in the pockets)
+GM opens the secret door at -36, 68, 121: {"type":"ack","id":13,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+GM opens the secret door at -36, 68, 122: {"type":"ack","id":14,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+GM opens the secret door at -45, 68, 102: {"type":"ack","id":15,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+GM opens the secret door at -44, 68, 102: {"type":"ack","id":16,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+walk evelyn_house#cellar (again): there in 28.9 s (0 things in the pockets)
+walk through the secret tunnel to mill#cellar: there in 9.9 s (0 things in the pockets)
+walk before the door of evelyn_house: there in 14.2 s (0 things in the pockets)
+the door of evelyn_house is shut
+walk through the door of evelyn_house (clicked): there in 0.6 s (0 things in the pockets)
+right-click on the door: ok; open -> shut
+walk up the flight 0 -> 1 at -108,75,98 (clicked): there in 24.2 s (0 things in the pockets)
+walk down the flight 0 -> 1 at -108,75,98 (clicked): there in 1.8 s (0 things in the pockets)
+walk up the flight -1 -> 0 at -43,69,88 (clicked): there in 21.1 s (0 things in the pockets)
+walk down the flight -1 -> 0 at -43,69,88 (clicked): there in 2.3 s (0 things in the pockets)
+walk up the flight -1 -> 0 at -25,69,121 (clicked): there in 12.4 s (0 things in the pockets)
+walk down the flight -1 -> 0 at -25,69,121 (clicked): there in 2.4 s (0 things in the pockets)
+walk back out of the entrance: there in 12.8 s (0 things in the pockets)
+dug the block by the entrance: ok; broken yes; pockets 0 -> 0
+in the pockets after the walk: nothing
+lowest health on the walk: 20 of 20
+the builder's papers over the clue spots (loaded here): 0
+clue town_records (normal) at -96,80,80: placed; Test passed, count: 2; in air: true
+clue credit_ledger (normal) at -101,75,118: placed; Test passed, count: 2; in air: true
+clue wet_sacks (hidden) at -117,74,140: placed; Test passed, count: 2; in air: true
+clue footprints (hidden) at -69,73,60: placed; Test passed, count: 2; in air: true
+clue torn_flyer (normal) at -106,74,49: placed; Test passed, count: 2; in air: true
+clue mill_key (item) at -122,73,66: placed; Test passed, count: 2; in air: true
+clue evelyn_diary (item) at -33,75,129: placed; Test passed, count: 2; in air: true
+clue scarecrow (normal) at -27,73,54: placed; Test passed, count: 2; in air: true
+clue new_plank (normal) at -54,74,97: placed; Test passed, count: 2; in air: true
+clue altar (normal) at -33,68,101: placed; Test passed, count: 2; in air: true
+moving clue town_records one block east: the floor there at y 81
+after the move: Test passed, count: 2; at the new spot: Test passed, count: 2
+the 3D view got the moved clue at its new spot: yes
+item displays the 3D view gets: written_book, paper, tripwire_hook
+papers left after the clues were put in their places: 0
+hotbar: [{"n":"tripwire_hook","c":1,"t":"방앗간 열쇠"},{"n":"written_book","c":1,"t":"에블린의 일기장"}]
+map map_floor_b1: 18487 of 18487 blocks drawn
+map map_floor_1: 18487 of 18487 blocks drawn
+map map_floor_2: 18487 of 18487 blocks drawn
+map map_auto_upstairs: 18487 of 18487 blocks drawn
+map map_from_above: 18487 of 18487 blocks drawn
+ALL OK

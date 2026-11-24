@@ -1,0 +1,149 @@
+[
+  {
+    "label": "town_hall",
+    "ok": true,
+    "seconds": 9.843,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "town_hall#2f",
+    "ok": true,
+    "seconds": 8.002,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "general_store",
+    "ok": true,
+    "seconds": 14.413,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "store_shed",
+    "ok": true,
+    "seconds": 19.878,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "evelyn_house",
+    "ok": true,
+    "seconds": 26.327,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "evelyn_house#cellar",
+    "ok": true,
+    "seconds": 6.044,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "mill",
+    "ok": true,
+    "seconds": 13.512,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "mill#cellar",
+    "ok": true,
+    "seconds": 6.126,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "well",
+    "ok": true,
+    "seconds": 18.197,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "market",
+    "ok": true,
+    "seconds": 9.684,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "evelyn_house#cellar (again)",
+    "ok": true,
+    "seconds": 28.903,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "through the secret tunnel to mill#cellar",
+    "ok": true,
+    "seconds": 9.901,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "before the door of evelyn_house",
+    "ok": true,
+    "seconds": 14.158,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "through the door of evelyn_house (clicked)",
+    "ok": true,
+    "seconds": 0.639,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "up the flight 0 -> 1 at -108,75,98 (clicked)",
+    "ok": true,
+    "seconds": 24.222,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "down the flight 0 -> 1 at -108,75,98 (clicked)",
+    "ok": true,
+    "seconds": 1.811,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "up the flight -1 -> 0 at -43,69,88 (clicked)",
+    "ok": true,
+    "seconds": 21.07,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "down the flight -1 -> 0 at -43,69,88 (clicked)",
+    "ok": true,
+    "seconds": 2.255,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "up the flight -1 -> 0 at -25,69,121 (clicked)",
+    "ok": true,
+    "seconds": 12.446,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "down the flight -1 -> 0 at -25,69,121 (clicked)",
+    "ok": true,
+    "seconds": 2.439,
+    "hurt": 0,
+    "pockets": 0
+  },
+  {
+    "label": "back out of the entrance",
+    "ok": true,
+    "seconds": 12.788,
+    "hurt": 0,
+    "pockets": 0
+  }
+]

@@ -1,0 +1,149 @@
+TAP version 13
+# server up; scenario "밀브룩의 물레방아", 10 clues, 3 flights of stairs, 11 rooms
+# the scenario's area from the world's builder file: 11 rectangles
+# at the entrance (-70.5, 73, 107.5)
+# items lying in the world at the start: 0
+# [walk] plan from (-71, 73, 107) to -96.5,74,90.5: success in 207 ms, 37 steps, 393 nodes, ends -97,74,90
+# [walk] plan from (-71, 73, 107) to -96.5,74,90.5: success in 256 ms, 37 steps, 393 nodes, ends -97,74,90
+# [walk] plan from (-71, 73, 107) to -96.5,74,90.5: success in 179 ms, 37 steps, 393 nodes, ends -97,74,90
+# [walk] plan from (-71, 73, 107) to -96.5,74,90.5: success in 283 ms, 37 steps, 393 nodes, ends -97,74,90
+# walk town_hall: there in 9.8 s (0 things in the pockets)
+# [walk] plan from (-97, 74, 90) to -96.5,79,88.5: success in 268 ms, 24 steps, 539 nodes, ends -97,79,88
+# [walk] plan from (-97, 74, 90) to -96.5,79,88.5: success in 426 ms, 24 steps, 553 nodes, ends -97,79,88
+# [walk] plan from (-97, 74, 90) to -96.5,79,88.5: success in 211 ms, 24 steps, 553 nodes, ends -97,79,88
+# [walk] plan from (-97, 74, 90) to -96.5,79,88.5: success in 254 ms, 24 steps, 553 nodes, ends -97,79,88
+# walk town_hall\#2f: there in 8.0 s (0 things in the pockets)
+# [walk] plan from (-97, 79, 88) to -110.5,74,125.5: success in 270 ms, 49 steps, 432 nodes, ends -111,74,125
+# [walk] plan from (-97, 79, 88) to -110.5,74,125.5: success in 170 ms, 49 steps, 432 nodes, ends -111,74,125
+# [walk] plan from (-97, 79, 88) to -110.5,74,125.5: success in 161 ms, 49 steps, 432 nodes, ends -111,74,125
+# [walk] plan from (-97, 79, 88) to -110.5,74,125.5: success in 225 ms, 49 steps, 432 nodes, ends -111,74,125
+# walk general_store: there in 14.4 s (0 things in the pockets)
+# [walk] plan from (-111, 74, 125) to -110.5,74,146.5: success in 629 ms, 85 steps, 2415 nodes, ends -111,74,146
+# [walk] plan from (-111, 74, 125) to -110.5,74,146.5: success in 556 ms, 85 steps, 2415 nodes, ends -111,74,146
+# [walk] plan from (-111, 74, 125) to -110.5,74,146.5: success in 563 ms, 85 steps, 2427 nodes, ends -111,74,146
+# [walk] plan from (-111, 74, 125) to -110.5,74,146.5: success in 565 ms, 85 steps, 2427 nodes, ends -111,74,146
+# walk store_shed: there in 19.9 s (0 things in the pockets)
+# [walk] plan from (-111, 74, 146) to -24.5,74,121.5: success in 781 ms, 111 steps, 3532 nodes, ends -25,74,121
+# [walk] plan from (-111, 74, 146) to -24.5,74,121.5: success in 823 ms, 112 steps, 3532 nodes, ends -25,74,121
+# [walk] plan from (-111, 74, 146) to -24.5,74,121.5: success in 804 ms, 112 steps, 3532 nodes, ends -25,74,121
+# [walk] plan from (-111, 74, 146) to -24.5,74,121.5: success in 823 ms, 112 steps, 3532 nodes, ends -25,74,121
+# walk evelyn_house: there in 26.3 s (0 things in the pockets)
+# [walk] plan from (-25, 74, 121) to -26.5,68,121.5: success in 64 ms, 18 steps, 88 nodes, ends -27,68,121
+# [walk] plan from (-25, 74, 119) to -26.5,68,121.5: success in 59 ms, 16 steps, 65 nodes, ends -27,68,121
+# [walk] plan from (-25, 74, 119) to -26.5,68,121.5: success in 60 ms, 16 steps, 65 nodes, ends -27,68,121
+# [walk] plan from (-26, 74, 119) to -26.5,68,121.5: success in 60 ms, 16 steps, 65 nodes, ends -27,68,121
+# walk evelyn_house\#cellar: there in 6.0 s (0 things in the pockets)
+# [walk] plan from (-27, 68, 121) to -42.5,74,88.5: success in 193 ms, 49 steps, 709 nodes, ends -43,74,88
+# [walk] plan from (-30, 74, 119) to -42.5,74,88.5: success in 127 ms, 38 steps, 404 nodes, ends -43,74,88
+# [walk] plan from (-30, 74, 119) to -42.5,74,88.5: success in 131 ms, 38 steps, 404 nodes, ends -43,74,88
+# [walk] plan from (-29, 74, 118) to -42.5,74,88.5: success in 121 ms, 37 steps, 390 nodes, ends -43,74,88
+# walk mill: there in 13.5 s (0 things in the pockets)
+# [walk] plan from (-43, 74, 88) to -44.5,68,88.5: success in 16 ms, 18 steps, 95 nodes, ends -45,68,88
+# [walk] plan from (-43, 74, 91) to -44.5,68,88.5: success in 92 ms, 16 steps, 68 nodes, ends -45,68,88
+# [walk] plan from (-43, 74, 91) to -44.5,68,88.5: success in 48 ms, 16 steps, 68 nodes, ends -45,68,88
+# [walk] plan from (-43, 74, 91) to -44.5,68,88.5: success in 59 ms, 16 steps, 68 nodes, ends -45,68,88
+# walk mill\#cellar: there in 6.1 s (0 things in the pockets)
+# [walk] plan from (-45, 68, 88) to -73.5,73,57.5: success in 278 ms, 78 steps, 1373 nodes, ends -74,73,57
+# [walk] plan from (-48, 74, 91) to -73.5,73,57.5: success in 280 ms, 66 steps, 1187 nodes, ends -74,73,57
+# [walk] plan from (-48, 74, 92) to -73.5,73,57.5: success in 317 ms, 66 steps, 1187 nodes, ends -74,73,57
+# [walk] plan from (-47, 74, 92) to -73.5,73,57.5: success in 228 ms, 65 steps, 1178 nodes, ends -74,73,57
+# walk well: there in 18.2 s (0 things in the pockets)
+# [walk] plan from (-74, 73, 57) to -122.5,74,66.5: success in 76 ms, 49 steps, 169 nodes, ends -123,74,66
+# [walk] plan from (-74, 73, 57) to -122.5,74,66.5: success in 75 ms, 49 steps, 169 nodes, ends -123,74,66
+# [walk] plan from (-74, 73, 57) to -122.5,74,66.5: success in 74 ms, 49 steps, 169 nodes, ends -123,74,66
+# [walk] plan from (-74, 73, 57) to -122.5,74,66.5: success in 75 ms, 49 steps, 169 nodes, ends -123,74,66
+# walk market: there in 9.7 s (0 things in the pockets)
+# GM opens the secret door at -36, 68, 121: {"type":"ack","id":13,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+# GM opens the secret door at -36, 68, 122: {"type":"ack","id":14,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+# GM opens the secret door at -45, 68, 102: {"type":"ack","id":15,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+# GM opens the secret door at -44, 68, 102: {"type":"ack","id":16,"ok":true,"result":[[68,"cracked_stone_bricks"],[69,"cracked_stone_bricks"]]}
+# [walk] plan from (-123, 74, 66) to -26.5,68,121.5: success in 842 ms, 115 steps, 3883 nodes, ends -27,68,121
+# [walk] plan from (-122, 72, 67) to -26.5,68,121.5: success in 871 ms, 114 steps, 3808 nodes, ends -27,68,121
+# [walk] plan from (-121, 73, 67) to -26.5,68,121.5: success in 750 ms, 113 steps, 3143 nodes, ends -27,68,121
+# [walk] plan from (-121, 73, 68) to -26.5,68,121.5: success in 858 ms, 113 steps, 3729 nodes, ends -27,68,121
+# walk evelyn_house\#cellar (again): there in 28.9 s (0 things in the pockets)
+# [walk] plan from (-27, 68, 121) to -44.5,68,88.5: success in 60 ms, 50 steps, 279 nodes, ends -45,68,88
+# [walk] plan from (-27, 68, 121) to -44.5,68,88.5: success in 103 ms, 50 steps, 276 nodes, ends -45,68,88
+# [walk] plan from (-27, 68, 121) to -44.5,68,88.5: success in 126 ms, 50 steps, 276 nodes, ends -45,68,88
+# [walk] plan from (-27, 68, 121) to -44.5,68,88.5: success in 103 ms, 50 steps, 276 nodes, ends -45,68,88
+# walk through the secret tunnel to mill\#cellar: there in 9.9 s (0 things in the pockets)
+# [walk] plan from (-45, 68, 88) to -25.5,74,125.5: success in 264 ms, 53 steps, 1255 nodes, ends -26,74,125
+# [walk] plan from (-48, 74, 91) to -25.5,74,125.5: success in 153 ms, 41 steps, 488 nodes, ends -26,74,125
+# [walk] plan from (-48, 74, 92) to -25.5,74,125.5: success in 151 ms, 41 steps, 488 nodes, ends -26,74,125
+# [walk] plan from (-48, 74, 92) to -25.5,74,125.5: success in 132 ms, 40 steps, 468 nodes, ends -26,74,125
+# walk before the door of evelyn_house: there in 14.2 s (0 things in the pockets)
+# the door of evelyn_house is shut
+# [walk] plan from (-26, 74, 125) to -25.5,74,128.5: success in 4 ms, 3 steps, 3 nodes, ends -26,74,128
+# walk through the door of evelyn_house (clicked): there in 0.6 s (0 things in the pockets)
+# right-click on the door: ok; open -> shut
+# [walk] plan from (-26, 74, 128) to -107.5,75,98.5: success in 266 ms, 99 steps, 1241 nodes, ends -108,75,98
+# [walk] plan from (-25, 74, 123) to -107.5,75,98.5: success in 301 ms, 94 steps, 1218 nodes, ends -108,75,98
+# [walk] plan from (-25, 74, 122) to -107.5,75,98.5: success in 298 ms, 94 steps, 1218 nodes, ends -108,75,98
+# [walk] plan from (-25, 74, 122) to -107.5,75,98.5: success in 304 ms, 93 steps, 1195 nodes, ends -108,75,98
+# [walk] plan from (-108, 75, 98) to -107.5,79,94.5: success in 51 ms, 4 steps, 4 nodes, ends -108,79,94
+# walk up the flight 0 -> 1 at -108,75,98 (clicked): there in 24.2 s (0 things in the pockets)
+# [walk] plan from (-108, 79, 94) to -107.5,75,98.5: success in 51 ms, 4 steps, 4 nodes, ends -108,75,98
+# walk down the flight 0 -> 1 at -108,75,98 (clicked): there in 1.8 s (0 things in the pockets)
+# [walk] plan from (-108, 74, 99) to -42.5,69,88.5: success in 479 ms, 81 steps, 2174 nodes, ends -43,69,88
+# [walk] plan from (-107, 74, 99) to -42.5,69,88.5: success in 452 ms, 80 steps, 1932 nodes, ends -43,69,88
+# [walk] plan from (-106, 74, 99) to -42.5,69,88.5: success in 456 ms, 80 steps, 1932 nodes, ends -43,69,88
+# [walk] plan from (-106, 74, 99) to -42.5,69,88.5: success in 499 ms, 79 steps, 1975 nodes, ends -43,69,88
+# [walk] plan from (-43, 69, 88) to -47.5,74,88.5: success in 50 ms, 5 steps, 5 nodes, ends -48,74,88
+# walk up the flight -1 -> 0 at -43,69,88 (clicked): there in 21.1 s (0 things in the pockets)
+# [walk] plan from (-48, 74, 88) to -42.5,69,88.5: success in 50 ms, 5 steps, 5 nodes, ends -43,69,88
+# walk down the flight -1 -> 0 at -43,69,88 (clicked): there in 2.3 s (0 things in the pockets)
+# [walk] plan from (-43, 69, 88) to -24.5,69,121.5: success in 114 ms, 53 steps, 490 nodes, ends -25,69,121
+# [walk] plan from (-43, 68, 90) to -24.5,69,121.5: success in 147 ms, 51 steps, 449 nodes, ends -25,69,121
+# [walk] plan from (-43, 68, 91) to -24.5,69,121.5: success in 127 ms, 51 steps, 444 nodes, ends -25,69,121
+# [walk] plan from (-43, 68, 91) to -24.5,69,121.5: success in 124 ms, 50 steps, 422 nodes, ends -25,69,121
+# [walk] plan from (-25, 69, 121) to -29.5,74,121.5: success in 50 ms, 5 steps, 5 nodes, ends -30,74,121
+# walk up the flight -1 -> 0 at -25,69,121 (clicked): there in 12.4 s (0 things in the pockets)
+# [walk] plan from (-30, 73, 121) to -29.5,74,121.5: success in 41 ms, 1 steps, 1 nodes, ends -30,74,121
+# [walk] plan from (-30, 74, 121) to -24.5,69,121.5: success in 52 ms, 5 steps, 5 nodes, ends -25,69,121
+# walk down the flight -1 -> 0 at -25,69,121 (clicked): there in 2.4 s (0 things in the pockets)
+# [walk] plan from (-25, 69, 121) to -70.5,73,107.5: success in 162 ms, 58 steps, 576 nodes, ends -71,73,107
+# [walk] plan from (-30, 74, 119) to -70.5,73,107.5: success in 81 ms, 51 steps, 216 nodes, ends -71,73,107
+# [walk] plan from (-30, 74, 119) to -70.5,73,107.5: success in 81 ms, 51 steps, 216 nodes, ends -71,73,107
+# [walk] plan from (-29, 74, 118) to -70.5,73,107.5: success in 80 ms, 51 steps, 216 nodes, ends -71,73,107
+# walk back out of the entrance: there in 12.8 s (0 things in the pockets)
+# dug the block by the entrance: ok; broken yes; pockets 0 -> 0
+# in the pockets after the walk: nothing
+# lowest health on the walk: 20 of 20
+# the builder's papers over the clue spots (loaded here): 0
+# clue town_records (normal) at -96,80,80: placed; Test passed, count: 2; in air: true
+# clue credit_ledger (normal) at -101,75,118: placed; Test passed, count: 2; in air: true
+# clue wet_sacks (hidden) at -117,74,140: placed; Test passed, count: 2; in air: true
+# clue footprints (hidden) at -69,73,60: placed; Test passed, count: 2; in air: true
+# clue torn_flyer (normal) at -106,74,49: placed; Test passed, count: 2; in air: true
+# clue mill_key (item) at -122,73,66: placed; Test passed, count: 2; in air: true
+# clue evelyn_diary (item) at -33,75,129: placed; Test passed, count: 2; in air: true
+# clue scarecrow (normal) at -27,73,54: placed; Test passed, count: 2; in air: true
+# clue new_plank (normal) at -54,74,97: placed; Test passed, count: 2; in air: true
+# clue altar (normal) at -33,68,101: placed; Test passed, count: 2; in air: true
+# moving clue town_records one block east: the floor there at y 81
+# after the move: Test passed, count: 2; at the new spot: Test passed, count: 2
+# the 3D view got the moved clue at its new spot: yes
+# item displays the 3D view gets: written_book, paper, tripwire_hook
+# papers left after the clues were put in their places: 0
+# hotbar: [{"n":"tripwire_hook","c":1,"t":"방앗간 열쇠"},{"n":"written_book","c":1,"t":"에블린의 일기장"}]
+# map map_floor_b1: 18487 of 18487 blocks drawn
+# map map_floor_1: 18487 of 18487 blocks drawn
+# map map_floor_2: 18487 of 18487 blocks drawn
+# map map_auto_upstairs: 18487 of 18487 blocks drawn
+# map map_from_above: 18487 of 18487 blocks drawn
+# ALL OK
+# Subtest: play test in a building the scenario builder made
+ok 1 - play test in a building the scenario builder made
+  ---
+  duration_ms: 333781.40831
+  type: 'test'
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 334091.600972
