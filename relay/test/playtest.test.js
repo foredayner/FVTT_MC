@@ -115,9 +115,11 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     token: 'play-token-0123456789abcdef',
     minecraft: { host: '127.0.0.1', port: MC_PORT, version: '1.21.4', auth: 'offline' },
     rcon: { enabled: true, host: '127.0.0.1', port: RCON_PORT, password: RCON_PASS },
-    viewer: { enabled: false }
+    viewer: { enabled: false },
+    serverDir: dir
   })
   const relay = await startRelay(cfg, { log () {}, warn (s) { note(`relay warn: ${s}`) } })
+  note(`the scenario's area from the world's builder file: ${relay.scanner.area ? relay.scanner.area.length + ' rectangles' : 'none'}`)
   t.after(() => relay.close())
   const c = client(relay.port, cfg.token)
   t.after(() => fs.writeFileSync(path.join(OUT, 'messages.txt'), c.msgs.filter((m) => m.type !== 'state' && m.type !== 'disp').map((m) => JSON.stringify(m).slice(0, 400)).join('\n')))
@@ -268,6 +270,10 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
       const there = String(await rcon(`execute positioned ${cl.x + 1.5} ${y} ${cl.z + 0.5} if entity @e[tag=bwb_c_${cl.id},distance=..1]`))
       note(`after the move: ${all.trim()}; at the new spot: ${there.trim()}`)
       if (!/count: 2/.test(all) || !/count: [12]/.test(there)) problem(`moving clue ${cl.id} did not leave it (only) at its new spot`)
+      // ...and the 3D view hears of it there.
+      const seen3d = await c.wait((m) => m.type === 'disp' && (m.add ?? []).some((p) => p.item && Math.abs(p.x - (cl.x + 1.5)) < 0.01 && Math.abs(p.z - (cl.z + 0.5)) < 0.01), 8000).then(() => true, () => false)
+      note(`the 3D view got the moved clue at its new spot: ${seen3d ? 'yes' : 'no'}`)
+      if (!seen3d) problem(`the 3D view did not get clue ${cl.id} at its new spot`)
       await c.call('cluePlace', { clue: cl.id, x: cl.x, y: cl.y, z: cl.z, item: cl.item || 'paper' })
     }
   }

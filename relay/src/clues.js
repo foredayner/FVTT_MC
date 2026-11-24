@@ -86,17 +86,49 @@ class ClueSpots {
     this.spots = new Map() // id -> {x, y, z, item}
   }
 
-  /** Put (or move) a clue's object at block x,y,z (y: the block it floats in). */
+  /**
+   * Whether nothing at block x,y,z would hide a clue: air, a carpet, an invisible light, grass and
+   * the like (the server is asked). null when it cannot tell (no answer: no RCON).
+   */
+  async open (x, y, z) {
+    let answered = false
+    for (const what of ['#minecraft:replaceable', '#minecraft:wool_carpets', 'minecraft:light', 'minecraft:moss_carpet']) {
+      const out = String(await this.bots.runCommand(`execute if block ${x} ${y} ${z} ${what}`).catch(() => '') ?? '')
+      if (/passed/i.test(out)) return true
+      if (/failed/i.test(out)) answered = true
+    }
+    return answered ? false : null
+  }
+
+  /**
+   * The height a clue at x,y,z can be seen at: y if nothing is there, else the first open block
+   * above it (it lay inside a floor, a table, the ground), at most 4 up.
+   */
+  async openY (x, y, z) {
+    for (let up = 0; up <= 4 && y + up <= 319; up++) {
+      const o = await this.open(x, y + up, z)
+      if (o === null) return y // cannot tell: as it is
+      if (o) return y + up
+    }
+    return y
+  }
+
+  /**
+   * Put (or move) a clue's object at block x,y,z (y: the block it floats in). A spot inside a block
+   * is lifted to the first open block above. Returns {y}: where it was put.
+   */
   async place (m) {
     const id = clueId(m.clue)
-    const x = int(m.x, 'x'); const y = int(m.y, 'y', -64, 319); const z = int(m.z, 'z')
+    const x = int(m.x, 'x'); const z = int(m.z, 'z')
     const item = itemName(m.item)
     const tags = `Tags:["bwb_clue","bwb_c_${id}"]`
     const cx = x + 0.5; const cz = z + 0.5
     // Far from every character the clue's chunk is not loaded and a summon there does nothing
     // (the server only says so): load it for the moment, and check what the server answers.
     const forced = await this.bots.runCommand(`forceload add ${x} ${z}`).then(() => true, () => false)
+    let y = int(m.y, 'y', -64, 319)
     try {
+      y = await this.openY(x, y, z)
       await this.remove({ clue: id }).catch(() => {})
       // The scenario builder's floating paper over this spot gives way to the clue itself.
       await this.bots.runCommand(`execute positioned ${cx} ${y} ${cz} run kill @e[tag=bwb_spot,distance=..1.5]`).catch(() => {})
@@ -107,7 +139,7 @@ class ClueSpots {
       if (forced) await this.bots.runCommand(`forceload remove ${x} ${z}`).catch(() => {})
     }
     this.spots.set(id, { x, y, z, item })
-    return true
+    return { y }
   }
 
   /** Run a summon until the server says it was made (its chunk may take a moment to load). */

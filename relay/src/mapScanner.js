@@ -24,6 +24,8 @@ const KIND = { SURFACE: 0, FLOOR: 1, WALL: 2, WINDOW: 3, DOOR: 4, DOOR_OPEN: 5, 
 const PLAN = { WALL: [43, 43, 48], ROCK: [20, 20, 23], WINDOW: [159, 211, 234], DOOR_OUT: [28, 72, 214], DOOR_IN: [236, 190, 24], STAIRS: [150, 104, 196] }
 /** Stairs have their own colour (on floor plans and outdoors), so a flight stands out from the floor. */
 const STAIRS_RE = /_stairs$/
+/** Blocks at head height that leave the way out of a door open. */
+const HEAD_OPEN_RE = /^(air|cave_air|void_air|light|lantern|soul_lantern|cobweb|chain|vine|glow_lichen|.*_carpet|.*_banner|.*_button|.*_sign|.*_hanging_sign|torch|wall_torch|soul_torch|soul_wall_torch|redstone_torch|redstone_wall_torch|short_grass|tall_grass|fern|large_fern)$/
 
 // ---- a cleaner map outdoors ----
 /** Small plants on the ground (grass, flowers, ferns, saplings, mushrooms, vines): looked through, the ground under them shows. */
@@ -33,6 +35,11 @@ const LEAVES_RE = /_leaves$|^(azalea|flowering_azalea)$/
 const TREE = [46, 92, 36]
 /** How much of the height shading is kept on the ground outdoors (0 = none). */
 const LAND_SHADE = 0.35
+/** Outside the scenario's area (see setArea): trees and everything else in one plain colour each. */
+const OUT_TREE = [72, 98, 66]
+const OUT_LAND = [150, 160, 138]
+/** Blocks round each place that still count as the scenario's area. */
+const AREA_MARGIN = 3
 /** Natural ground (and paths) outdoors: a lone odd cell of it may take its neighbours' colour; a path never changes. */
 const GROUND_RE = /^(grass_block|dirt|coarse_dirt|rooted_dirt|podzol|mycelium|gravel|sand|red_sand|stone|andesite|diorite|granite|tuff|clay|mud|moss_block|snow|snow_block|dirt_path)$/
 /** How far under a roof a door is looked for, and how far out from it the open sky. */
@@ -88,6 +95,27 @@ class MapScanner {
    * Floor-plan view settings from the GM. `y` is a floor level: the y of the block a character's
    * feet are in, so the cut runs through the block above it (where walls, windows and doors are).
    */
+  /**
+   * The scenario's area from the scenario builder's file ({town, places}), or null: everywhere is
+   * drawn in full. Outside it the map is drawn plain. Returns whether it changed.
+   */
+  setArea (file) {
+    const rects = []
+    const add = (r, m) => {
+      const n = (k) => Number(r?.[k])
+      if (!r || !['x1', 'z1', 'x2', 'z2'].every((k) => Number.isFinite(n(k)))) return
+      rects.push([Math.min(n('x1'), n('x2')) - m, Math.min(n('z1'), n('z2')) - m, Math.max(n('x1'), n('x2')) + m, Math.max(n('z1'), n('z2')) + m])
+    }
+    if (file) {
+      add(file.town, 0)
+      for (const p of Array.isArray(file.places) ? file.places : []) add(p, AREA_MARGIN)
+    }
+    const next = rects.length ? rects : null
+    const changed = JSON.stringify(next) !== JSON.stringify(this.area ?? null)
+    this.area = next
+    return changed
+  }
+
   setView ({ mode, y } = {}) {
     if (!['auto', 'fixed', 'off'].includes(mode)) throw new Error(`unknown view mode ${mode}`)
     if (mode === 'fixed' && !Number.isInteger(y)) throw new Error('fixed view needs an integer y')
@@ -299,6 +327,8 @@ class MapScanner {
     // Outdoor ground: 1 = may be painted over when it is a lone odd cell, 2 = a path (counts, never changes),
     // 0 = everything else (water, doors, stairs, posts and props, floor plans).
     const soft = new Uint8Array(16 * 16)
+    // Outdoors: 1 = water, 2 = leaves (they keep their kind outside the scenario's area).
+    const look = new Uint8Array(16 * 16)
     const heights = new Int16Array(16 * 16).fill(NO_HEIGHT)
     const kinds = new Uint8Array(16 * 16)
     // Row above (north of) the chunk first, so the first row can be shaded too.
@@ -348,6 +378,7 @@ class MapScanner {
               // the ground: only a little of the height shading, so it reads as one colour
               : blend(shadeRgb(s.id, SHADE.NORMAL), shadeRgb(s.id, shade), LAND_SHADE)
         rgb[i * 3] = r; rgb[i * 3 + 1] = g; rgb[i * 3 + 2] = b
+        look[i] = s.id === ID.WATER ? 1 : s.leaves ? 2 : 0
         const ground = !door && !step && s.id !== ID.WATER && !s.leaves ? (nameAt(p) ?? '') : ''
         soft[i] = !GROUND_RE.test(ground) ? 0 : ground === 'dirt_path' ? 2 : 1
         heights[i] = s.y
@@ -356,6 +387,19 @@ class MapScanner {
       northRow = row
     }
     if (!found) return false
+    // Outside the scenario's town and places (the scenario builder's file): plain, so the town stands out.
+    if (this.area && dim === 'overworld') {
+      for (let dz = 0; dz < 16; dz++) {
+        for (let dx = 0; dx < 16; dx++) {
+          if (inArea(this.area, cx * 16 + dx, cz * 16 + dz)) continue
+          const i = dz * 16 + dx
+          if (look[i] === 1) continue // water stays water
+          const c = look[i] === 2 ? OUT_TREE : OUT_LAND
+          rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2]
+          soft[i] = 0
+        }
+      }
+    }
     despeckle(rgb, soft)
     const k = this.key(dim, cx, cz)
     const prev = this.chunks.get(k)
@@ -430,7 +474,16 @@ class MapScanner {
       p.set(x, y, z)
       const name = nameAt(p)
       if (name === null) return false
-      if (DOOR_RE.test(name)) return y === topY || this.leadsOutside(x, y, z, bottom, nameAt, surface)
+      if (DOOR_RE.test(name)) {
+        if (y === topY || this.leadsOutside(x, y, z, bottom, nameAt, surface)) return true
+        // The other leaf of a double door that does lead outside: outside too (one leaf may have
+        // a lamp or a post in front of it).
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          p.set(x + dx, y, z + dz)
+          if (DOOR_RE.test(nameAt(p) ?? '') && this.leadsOutside(x + dx, y, z + dz, bottom, nameAt, surface)) return true
+        }
+        return false
+      }
     }
     return false
   }
@@ -448,7 +501,9 @@ class MapScanner {
         const ax = x + dx * step; const az = z + dz * step
         p.set(ax, foot + 1, az)
         const head = nameAt(p)
-        if (head === null || (head !== 'air' && head !== 'cave_air')) break
+        // Nothing in the way at head height (an invisible light block, a lantern hanging from the
+        // eaves, a cobweb do not block the way out).
+        if (head === null || !HEAD_OPEN_RE.test(head)) break
         let s
         try { s = surface(ax, az) } catch { s = null }
         if (s && s.y < foot + 1) return true
@@ -494,6 +549,11 @@ class MapScanner {
  * colour that at least three of its four neighbours share. Only ground cells (soft 1) change, and
  * only from ground or path neighbours; paths, water, doors, stairs, props and floor plans stay.
  */
+function inArea (rects, x, z) {
+  for (const r of rects) if (x >= r[0] && x <= r[2] && z >= r[1] && z <= r[3]) return true
+  return false
+}
+
 function despeckle (rgb, soft) {
   const src = rgb.slice()
   const at = (i) => (src[i * 3] << 16) | (src[i * 3 + 1] << 8) | src[i * 3 + 2]

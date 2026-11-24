@@ -444,6 +444,7 @@ test('clues: objects summoned with tags, items given with their text, the clue u
   const spots = new ClueSpots({ runCommand: async (c) => { cmds.push(c); return '' } })
   await spots.place({ clue: 'abc_1', x: 10, y: 64, z: -3, item: 'paper' })
   assert.strictEqual(cmds[0], 'forceload add 10 -3', 'its chunk loaded for the moment')
+  assert.ok(cmds.splice(1, 4).every((c) => c.startsWith('execute if block 10 64 -3 ')), 'asked whether the spot is open (no answer here)')
   assert.strictEqual(cmds[1], 'kill @e[tag=bwb_c_abc_1]', 'an old one there goes first')
   assert.strictEqual(cmds[2], 'execute positioned 10.5 64 -2.5 run kill @e[tag=bwb_spot,distance=..1.5]', "the builder's paper there goes")
   assert.ok(cmds[3].startsWith('summon minecraft:interaction 10.5 64 -2.5 {'))
@@ -453,6 +454,15 @@ test('clues: objects summoned with tags, items given with their text, the clue u
   let tries = 0
   const slow = new ClueSpots({ runCommand: async (c) => (c.startsWith('summon') && tries++ < 2 ? 'That position is not loaded' : c.startsWith('summon') ? 'Summoned new Interaction' : '') })
   assert.ok(await slow.place({ clue: 'later', x: 0, y: 64, z: 0 }))
+  // A spot inside the floor: lifted to the first open block above.
+  const floor = new ClueSpots({
+    runCommand: async (c) => {
+      const m = /^execute if block 3 (-?\d+) 4 /.exec(c)
+      if (m) return Number(m[1]) <= 64 ? 'Test failed' : 'Test passed'
+      return c.startsWith('summon') ? 'Summoned new Interaction' : ''
+    }
+  })
+  assert.deepStrictEqual(await floor.place({ clue: 'buried', x: 3, y: 63, z: 4 }), { y: 65 })
   const never = new ClueSpots({ runCommand: async (c) => (c.startsWith('summon') ? 'Unknown or incomplete command' : '') })
   await assert.rejects(() => never.place({ clue: 'no', x: 0, y: 64, z: 0 }), /놓지 못했습니다/)
   await assert.rejects(() => spots.place({ clue: 'x; kill', x: 0, y: 64, z: 0 }))
@@ -547,4 +557,15 @@ test('a clue moved on the map lies on the floor there, or on the furniture stand
   assert.deepStrictEqual(m.spotY(6.2, 5.9, 64), { y: 65 }, 'on the table')
   m.entries = new Map()
   assert.deepStrictEqual(m.spotY(5, 5, 64), { y: null })
+})
+
+test('map: the scenario area from the builder file (its town and places, a margin round each)', () => {
+  const { MapScanner } = require('../src/mapScanner')
+  const s = new MapScanner({}, () => {})
+  assert.strictEqual(s.setArea(null), false)
+  assert.strictEqual(s.setArea({ town: { x1: 0, z1: 0, x2: 99, z2: 99 }, places: [{ x1: 200, z1: 10, x2: 210, z2: 20 }] }), true)
+  assert.deepStrictEqual(s.area, [[0, 0, 99, 99], [197, 7, 213, 23]])
+  assert.strictEqual(s.setArea({ town: { x1: 0, z1: 0, x2: 99, z2: 99 }, places: [{ x1: 200, z1: 10, x2: 210, z2: 20 }] }), false, 'the same')
+  assert.strictEqual(s.setArea({ clues: [] }), true, 'a file with no area: everywhere in full')
+  assert.strictEqual(s.area, null)
 })

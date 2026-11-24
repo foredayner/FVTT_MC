@@ -54,7 +54,7 @@ async function main () {
   // Assets, exactly as the GM would upload them.
   const ver = welcome.viewer.version
   fs.mkdirSync(path.join(WWW, 'bwb-assets', ver), { recursive: true })
-  for (const [name, file] of [['atlas', 'atlas.png'], ['blockStates', 'blockStates.json']]) {
+  for (const [name, file] of [['atlas', 'atlas.png'], ['blockStates', 'blockStates.json'], ['items', 'items.json']]) {
     const a = await call('asset3d', { name })
     fs.writeFileSync(path.join(WWW, 'bwb-assets', ver, file), Buffer.from(a.result.data, 'base64'))
   }
@@ -83,6 +83,7 @@ async function main () {
       workerUrl: base + 'vendor/bwb3d-worker.js',
       atlasUrl: base + `bwb-assets/${ver}/atlas.png`,
       blockStatesUrl: base + `bwb-assets/${ver}/blockStates.json`,
+      itemsUrl: base + `bwb-assets/${ver}/items.json`,
       version: ver
     })
     window.r.resize(800, 450)
@@ -109,9 +110,18 @@ async function main () {
       { id: 'b4', kind: 'bot', ...p4, y: s.y, yaw: 0, avatar: { color: '#8844ff', image: '', scale: 1 } }
     ])
   }, { s, base })
+  // Clues lying about (item displays, as the relay sends them): a paper and a book in view.
+  await page.evaluate(({ s }) => {
+    const at = (d, side) => ({ x: s.x - d * 0.707 + side * 0.707, z: s.z + d * 0.707 + side * 0.707 })
+    window.r.setItems([
+      { id: 'i1', item: 'paper', ...at(3, -0.5), y: s.y + 1, size: 0.6 },
+      { id: 'i2', item: 'written_book', ...at(3, 0.8), y: s.y + 1, size: 0.6 }
+    ])
+  }, { s })
   await page.waitForFunction(() => window.r.ready && window.r.stats().meshes > 10, null, { timeout: 60000 })
   await page.waitForTimeout(1500)
   await page.screenshot({ path: path.join(OUT, '1-world.png') })
+  console.log('items in the scene', await page.evaluate(() => [...(window.r.items?.values() ?? [])].map((g) => `${g.userData.item}:${g.children.length}`)))
   console.log('stats', await page.evaluate(() => window.r.stats()))
 
   // Dig the block under our feet's neighbour, apply the block3d message, render again.

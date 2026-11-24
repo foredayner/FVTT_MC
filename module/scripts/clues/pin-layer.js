@@ -7,6 +7,7 @@
 import { MODULE_ID, L } from "../constants.js";
 import { mcToScene } from "../coords.js";
 import { esc } from "./store.js";
+import { addToOverlay, Z } from "./sight.js";
 
 const COLOR = 0xe8d9a8;
 export const PIN_MIN = 0.5;
@@ -80,7 +81,7 @@ export class PinLayer {
       });
       box.addChild(s);
     }
-    (canvas.interface ?? canvas.stage).addChild(box);
+    addToOverlay(box, Z.pins);
     this.container = box;
   }
 

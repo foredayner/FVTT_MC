@@ -12,6 +12,7 @@ import { ClueLayer } from "./clue-layer.js";
 import { StairsLayer, readStairs, viewY } from "./stairs-layer.js";
 import { PinLayer } from "./pin-layer.js";
 import { PlaceLayer, readPlaces } from "./place-layer.js";
+import { watchFogReset } from "./sight.js";
 import { ClueView } from "./clue-view.js";
 import { ClueConfig } from "./clue-config.js";
 import { ClueBoard } from "./clue-board.js";
@@ -30,6 +31,7 @@ export class ClueSystem {
     this.stairs = new StairsLayer(this);
     this.pins = new PinLayer(this);
     this.placeNames = new PlaceLayer(this);
+    watchFogReset(MODULE_ID);
     this.views = new Map();      // placeId -> ClueView (mine)
     this.rolling = new Set();    // "placeId:userId" spot checks in progress
     this.gmPages = new Map();    // journal uuid -> lines about its later pages (GM tooltip)
@@ -162,9 +164,21 @@ export class ClueSystem {
     if (c.revealed) await this.relayPlace({ ...c, x: at.x, y: at.y, z: at.z }); // the old one there goes first
   }
 
+  /**
+   * Put a clue in Minecraft. The relay lifts one lying inside a block (a floor, the ground, a
+   * table) to the open block above: that height is kept here too. Returns true if it was lifted.
+   */
   async relayPlace(c) {
-    if (!this.hub.relay) return;
-    try { await this.hub.relay.call("cluePlace", { clue: c.id, x: c.x, y: c.y, z: c.z, item: c.item }); } catch (err) { ui.notifications.warn(`${L("Clue.PlaceFailed")}: ${err.message}`); }
+    if (!this.hub.relay) return false;
+    let r;
+    try { r = await this.hub.relay.call("cluePlace", { clue: c.id, x: c.x, y: c.y, z: c.z, item: c.item }); } catch (err) {
+      ui.notifications.warn(`${L("Clue.PlaceFailed")}: ${err.message}`);
+      return false;
+    }
+    if (!Number.isFinite(r?.y) || r.y === c.y || !this.isHost()) return false;
+    const scene = game.scenes.find((sc) => sc.getFlag(MODULE_ID, "map") && this.placed(sc)[c.id]);
+    if (scene) await this.save(c.id, { y: r.y }, scene);
+    return true;
   }
 
   async remove(id, scene = this.scene) {
@@ -181,6 +195,14 @@ export class ClueSystem {
       for (const c of Object.values(this.placed(scene))) if (c.revealed) list.push({ clue: c.id, x: c.x, y: c.y, z: c.z, item: c.item });
     }
     try { await this.hub.relay.call("clueKnown", { list }); } catch { /* older relay */ }
+    // Each clue put again: one lying inside a block (an older build marked some in the floor) is
+    // lifted where it can be seen.
+    let lifted = 0;
+    for (const scene of game.scenes) {
+      if (!scene.getFlag(MODULE_ID, "map")) continue;
+      for (const c of Object.values(this.placed(scene))) if (c.revealed && await this.relayPlace(c)) lifted++;
+    }
+    if (lifted) ui.notifications.info(L("Clue.Lifted", { n: lifted }));
   }
 
   /**
@@ -300,6 +322,20 @@ export class ClueSystem {
     if (this.isHost()) return this.pin(game.user.id, msg).catch((err) => ui.notifications.warn(err.message));
     if (!game.users.activeGM) { ui.notifications.warn(L("Notify.NoGM")); return; }
     game.socket.emit(SOCKET, msg);
+  }
+
+  /** A player's character has had part of a place in sight: its name shows for everyone. */
+  requestPlaceSeen(id) {
+    const msg = { t: "placeSeen", from: game.user.id, place: String(id).slice(0, 80) };
+    if (this.isHost()) return this.placeSeen(msg);
+    game.socket.emit(SOCKET, msg);
+  }
+
+  async placeSeen(m) {
+    const scene = this.scene;
+    const places = scene?.getFlag(MODULE_ID, "places") ?? [];
+    if (!places.some((p) => p.id === m.place) || scene.getFlag(MODULE_ID, "placesSeen")?.[m.place]) return;
+    await scene.update({ [`flags.${MODULE_ID}.placesSeen.${m.place}`]: true });
   }
 
   /** The one who pinned it, or the GM: its size (for everyone). */
@@ -595,6 +631,10 @@ export class ClueSystem {
       const from = (typeof sender === "string" && game.users.get(sender)) ? sender : data.from;
       if (!["use", "take", "check"].includes(data.op)) return;
       this.handle(from, data.op, data.place, data.page).catch((err) => this.tell(from, { t: "clueError", text: err.message }));
+      return;
+    }
+    if (data.t === "placeSeen") {
+      if (this.isHost()) this.placeSeen(data).catch(() => {});
       return;
     }
     if (data.t === "pinReq" || data.t === "pinDel" || data.t === "pinSize") {

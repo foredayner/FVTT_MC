@@ -194,6 +194,23 @@ async function startRelay (cfg, log = console) {
     }
   }, Math.max(250, cfg.map.refreshMs))
 
+  // The scenario builder's file in the world: its town and places are the scenario's area; the map
+  // outside them is drawn plain. Looked at now and then (the file is written again when a clue
+  // is moved in the builder, or the town is built again).
+  let areaHash = null
+  const areaCheck = () => {
+    try {
+      const f = readScenarioFile(cfg.serverDir)
+      const hash = f?.hash ?? null
+      if (hash === areaHash) return
+      areaHash = hash
+      if (scanner.setArea(f?.data ?? null)) scanner.rescanAll(bots.onlineBots().map((e) => e.bot))
+    } catch (err) { log.warn(`시나리오 영역 확인 실패: ${err.message}`) }
+  }
+  areaCheck()
+  const areaTimer = setInterval(areaCheck, 30000)
+  areaTimer.unref?.()
+
   // 3D world: keep the columns around every character streamed.
   const world3dTimer = cfg.viewer.enabled
     ? setInterval(() => { try { world3d.update(bots.onlineBots().map((e) => e.bot)) } catch (err) { log.warn(`3D 갱신 실패: ${err.message}`) } }, 500)
@@ -208,6 +225,7 @@ async function startRelay (cfg, log = console) {
     clearInterval(heartbeat)
     clearInterval(stateTimer)
     clearInterval(mapTimer)
+    clearInterval(areaTimer)
     clearInterval(displayTimer)
     if (world3dTimer) clearInterval(world3dTimer)
     scanner.close()

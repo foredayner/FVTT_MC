@@ -1,10 +1,17 @@
 // Place names on the map scene: each place the scenario builder built (from its file) named in
-// the middle of its lot, for everyone; the bigger the place, the bigger the name. Only the places
-// of the floor one is on (a cellar's name when looking underground).
+// the middle of its lot; the bigger the place, the bigger the name. Only the places of the floor
+// one is on (a cellar's name when looking underground).
+// A name is hidden from players until some character has had part of the place in sight; then it
+// shows for everyone (kept on the scene; a fog reset hides them all again). While the name's spot
+// is in one's own sight it is hidden (the place itself is there to see). The GM sees every name,
+// the ones not found yet faint.
 
 import { MODULE_ID } from "../constants.js";
 import { mcToScene } from "../coords.js";
 import { viewY, onFloor } from "./stairs-layer.js";
+import { inSight, onSightChange, addToOverlay, Z } from "./sight.js";
+
+const FAINT = 0.45;
 
 /** The places in a builder file: [{id, name, x1, z1, x2, z2, y, outdoor}] (world blocks). */
 export function readPlaces(data) {
@@ -31,6 +38,20 @@ export function labelSize(wBlocks, dBlocks, grid) {
   return Math.max(grid * 0.7, Math.min(grid * 3, side * grid * 0.22));
 }
 
+/**
+ * Points (scene pixels) over a place's area to test for sight: every block's middle, or a coarser
+ * grid over a big place (at most about 400 points).
+ */
+export function areaPoints(p, map, dims) {
+  const w = p.x2 - p.x1 + 1; const d = p.z2 - p.z1 + 1;
+  const step = Math.max(1, Math.ceil(Math.sqrt((w * d) / 400)));
+  const out = [];
+  for (let x = p.x1; x <= p.x2; x += step) {
+    for (let z = p.z1; z <= p.z2; z += step) out.push(mcToScene({ x: x + 0.5, z: z + 0.5 }, map, dims));
+  }
+  return out;
+}
+
 export class PlaceLayer {
   constructor(system) {
     this.system = system;
@@ -45,6 +66,36 @@ export class PlaceLayer {
     system.hub.addEventListener("state", foundry.utils.throttle(() => {
       if (this.floorKey() !== this.shownFloor) this.draw();
     }, 300));
+    onSightChange(() => this.refreshSight(), 250);
+    // A fog reset (GM): every place unfound again; and the names drawn again either way.
+    Hooks.on(`${MODULE_ID}.fogReset`, () => {
+      if (game.user.isGM && this.system.scene) this.system.scene.unsetFlag(MODULE_ID, "placesSeen").catch(() => {});
+      this.draw();
+    });
+  }
+
+  seen(scene = this.system.scene) { return scene?.getFlag(MODULE_ID, "placesSeen") ?? {}; }
+
+  /**
+   * Player: a place not found yet whose area is partly in sight is found (for everyone); a name
+   * whose spot is in sight is hidden while it is.
+   */
+  refreshSight() {
+    const box = this.container;
+    const scene = this.system.scene;
+    if (!box || box.destroyed || !scene) return;
+    const seen = this.seen(scene);
+    const tol = scene.grid.size * 0.4;
+    for (const t of box.children) {
+      if (!t.place) continue;
+      const found = !!seen[t.place.id];
+      if (game.user.isGM) { t.visible = true; t.alpha = found ? 0.9 : FAINT; continue; }
+      if (!found && !this.asked?.has(t.place.id) && inSight(t.cells, tol)) {
+        (this.asked ??= new Set()).add(t.place.id);
+        this.system.requestPlaceSeen(t.place.id);
+      }
+      t.visible = found && !inSight([{ x: t.x, y: t.y }], tol);
+    }
   }
 
   floorKey() {
@@ -54,6 +105,7 @@ export class PlaceLayer {
 
   draw() {
     this.clear();
+    this.asked = new Set();
     const scene = this.system.scene;
     if (!scene || !canvas.ready) return;
     const places = scene.getFlag(MODULE_ID, "places") ?? [];
@@ -81,11 +133,13 @@ export class PlaceLayer {
       if (fit < 1) text.scale.set(Math.max(0.35, fit));
       text.position.set(at.x, at.y);
       text.alpha = 0.9;
+      text.place = p;
+      text.cells = areaPoints(p, map, dims);
       box.addChild(text);
     }
-    const parent = canvas.interface ?? canvas.stage;
-    parent.addChildAt(box, 0); // under the clues, pins and stairs
+    addToOverlay(box, Z.places); // under the stairs, clues and pins
     this.container = box;
+    this.refreshSight();
   }
 
   clear() {

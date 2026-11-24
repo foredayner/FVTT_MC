@@ -1,6 +1,6 @@
-// Clues drawn on the map scene (the GM drags one to move it): an icon on each clue a player has seen, every clue for the GM
-// (hidden ones faint until spotted). Only the clues of the floor one is on. For a player only
-// while in sight of their character; once seen, a clue out of sight stays faint where it was.
+// Clues drawn on the map scene (the GM drags one to move it): an icon on each clue a player has
+// seen, every clue for the GM (hidden ones faint until spotted). Only the clues of the floor one
+// is on, and for a player only while in sight of their character (its vision circle).
 // Hovering shows what is there at a glance (and, for the GM, what more there is); right-clicking
 // looks at it.
 
@@ -8,9 +8,7 @@ import { MODULE_ID, L } from "../constants.js";
 import { mcToScene, sceneToMc } from "../coords.js";
 import { visibleTo, esc } from "./store.js";
 import { viewY, onFloor } from "./stairs-layer.js";
-
-/** How a clue out of sight that one has seen before shows. */
-const FAINT = 0.35;
+import { inSight, onSightChange, addToOverlay, Z } from "./sight.js";
 
 export const DEFAULT_ICON = `modules/${MODULE_ID}/assets/clue.svg`;
 
@@ -29,8 +27,7 @@ export class ClueLayer {
     system.hub.addEventListener("state", foundry.utils.throttle(() => {
       if (this.floorKey() !== this.shownFloor) this.draw();
     }, 300));
-    const sight = foundry.utils.throttle(() => this.refreshSight(), 150);
-    for (const hook of ["sightRefresh", "visibilityRefresh", "refreshToken", "updateToken"]) Hooks.on(hook, sight);
+    onSightChange(() => this.refreshSight());
   }
 
   floorKey() {
@@ -38,33 +35,15 @@ export class ClueLayer {
     return vy === null ? "all" : String(Math.floor((vy + 2.5) / 5));
   }
 
-  /** The clues of this scene one has had in sight (kept on one's user, so a reload keeps them). */
-  sighted(scene = this.system.scene) {
-    return game.user.getFlag(MODULE_ID, `sighted.${scene?.id}`) ?? {};
-  }
-
-  /** Player: each clue drawn in full while in sight, faint once seen and out of sight, else not at all. */
+  /** Player: a clue shows only while it is in sight of one's character (its vision circle). */
   refreshSight() {
     const box = this.container;
     const scene = this.system.scene;
     if (!box || box.destroyed || !scene || game.user.isGM) return;
-    const vis = canvas.visibility;
     const tol = scene.grid.size * 0.35;
-    const had = this.sighted(scene);
-    const now = {};
     for (const sprite of box.children) {
-      const id = sprite.clueId;
-      if (!id) continue;
-      let inSight = true;
-      if (vis?.tokenVision) {
-        try { inSight = vis.testVisibility({ x: sprite.x, y: sprite.y }, { tolerance: tol }); } catch { inSight = true; }
-      }
-      if (inSight && !had[id]) now[id] = true;
-      sprite.visible = inSight || !!had[id];
-      sprite.alpha = inSight ? 1 : FAINT;
-    }
-    if (Object.keys(now).length) {
-      game.user.update({ [`flags.${MODULE_ID}.sighted.${scene.id}`]: now }).catch(() => {});
+      if (!sprite.clueId) continue;
+      sprite.visible = inSight([{ x: sprite.x, y: sprite.y }], tol);
     }
   }
 
@@ -112,7 +91,7 @@ export class ClueLayer {
       sprite.clueId = c.id;
       box.addChild(sprite);
     }
-    (canvas.interface ?? canvas.stage).addChild(box);
+    addToOverlay(box, Z.clues);
     this.container = box;
     this.refreshSight();
   }

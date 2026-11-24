@@ -274,7 +274,8 @@
       "OnlyLabel": "Shown to",
       "OnlyHint": "Only the ticked players see it on the map (none ticked: everyone). Tick more later to show it to them. In Minecraft it lies there for everyone once revealed.",
       "Moved": "Moved the clue: {name}",
-      "DragHint": "GM: drag to move"
+      "DragHint": "GM: drag to move",
+      "Lifted": "Lifted {n} clue(s) that lay inside a block to where they can be seen"
     },
     "Hotbar": {
       "Book": "{name} (a book)"

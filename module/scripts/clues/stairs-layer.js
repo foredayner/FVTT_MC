@@ -6,6 +6,7 @@
 
 import { MODULE_ID, L } from "../constants.js";
 import { mcToScene } from "../coords.js";
+import { inSight, onSightChange, addToOverlay, Z } from "./sight.js";
 import { viewOf } from "../map-view.js";
 import { esc } from "./store.js";
 
@@ -58,6 +59,7 @@ export class StairsLayer {
       if (scene.id === canvas.scene?.id && foundry.utils.hasProperty(change, `flags.${MODULE_ID}`)) redraw();
     });
     Hooks.on("canvasTearDown", () => { this.container = null; this.hideTip(); });
+    onSightChange(() => this.refreshSight());
     // The signs follow one's floor: redraw when it changes.
     system.hub.addEventListener("state", foundry.utils.throttle(() => {
       if (this.signature() !== this.shown) this.draw();
@@ -94,6 +96,9 @@ export class StairsLayer {
       const lower = this.sameFloor(f.bottom[1], y);
       const upper = this.sameFloor(f.top[1], y);
       if (!lower && !upper) return;
+      // One flight's marks together: shown to a player only while some of it is in sight.
+      const fl = new PIXI.Container();
+      fl.eventMode = "passive";
       // The steps: a band with an arrow up them.
       const band = new PIXI.Graphics();
       const a = at(f.steps[0][0], f.steps[0][2]);
@@ -114,13 +119,24 @@ export class StairsLayer {
       band.on("pointermove", (ev) => this.moveTip(ev));
       band.on("pointerout", () => this.hideTip());
       band.on("pointerdown", (ev) => this.clicked(ev, f, way));
-      box.addChild(band);
-      if (lower) box.addChild(this.sign(f, i, "up", a, g));
-      if (upper) box.addChild(this.sign(f, i, "down", b, g));
+      fl.addChild(band);
+      if (lower) fl.addChild(this.sign(f, i, "up", a, g));
+      if (upper) fl.addChild(this.sign(f, i, "down", b, g));
+      fl.sightPoints = [a, b, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }];
+      box.addChild(fl);
     });
-    (canvas.interface ?? canvas.stage).addChild(box);
+    addToOverlay(box, Z.stairs);
     this.container = box;
     this.shown = this.signature();
+    this.refreshSight();
+  }
+
+  /** Player: a flight's marks show only while some of it is in sight of one's character. */
+  refreshSight() {
+    const box = this.container;
+    if (!box || box.destroyed || game.user.isGM) return;
+    const tol = (this.scene?.grid.size ?? 100) * 0.35;
+    for (const fl of box.children) if (fl.sightPoints) fl.visible = inSight(fl.sightPoints, tol);
   }
 
   /** A round sign at one end of a flight: right-click to walk up (or down) it. */
