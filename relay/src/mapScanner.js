@@ -412,7 +412,7 @@ class MapScanner {
 
   /**
    * Outdoors, stairs that are steps (up to a door, a porch, a terrace), not a roof: beside them is
-   * ground that is not stairs, level with them or a block lower.
+   * natural ground or a path, level with them or a block lower.
    */
   groundStep (x, y, z, nameAt, surface) {
     const p = new Vec3(0, 0, 0)
@@ -421,7 +421,8 @@ class MapScanner {
       try { n = surface(x + dx, z + dz) } catch { n = null }
       if (!n || n.y > y || n.y < y - 1) continue
       p.set(x + dx, n.y, z + dz)
-      if (!STAIRS_RE.test(nameAt(p) ?? '')) return true
+      // ground beside it (grass, a path, gravel), not a roof's ridge or a terrace of planks
+      if (GROUND_RE.test(nameAt(p) ?? '')) return true
     }
     return false
   }
