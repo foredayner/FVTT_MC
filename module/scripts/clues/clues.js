@@ -9,7 +9,7 @@ import { mcToScene } from "../coords.js";
 import { rules } from "./rules.js";
 import { clueSettings, newPlaced, visibleTo, audience, seenFor, within, plainText, readClueFile, DEFAULT_CLUE, esc } from "./store.js";
 import { ClueLayer } from "./clue-layer.js";
-import { StairsLayer, readStairs } from "./stairs-layer.js";
+import { StairsLayer, readStairs, viewY } from "./stairs-layer.js";
 import { PinLayer } from "./pin-layer.js";
 import { PlaceLayer, readPlaces } from "./place-layer.js";
 import { ClueView } from "./clue-view.js";
@@ -138,6 +138,30 @@ export class ClueSystem {
     return c;
   }
 
+  /**
+   * GM: a clue dragged to another block of the map (x, z): onto the floor there nearest the floor
+   * being looked at (on top of furniture standing there), and in Minecraft too if it lies there.
+   */
+  async moveClue(id, x, z, scene = this.scene) {
+    const c = this.placed(scene)[id];
+    if (!c || !game.user.isGM) return;
+    const near = viewY(this) ?? c.y;
+    let y = near;
+    try {
+      const r = await this.hub.relay?.call("clueSpotY", { x, z, y: near });
+      if (Number.isFinite(r?.y)) y = r.y;
+    } catch { /* an older relay, or no character near: the floor being looked at */ }
+    await this.moveTo(id, { x, y, z }, scene);
+    ui.notifications.info(L("Clue.Moved", { name: c.name }));
+  }
+
+  async moveTo(id, at, scene = this.scene) {
+    const c = this.placed(scene)[id];
+    if (!c) return;
+    await this.save(id, { x: at.x, y: at.y, z: at.z }, scene);
+    if (c.revealed) await this.relayPlace({ ...c, x: at.x, y: at.y, z: at.z }); // the old one there goes first
+  }
+
   async relayPlace(c) {
     if (!this.hub.relay) return;
     try { await this.hub.relay.call("cluePlace", { clue: c.id, x: c.x, y: c.y, z: c.z, item: c.item }); } catch (err) { ui.notifications.warn(`${L("Clue.PlaceFailed")}: ${err.message}`); }
@@ -201,8 +225,19 @@ export class ClueSystem {
     if (stairs.length) await scene.setFlag(MODULE_ID, "stairs", stairs);
     if (places.length) await scene.update({ [`flags.${MODULE_ID}.places`]: places });
     // A clue of the same name already lying at the same spot (the file loaded before) is not made twice.
-    const there = new Set(Object.values(this.placed(scene)).map((p) => `${p.name}|${p.x},${p.y},${p.z}`));
-    const fresh = clues.filter((c) => !there.has(`${c.name}|${c.x},${c.y},${c.z}`));
+    // A clue loaded before is known by its number in the file (src): one moved since in the file
+    // goes to its new spot; (an older one, without a number, by its name and spot).
+    const placed = Object.values(this.placed(scene));
+    const there = new Set(placed.map((p) => `${p.name}|${p.x},${p.y},${p.z}`));
+    const fresh = [];
+    for (const c of clues) {
+      const known = c.id ? placed.find((p) => p.src === c.id) : null;
+      if (known) {
+        if (known.x !== c.x || known.y !== c.y || known.z !== c.z) await this.moveTo(known.id, { x: c.x, y: c.y, z: c.z }, scene);
+        continue;
+      }
+      if (!there.has(`${c.name}|${c.x},${c.y},${c.z}`)) fresh.push(c);
+    }
     if (!fresh.length) return 0;
     const folder = await Folder.create({ name: `${L("Clue.Folder")}: ${scenario || L("Clue.Imported")}`, type: "JournalEntry" });
     const ruleSet = rules();
@@ -220,7 +255,8 @@ export class ClueSystem {
         name: c.name, folder: folder.id, pages,
         flags: { [MODULE_ID]: { clue: { kind: c.kind, item: c.item, radius: c.radius, spot: "regular", icon: "" } } }
       });
-      await this.place(journal, { x: c.x, y: c.y, z: c.z }, scene);
+      const made = await this.place(journal, { x: c.x, y: c.y, z: c.z }, scene);
+      if (c.id) await this.save(made.id, { src: String(c.id) }, scene);
       n++;
     }
     return n;

@@ -533,3 +533,18 @@ test('map: a lone odd cell of ground takes the colour round it; paths and props 
   assert.ok(SMALL_PLANT_RE.test('short_grass') && SMALL_PLANT_RE.test('poppy') && SMALL_PLANT_RE.test('oak_sapling') && !SMALL_PLANT_RE.test('wheat'))
   assert.ok(LEAVES_RE.test('spruce_leaves') && !LEAVES_RE.test('oak_log'))
 })
+
+test('a clue moved on the map lies on the floor there, or on the furniture standing on it', () => {
+  const { BotManager } = require('../src/botManager')
+  const solid = new Set(['5,63,5', '6,63,5', '6,64,5']) // floor; a table at 6,64,5
+  const bot = {
+    entity: {},
+    blockAt: (v) => (v.y < 0 ? null : { name: solid.has(`${v.x},${v.y},${v.z}`) ? 'stone' : 'air', boundingBox: solid.has(`${v.x},${v.y},${v.z}`) ? 'block' : 'empty' })
+  }
+  const m = Object.create(BotManager.prototype)
+  m.entries = new Map([['u1', { online: true, bot }]])
+  assert.deepStrictEqual(m.spotY(5.5, 5.5, 64), { y: 64 })
+  assert.deepStrictEqual(m.spotY(6.2, 5.9, 64), { y: 65 }, 'on the table')
+  m.entries = new Map()
+  assert.deepStrictEqual(m.spotY(5, 5, 64), { y: null })
+})

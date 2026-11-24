@@ -1,11 +1,11 @@
-// Clues drawn on the map scene: an icon on each clue a player has seen, every clue for the GM
+// Clues drawn on the map scene (the GM drags one to move it): an icon on each clue a player has seen, every clue for the GM
 // (hidden ones faint until spotted). Only the clues of the floor one is on. For a player only
 // while in sight of their character; once seen, a clue out of sight stays faint where it was.
 // Hovering shows what is there at a glance (and, for the GM, what more there is); right-clicking
 // looks at it.
 
 import { MODULE_ID, L } from "../constants.js";
-import { mcToScene } from "../coords.js";
+import { mcToScene, sceneToMc } from "../coords.js";
 import { visibleTo, esc } from "./store.js";
 import { viewY, onFloor } from "./stairs-layer.js";
 
@@ -108,12 +108,47 @@ export class ClueLayer {
       sprite.on("pointermove", (ev) => this.moveTip(ev));
       sprite.on("pointerout", () => this.hideTip());
       sprite.on("rightdown", (ev) => { ev.stopPropagation(); this.hideTip(); this.system.request("use", c.id); });
+      if (isGM) this.draggable(sprite, c, box, map, dims);
       sprite.clueId = c.id;
       box.addChild(sprite);
     }
     (canvas.interface ?? canvas.stage).addChild(box);
     this.container = box;
     this.refreshSight();
+  }
+
+  /** GM: drag a clue's icon to another block to move the clue there (in Minecraft too). */
+  draggable(sprite, c, box, map, dims) {
+    let drag = null;
+    sprite.on("pointerdown", (ev) => {
+      if ((ev.button ?? 0) !== 0) return;
+      ev.stopPropagation(); // not a walk to the spot, nor a selection box
+      this.hideTip();
+      drag = { from: { x: sprite.x, y: sprite.y }, moved: false };
+    });
+    sprite.on("globalpointermove", (ev) => {
+      if (!drag) return;
+      const p = ev.getLocalPosition(box);
+      if (!drag.moved && Math.hypot(p.x - drag.from.x, p.y - drag.from.y) < dims.grid * 0.3) return;
+      drag.moved = true;
+      sprite.position.set(p.x, p.y);
+      sprite.zIndex = 10;
+    });
+    const drop = (ev) => {
+      if (!drag) return;
+      const d = drag; drag = null;
+      if (!d.moved) return;
+      const p = ev.getLocalPosition(box);
+      const mc = sceneToMc({ x: p.x, y: p.y }, map, dims);
+      const x = Math.floor(mc.x); const z = Math.floor(mc.z);
+      if (x === c.x && z === c.z) { sprite.position.set(d.from.x, d.from.y); return; }
+      this.system.moveClue(c.id, x, z).catch((err) => {
+        sprite.position.set(d.from.x, d.from.y);
+        ui.notifications.warn(err.message);
+      });
+    };
+    sprite.on("pointerup", drop);
+    sprite.on("pointerupoutside", drop);
   }
 
   clear() {
@@ -138,6 +173,7 @@ export class ClueLayer {
         + (fails.length ? `<br>${esc(L("Clue.SpotFailed", { who: fails.join(", ") }))}` : "") + `</div>`);
       const more = this.system.gmPages?.get(c.uuid);
       if (more?.length) lines.push(`<div class="bwb-tip-gm">${more.map((p) => esc(p)).join("<br>")}</div>`);
+      lines.push(`<div class="bwb-tip-note">${esc(L("Clue.DragHint"))}</div>`);
     }
     return lines.join("");
   }

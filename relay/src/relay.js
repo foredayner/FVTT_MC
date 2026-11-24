@@ -92,6 +92,8 @@ async function startRelay (cfg, log = console) {
     // Clues (GM): objects in the world, items given; players' hotbar.
     cluePlace: (m) => clues.place(m),
     clueRemove: (m) => clues.remove(m),
+    // Where a clue moved to column x, z lies: {y} (or {y: null}).
+    clueSpotY: (m) => bots.spotY(num(m.x), num(m.z), num(m.y)),
     clueKnown: (m) => clues.known(m.list),
     clueGive: (m) => {
       const e = bots.entries.get(String(m.key))

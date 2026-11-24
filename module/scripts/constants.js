@@ -8,7 +8,7 @@ export const PLAYER_INTENTS = new Set([
   "hotbar", "climb", "useDoor"
 ]);
 /** GM-only relay calls. */
-export const GM_INTENTS = new Set(["gm", "resync", "mapView", "door", "secret", "cluePlace", "clueRemove", "clueKnown", "clueGive", "scenarioFile"]);
+export const GM_INTENTS = new Set(["gm", "resync", "mapView", "door", "secret", "cluePlace", "clueRemove", "clueKnown", "clueGive", "scenarioFile", "clueSpotY"]);
 
 export const ENTITY_COLORS = {
   hostile: [230, 40, 40],

@@ -112,6 +112,29 @@ class BotManager extends EventEmitter {
 
   info (key, text) { this.emit('event', { kind: 'info', key, text }) }
 
+  /**
+   * Where a clue lies in column x, z: the open block nearest height `near` with something under it
+   * (on furniture if furniture stands there), seen by any character that has the column loaded.
+   * {y} or {y: null} when no character sees it.
+   */
+  spotY (x, z, near) {
+    const bx = Math.floor(x); const bz = Math.floor(z); const ny = Math.floor(near)
+    for (const e of this.entries.values()) {
+      const bot = e.bot
+      if (!e.online || !bot?.entity || typeof bot.blockAt !== 'function') continue
+      const at = (y) => bot.blockAt(new Vec3(bx, y, bz), false)
+      if (!at(ny)) continue // not loaded for this one
+      const open = (b) => !!b && b.boundingBox === 'empty' && !/water|lava/.test(b.name)
+      for (const dy of [0, 1, -1, 2, -2, 3, -3, 4]) {
+        const y = ny + dy
+        const here = at(y); const under = at(y - 1)
+        if (open(here) && under && under.boundingBox !== 'empty') return { y }
+      }
+      return { y: null }
+    }
+    return { y: null }
+  }
+
   get (key) {
     const e = this.entries.get(key)
     if (!e || !e.online) throw new Error('해당 캐릭터가 접속 중이 아닙니다')

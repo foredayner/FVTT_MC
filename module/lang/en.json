@@ -272,7 +272,9 @@
       "AutoTitle": "Scenario builder file",
       "AutoAsk": "The Minecraft world '{world}' has a scenario builder file ({title}: {clues} clues, {stairs} flights of stairs). Load it onto this map scene ({scene})?",
       "OnlyLabel": "Shown to",
-      "OnlyHint": "Only the ticked players see it on the map (none ticked: everyone). Tick more later to show it to them. In Minecraft it lies there for everyone once revealed."
+      "OnlyHint": "Only the ticked players see it on the map (none ticked: everyone). Tick more later to show it to them. In Minecraft it lies there for everyone once revealed.",
+      "Moved": "Moved the clue: {name}",
+      "DragHint": "GM: drag to move"
     },
     "Hotbar": {
       "Book": "{name} (a book)"

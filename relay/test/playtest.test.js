@@ -256,6 +256,21 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     note(`clue ${cl.id} (${cl.kind}) at ${cl.x},${cl.y},${cl.z}: ${r.ok ? 'placed' : 'NOT placed ' + r.error}; ${n.trim()}; in air: ${/passed/.test(at)}`)
     if (!r.ok || !/count: 2/.test(n)) problem(`clue ${cl.id} not placed in the world`)
   }
+  // A clue moved (dragged on the map): its new spot's height asked of the relay, placed there, the old one gone.
+  {
+    const cl = file.clues[0]
+    const r = await c.call('clueSpotY', { x: cl.x + 1, z: cl.z, y: cl.y })
+    const y = r.ok ? r.result?.y ?? r.y : null
+    note(`moving clue ${cl.id} one block east: the floor there at y ${y}`)
+    if (Number.isFinite(y)) {
+      await c.call('cluePlace', { clue: cl.id, x: cl.x + 1, y, z: cl.z, item: cl.item || 'paper' })
+      const all = String(await rcon(`execute if entity @e[tag=bwb_c_${cl.id}]`))
+      const there = String(await rcon(`execute positioned ${cl.x + 1.5} ${y} ${cl.z + 0.5} if entity @e[tag=bwb_c_${cl.id},distance=..1]`))
+      note(`after the move: ${all.trim()}; at the new spot: ${there.trim()}`)
+      if (!/count: 2/.test(all) || !/count: [12]/.test(there)) problem(`moving clue ${cl.id} did not leave it (only) at its new spot`)
+      await c.call('cluePlace', { clue: cl.id, x: cl.x, y: cl.y, z: cl.z, item: cl.item || 'paper' })
+    }
+  }
   // The clues near the character reach the game table's 3D view as their items' pictures.
   const items = new Set(c.msgs.filter((m) => m.type === 'disp').flatMap((m) => (m.add ?? []).filter((p) => p.item).map((p) => p.item)))
   note(`item displays the 3D view gets: ${[...items].join(', ') || 'none'}`)
