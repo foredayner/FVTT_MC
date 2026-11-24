@@ -100,7 +100,8 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
   const problem = (s) => { problems.push(s); note(`PROBLEM: ${s}`) }
   const play = JSON.parse(fs.readFileSync(path.join(PLAY, 'playtest.json'), 'utf8'))
   const file = JSON.parse(fs.readFileSync(path.join(PLAY, 'clues.json'), 'utf8'))
-  const server = startServer(path.join(os.tmpdir(), `bwb-play-${process.pid}`))
+  const serverDir = path.join(os.tmpdir(), `bwb-play-${process.pid}`)
+  const server = startServer(serverDir)
   t.after(() => {
     fs.writeFileSync(path.join(OUT, 'report.txt'), report.join('\n') + '\n')
     fs.writeFileSync(path.join(OUT, 'server.log'), server.log().slice(-80000))
@@ -116,7 +117,7 @@ test('play test in a building the scenario builder made', { skip: !(JAR && PLAY)
     minecraft: { host: '127.0.0.1', port: MC_PORT, version: '1.21.4', auth: 'offline' },
     rcon: { enabled: true, host: '127.0.0.1', port: RCON_PORT, password: RCON_PASS },
     viewer: { enabled: false },
-    serverDir: dir
+    serverDir
   })
   const relay = await startRelay(cfg, { log () {}, warn (s) { note(`relay warn: ${s}`) } })
   note(`the scenario's area from the world's builder file: ${relay.scanner.area ? relay.scanner.area.length + ' rectangles' : 'none'}`)
