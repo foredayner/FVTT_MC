@@ -35,6 +35,7 @@ jobs:
         continue-on-error: true
         env:
           BWB_LIVE_JAR: ${{ runner.temp }}/paper.jar
+          BWB_WALK_DEBUG: "1"
           BWB_LIVE_OUT: ${{ runner.temp }}/live-out
         run: |
           npm --prefix relay ci
